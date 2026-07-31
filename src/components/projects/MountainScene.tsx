@@ -2,52 +2,64 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Lock } from "lucide-react";
+import WireTerrain, { type Summit } from "./WireTerrain";
 import type { ProjectTrack } from "@/lib/projects-data";
 
 export type TrackChoice = ProjectTrack | "all" | "request";
 
 interface Peak {
   key: TrackChoice;
-  /** موضع القمة أفقيًا % */
-  x: number;
-  /** ارتفاع القمة % من أسفل المشهد */
-  h: number;
   labelAr: string;
   labelEn: string;
   minRank: number;
-  /** قمة غير مكتملة (مقطوعة الرأس) */
+  summit: Summit;
+  /** قمة لم تكتمل */
   unfinished?: boolean;
+  /** حجم التسمية */
+  major?: boolean;
 }
 
 const PEAKS: Peak[] = [
-  { key: "private", x: 50, h: 88, labelAr: "مشاريع خاصة", labelEn: "Private Ventures", minRank: 5 },
-  { key: "ground", x: 24, h: 60, labelAr: "مشاريع على أرض الواقع", labelEn: "Ground Operations", minRank: 1 },
-  { key: "online", x: 76, h: 55, labelAr: "مشاريع على الإنترنت", labelEn: "Digital Ventures", minRank: 1 },
-  { key: "request", x: 38, h: 34, labelAr: "طلب إنشاء مشروعك الخاص", labelEn: "Request Your Own Venture", minRank: 1, unfinished: true },
-  { key: "all", x: 62, h: 30, labelAr: "الكل", labelEn: "All Tracks", minRank: 1 },
+  {
+    key: "private",
+    labelAr: "مشاريع خاصة",
+    labelEn: "Private Ventures",
+    minRank: 5,
+    major: true,
+    summit: { wx: -0.02, wz: 0.86, height: 0.62, spread: 0.34 },
+  },
+  {
+    key: "ground",
+    labelAr: "مشاريع على أرض الواقع",
+    labelEn: "Ground Operations",
+    minRank: 1,
+    summit: { wx: -0.62, wz: 0.72, height: 0.44, spread: 0.3 },
+  },
+  {
+    key: "online",
+    labelAr: "مشاريع على الإنترنت",
+    labelEn: "Digital Ventures",
+    minRank: 1,
+    summit: { wx: 0.58, wz: 0.68, height: 0.4, spread: 0.29 },
+  },
+  {
+    key: "request",
+    labelAr: "طلب إنشاء مشروعك الخاص",
+    labelEn: "Request Your Own Venture",
+    minRank: 1,
+    unfinished: true,
+    summit: { wx: -0.42, wz: 0.3, height: 0.3, spread: 0.24 },
+  },
+  {
+    key: "all",
+    labelAr: "الكل",
+    labelEn: "All Tracks",
+    minRank: 1,
+    summit: { wx: 0.4, wz: 0.27, height: 0.28, spread: 0.23 },
+  },
 ];
 
-/** يبني مسار جبل مثلثي بقاعدة عريضة */
-function peakPath(cx: number, topY: number, halfW: number, baseY: number, jag = 0) {
-  // jag: انكسار بسيط على الحافة لإحساس صخري
-  const lx = cx - halfW;
-  const rx = cx + halfW;
-  if (!jag) return `M ${lx} ${baseY} L ${cx} ${topY} L ${rx} ${baseY} Z`;
-  const m1x = cx - halfW * 0.42;
-  const m1y = topY + (baseY - topY) * 0.34 + jag;
-  const m2x = cx + halfW * 0.5;
-  const m2y = topY + (baseY - topY) * 0.28 - jag * 0.6;
-  return `M ${lx} ${baseY} L ${m1x} ${m1y} L ${cx} ${topY} L ${m2x} ${m2y} L ${rx} ${baseY} Z`;
-}
-
-/** قمة مقطوعة (غير مكتملة) */
-function truncatedPath(cx: number, topY: number, halfW: number, baseY: number) {
-  const lx = cx - halfW;
-  const rx = cx + halfW;
-  const tl = cx - halfW * 0.26;
-  const tr = cx + halfW * 0.26;
-  return `M ${lx} ${baseY} L ${tl} ${topY} L ${tr} ${topY} L ${rx} ${baseY} Z`;
-}
+const SUMMITS = PEAKS.map((p) => p.summit);
 
 export default function MountainScene({
   isAr,
@@ -63,15 +75,16 @@ export default function MountainScene({
   onEnter: () => void;
 }) {
   const [hover, setHover] = useState<TrackChoice | null>(null);
+  const [pts, setPts] = useState<{ x: number; y: number }[]>([]);
+  const [box, setBox] = useState({ w: 1, h: 1 });
 
-  const VB_W = 1000;
-  const VB_H = 560;
-  const BASE = 500; // خط الأرض داخل الـ viewBox
+  const selIdx = PEAKS.findIndex((p) => p.key === selected);
+  const hovIdx = PEAKS.findIndex((p) => p.key === hover);
 
   return (
     <div className="relative w-full" dir={isAr ? "rtl" : "ltr"}>
-      {/* عنوان القسم */}
-      <div className="mb-8 text-center">
+      {/* العنوان */}
+      <div className="mb-7 text-center">
         <p className="mono text-[0.58rem] uppercase tracking-[0.4em] text-[#4d545f]">
           {isAr ? "بوابة المشاريع" : "Venture Gateway"}
         </p>
@@ -89,211 +102,105 @@ export default function MountainScene({
       </div>
 
       {/* المشهد */}
-      <div className="relative overflow-hidden rounded-3xl border border-[#c3c9d3]/10 bg-[#020204]">
-        {/* سماء متدرجة + نجوم */}
+      <div
+        className="relative overflow-hidden rounded-3xl border border-[#c3c9d3]/10 bg-black"
+        ref={(el) => {
+          if (el) {
+            const r = el.getBoundingClientRect();
+            if (Math.abs(r.width - box.w) > 2 || Math.abs(r.height - box.h) > 2)
+              setBox({ w: r.width, h: r.height });
+          }
+        }}
+      >
+        {/* توهج علوي خافت */}
         <div
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 z-[1]"
           style={{
             background:
-              "radial-gradient(ellipse 80% 55% at 50% 92%, rgba(195,201,211,0.10), transparent 62%), linear-gradient(to bottom, #05070c 0%, #04060a 45%, #020204 100%)",
+              "radial-gradient(ellipse 70% 40% at 50% 78%, rgba(180,200,235,0.09), transparent 65%)",
           }}
         />
-        <Stars />
 
-        <svg
-          viewBox={`0 0 ${VB_W} ${VB_H}`}
-          className="relative block h-[clamp(320px,52vw,540px)] w-full"
-          preserveAspectRatio="xMidYMax meet"
-        >
-          <defs>
-            {/* تدرّج الجبال البعيدة */}
-            <linearGradient id="mtFar" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#171d28" />
-              <stop offset="100%" stopColor="#080b11" />
-            </linearGradient>
-            {/* تدرّج الجبال النشطة */}
-            <linearGradient id="mtMain" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2b3340" />
-              <stop offset="55%" stopColor="#141a24" />
-              <stop offset="100%" stopColor="#070a0f" />
-            </linearGradient>
-            <linearGradient id="mtHot" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#4a5464" />
-              <stop offset="50%" stopColor="#222a37" />
-              <stop offset="100%" stopColor="#090c12" />
-            </linearGradient>
-            {/* توهج القمة */}
-            <radialGradient id="peakGlow">
-              <stop offset="0%" stopColor="rgba(195,201,211,0.55)" />
-              <stop offset="100%" stopColor="rgba(195,201,211,0)" />
-            </radialGradient>
-            <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="7" />
-            </filter>
-          </defs>
+        <WireTerrain
+          summits={SUMMITS}
+          activeIndex={selIdx >= 0 ? selIdx : null}
+          hoverIndex={hovIdx >= 0 ? hovIdx : null}
+          onProject={setPts}
+          className="relative z-[2] block h-[clamp(340px,54vw,560px)] w-full"
+        />
 
-          {/* طبقة جبال خلفية للعمق */}
-          <g opacity="0.55">
-            <path d={peakPath(120, 300, 190, BASE, 12)} fill="url(#mtFar)" />
-            <path d={peakPath(330, 262, 210, BASE, -10)} fill="url(#mtFar)" />
-            <path d={peakPath(680, 250, 230, BASE, 14)} fill="url(#mtFar)" />
-            <path d={peakPath(900, 292, 200, BASE, -8)} fill="url(#mtFar)" />
-          </g>
+        {/* تلاشي الحواف */}
+        <div
+          className="pointer-events-none absolute inset-0 z-[3]"
+          style={{
+            background:
+              "linear-gradient(to right, #000 0%, transparent 9%, transparent 91%, #000 100%), linear-gradient(to bottom, #000 0%, transparent 14%, transparent 88%, rgba(0,0,0,0.85) 100%)",
+          }}
+        />
 
-          {/* ضباب بين الطبقات */}
-          <rect x="0" y="380" width={VB_W} height="130" fill="url(#peakGlow)" opacity="0.16" />
-
-          {/* الجبال التفاعلية — من الخلف للأمام */}
-          {[...PEAKS]
-            .sort((a, b) => b.h - a.h)
-            .map((p, idx) => {
-              const isSel = selected === p.key;
-              const isHov = hover === p.key;
-              const active = isSel || isHov;
-
-              const cx = (p.x / 100) * VB_W;
-              const topY = BASE - (p.h / 100) * (BASE - 40);
-              const halfW = 118 + p.h * 1.5;
-
-              const d = p.unfinished
-                ? truncatedPath(cx, topY, halfW, BASE)
-                : peakPath(cx, topY, halfW, BASE, idx % 2 === 0 ? 10 : -9);
-
-              return (
-                <g
-                  key={p.key}
-                  className="cursor-pointer"
-                  onMouseEnter={() => setHover(p.key)}
-                  onMouseLeave={() => setHover(null)}
-                  onClick={() => onSelect(p.key)}
-                >
-                  {/* الجسم */}
-                  <motion.path
-                    d={d}
-                    fill={active ? "url(#mtHot)" : "url(#mtMain)"}
-                    stroke={
-                      isSel
-                        ? "rgba(234,238,245,0.55)"
-                        : active
-                        ? "rgba(195,201,211,0.3)"
-                        : "rgba(195,201,211,0.12)"
-                    }
-                    strokeWidth={isSel ? 1.6 : 1}
-                    initial={{ opacity: 0, y: 26 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.06 * idx, duration: 0.75, ease: "easeOut" }}
-                    style={{ transition: "fill 0.35s, stroke 0.35s" }}
-                  />
-
-                  {/* حافة مضيئة عند التحديد */}
-                  {isSel && (
-                    <motion.path
-                      d={d}
-                      fill="none"
-                      stroke="rgba(234,238,245,0.7)"
-                      strokeWidth="1.2"
-                      filter="url(#soft)"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: [0.35, 0.8, 0.35] }}
-                      transition={{ duration: 2.4, repeat: Infinity }}
-                    />
-                  )}
-
-                  {/* خط القمة المكسور للمشروع غير المكتمل */}
-                  {p.unfinished && (
-                    <line
-                      x1={cx - halfW * 0.26}
-                      y1={topY}
-                      x2={cx + halfW * 0.26}
-                      y2={topY}
-                      stroke="rgba(234,238,245,0.4)"
-                      strokeWidth="1.4"
-                      strokeDasharray="7 6"
-                    />
-                  )}
-
-                  {/* توهج القمة */}
-                  <circle
-                    cx={cx}
-                    cy={topY}
-                    r={active ? 34 : 20}
-                    fill="url(#peakGlow)"
-                    opacity={active ? 0.85 : 0.35}
-                    style={{ transition: "all 0.4s" }}
-                  />
-                  <circle
-                    cx={cx}
-                    cy={topY}
-                    r={isSel ? 4 : 2.6}
-                    fill="#eaeef5"
-                    opacity={active ? 1 : 0.55}
-                    style={{ transition: "all 0.3s" }}
-                  />
-                </g>
-              );
-            })}
-
-          {/* خط الأرض */}
-          <line
-            x1="0"
-            y1={BASE}
-            x2={VB_W}
-            y2={BASE}
-            stroke="rgba(195,201,211,0.16)"
-            strokeWidth="1"
-          />
-        </svg>
-
-        {/* ===== التسميات فوق القمم (HTML عشان الخط العربي) ===== */}
-        <div className="pointer-events-none absolute inset-0">
-          {PEAKS.map((p, idx) => {
+        {/* التسميات فوق القمم */}
+        <div className="absolute inset-0 z-[4]">
+          {PEAKS.map((p, i) => {
             const locked = rankOrd < p.minRank;
             const isSel = selected === p.key;
             const isHov = hover === p.key;
             const active = isSel || isHov;
-            const topPct = ((BASE - (p.h / 100) * (BASE - 40)) / VB_H) * 100;
+            const pt = pts[i];
+            if (!pt) return null;
 
             return (
               <motion.button
                 key={p.key}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 + idx * 0.09, duration: 0.6 }}
+                transition={{ delay: 0.3 + i * 0.08, duration: 0.55 }}
                 onMouseEnter={() => setHover(p.key)}
                 onMouseLeave={() => setHover(null)}
+                onFocus={() => setHover(p.key)}
+                onBlur={() => setHover(null)}
                 onClick={() => onSelect(p.key)}
-                className="pointer-events-auto absolute -translate-x-1/2 -translate-y-full whitespace-nowrap px-2 pb-3 text-center"
-                style={{ left: `${p.x}%`, top: `${topPct}%` }}
+                className="absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg px-3 pb-4 pt-1 text-center outline-none"
+                style={{
+                  left: pt.x,
+                  top: pt.y,
+                  background: p.major
+                    ? "none"
+                    : "radial-gradient(ellipse 62% 58% at 50% 42%, rgba(0,0,0,0.88), rgba(0,0,0,0) 72%)",
+                }}
               >
                 <span
                   className={[
                     "block transition-all duration-300",
-                    p.key === "private"
-                      ? "text-[clamp(0.85rem,2.1vw,1.35rem)] font-semibold"
-                      : "text-[clamp(0.62rem,1.35vw,0.88rem)] font-medium",
+                    p.major
+                      ? "text-[clamp(0.9rem,2.2vw,1.4rem)] font-semibold"
+                      : "text-[clamp(0.64rem,1.4vw,0.9rem)] font-medium",
                     isSel
-                      ? "text-white drop-shadow-[0_0_16px_rgba(234,238,245,0.7)]"
+                      ? "text-white"
                       : active
-                      ? "text-[#eaeef5]"
-                      : p.key === "private"
-                      ? "text-[#dfe4ec]"
-                      : "text-[#96a0af]",
+                      ? "text-[#f2f6ff]"
+                      : p.major
+                      ? "text-[#e4eaf4]"
+                      : "text-[#9aa5b5]",
                   ].join(" ")}
                   style={{
-                    fontFamily:
-                      p.key === "private" ? "var(--font-luxury)" : "inherit",
-                    letterSpacing: p.key === "private" ? "0.05em" : "0.02em",
-                    textShadow:
-                      p.key === "private"
-                        ? "0 2px 22px rgba(0,0,0,0.95), 0 0 34px rgba(234,238,245,0.28)"
-                        : "0 2px 14px rgba(0,0,0,0.95)",
+                    fontFamily: p.major ? "var(--font-luxury)" : "inherit",
+                    letterSpacing: p.major ? "0.05em" : "0.02em",
+                    textShadow: isSel
+                      ? "0 2px 20px rgba(0,0,0,1), 0 0 40px rgba(220,235,255,0.75)"
+                      : p.major
+                      ? "0 2px 22px rgba(0,0,0,1), 0 0 32px rgba(210,228,255,0.32)"
+                      : "0 2px 16px rgba(0,0,0,1)",
                   }}
                 >
                   {isAr ? p.labelAr : p.labelEn}
                 </span>
 
+                {p.unfinished && (
+                  <span className="mx-auto mt-1 block h-px w-14 bg-[repeating-linear-gradient(90deg,rgba(230,240,255,0.55)_0_5px,transparent_5px_10px)]" />
+                )}
+
                 {locked && (
-                  <span className="mono mt-1 inline-flex items-center gap-1 text-[0.5rem] uppercase tracking-[0.16em] text-[#7a6a4e]">
+                  <span className="mono mt-1 inline-flex items-center gap-1 text-[0.5rem] uppercase tracking-[0.16em] text-[#8a7a58]">
                     <Lock size={8} />
                     {isAr ? `رتبة ${p.minRank}+` : `TIER ${p.minRank}+`}
                   </span>
@@ -302,7 +209,7 @@ export default function MountainScene({
                 {isSel && (
                   <motion.span
                     layoutId="peak-underline"
-                    className="mx-auto mt-1.5 block h-px w-10 bg-gradient-to-r from-transparent via-[#eaeef5] to-transparent"
+                    className="mx-auto mt-1.5 block h-px w-12 bg-gradient-to-r from-transparent via-white to-transparent"
                   />
                 )}
               </motion.button>
@@ -311,7 +218,7 @@ export default function MountainScene({
         </div>
       </div>
 
-      {/* ===== زر الدخول ===== */}
+      {/* زر الدخول */}
       <div className="mt-8 flex flex-col items-center gap-3">
         <p className="mono text-[0.58rem] uppercase tracking-[0.28em] text-[#4d545f]">
           {selected
@@ -351,44 +258,6 @@ export default function MountainScene({
           {isAr ? "الدخول" : "Enter"}
         </button>
       </div>
-    </div>
-  );
-}
-
-/** نجوم ثابتة خفيفة */
-function Stars() {
-  const stars = Array.from({ length: 46 }, (_, i) => {
-    const seed = (i * 9301 + 49297) % 233280;
-    const r = seed / 233280;
-    const r2 = ((i * 4931 + 7919) % 10007) / 10007;
-    return {
-      left: r * 100,
-      top: r2 * 62,
-      size: r2 > 0.85 ? 1.6 : 1,
-      delay: (i % 7) * 0.45,
-    };
-  });
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {stars.map((s, i) => (
-        <motion.span
-          key={i}
-          className="absolute rounded-full bg-[#c3c9d3]"
-          style={{
-            left: `${s.left}%`,
-            top: `${s.top}%`,
-            width: s.size,
-            height: s.size,
-          }}
-          animate={{ opacity: [0.08, 0.5, 0.08] }}
-          transition={{
-            duration: 3.4,
-            repeat: Infinity,
-            delay: s.delay,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
     </div>
   );
 }
