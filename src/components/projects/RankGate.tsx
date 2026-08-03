@@ -55,7 +55,7 @@ export default function RankGate({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.35 }}
-      className="fixed inset-0 z-[95] flex items-center justify-center overflow-y-auto bg-[#010102] px-6 py-16"
+      className="pointer-events-none fixed inset-0 z-[95] flex items-center justify-center overflow-y-auto bg-[#010102] px-6 py-16"
       dir={isAr ? "rtl" : "ltr"}
     >
       {/* توهج خلفي خافت */}

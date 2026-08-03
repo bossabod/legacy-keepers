@@ -2,64 +2,47 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Lock } from "lucide-react";
-import WireTerrain, { type Summit } from "./WireTerrain";
+import WireTerrain, { type Anchor, type Projected } from "./WireTerrain";
 import type { ProjectTrack } from "@/lib/projects-data";
 
 export type TrackChoice = ProjectTrack | "all" | "request";
 
-interface Peak {
+interface Site {
   key: TrackChoice;
   labelAr: string;
   labelEn: string;
   minRank: number;
-  summit: Summit;
-  /** قمة لم تكتمل */
-  unfinished?: boolean;
-  /** حجم التسمية */
+  /** موقع العنوان على الأرض في فضاء العالم */
+  x: number;
+  z: number;
   major?: boolean;
 }
 
-const PEAKS: Peak[] = [
-  {
-    key: "private",
-    labelAr: "مشاريع خاصة",
-    labelEn: "Private Ventures",
-    minRank: 5,
-    major: true,
-    summit: { wx: -0.02, wz: 0.86, height: 0.62, spread: 0.34 },
-  },
-  {
-    key: "ground",
-    labelAr: "مشاريع على أرض الواقع",
-    labelEn: "Ground Operations",
-    minRank: 1,
-    summit: { wx: -0.62, wz: 0.72, height: 0.44, spread: 0.3 },
-  },
-  {
-    key: "online",
-    labelAr: "مشاريع على الإنترنت",
-    labelEn: "Digital Ventures",
-    minRank: 1,
-    summit: { wx: 0.58, wz: 0.68, height: 0.4, spread: 0.29 },
-  },
-  {
-    key: "request",
-    labelAr: "طلب إنشاء مشروعك الخاص",
-    labelEn: "Request Your Own Venture",
-    minRank: 1,
-    unfinished: true,
-    summit: { wx: -0.42, wz: 0.3, height: 0.3, spread: 0.24 },
-  },
-  {
-    key: "all",
-    labelAr: "الكل",
-    labelEn: "All Tracks",
-    minRank: 1,
-    summit: { wx: 0.4, wz: 0.27, height: 0.28, spread: 0.23 },
-  },
+/**
+ * المواقع موزّعة على مناطق مختلفة من نفس الأرض.
+ * لم يُنشأ أي ارتفاع خصيصاً لأي عنوان — العناوين توضع
+ * فوق تضاريس موجودة أصلاً.
+ */
+const SITES: Site[] = [
+  // على الكتلة المرتفعة في الجهة اليسرى
+  { key: "private", labelAr: "مشاريع خاصة", labelEn: "Private Ventures", minRank: 5, x: -980, z: 2150, major: true },
+  // ارتفاع متوسط يمين الوسط
+  { key: "ground", labelAr: "مشاريع على أرض الواقع", labelEn: "Ground Operations", minRank: 1, x: 1150, z: 1750 },
+  // ارتفاعات الخلفية البعيدة
+  { key: "online", labelAr: "مشاريع على الإنترنت", labelEn: "Digital Ventures", minRank: 1, x: 120, z: 3400 },
+  // تموّج قريب في المقدمة اليسرى
+  { key: "request", labelAr: "طلب إنشاء مشروعك الخاص", labelEn: "Request Your Own Venture", minRank: 1, x: -760, z: 1050 },
+  // تموّج قريب في المقدمة اليمنى
+  { key: "all", labelAr: "الكل", labelEn: "All Tracks", minRank: 1, x: 900, z: 1050 },
 ];
 
-const SUMMITS = PEAKS.map((p) => p.summit);
+const ANCHORS: Anchor[] = SITES.map((s) => ({ id: s.key, x: s.x, z: s.z }));
+
+/** يمنع خروج العنوان خارج حافتي الشاشة */
+function clampX(x: number) {
+  if (typeof window === "undefined") return x;
+  return Math.min(Math.max(x, 165), window.innerWidth - 165);
+}
 
 export default function MountainScene({
   isAr,
@@ -75,172 +58,166 @@ export default function MountainScene({
   onEnter: () => void;
 }) {
   const [hover, setHover] = useState<TrackChoice | null>(null);
-  const [pts, setPts] = useState<{ x: number; y: number }[]>([]);
-  const [box, setBox] = useState({ w: 1, h: 1 });
-
-  const selIdx = PEAKS.findIndex((p) => p.key === selected);
-  const hovIdx = PEAKS.findIndex((p) => p.key === hover);
+  const [pts, setPts] = useState<Record<string, Projected>>({});
 
   return (
-    <div className="relative w-full" dir={isAr ? "rtl" : "ltr"}>
-      {/* العنوان */}
-      <div className="mb-7 text-center">
-        <p className="mono text-[0.58rem] uppercase tracking-[0.4em] text-[#4d545f]">
-          {isAr ? "بوابة المشاريع" : "Venture Gateway"}
-        </p>
-        <h2
-          className="mt-3 text-3xl font-light text-[#eaeef5] sm:text-4xl"
-          style={{ fontFamily: "var(--font-luxury)" }}
-        >
-          {isAr ? "اختر مسارك" : "Choose Your Ascent"}
-        </h2>
-        <p className="mx-auto mt-3 max-w-md text-[0.82rem] leading-relaxed text-[#7f8896]">
-          {isAr
-            ? "كل قمة تفتح طبقة مختلفة من النادي. اختر قمة ثم ادخل."
-            : "Each summit opens a different stratum of the circle. Select a peak, then enter."}
-        </p>
-      </div>
-
-      {/* المشهد */}
-      <div
-        className="relative overflow-hidden rounded-3xl border border-[#c3c9d3]/10 bg-black"
-        ref={(el) => {
-          if (el) {
-            const r = el.getBoundingClientRect();
-            if (Math.abs(r.width - box.w) > 2 || Math.abs(r.height - box.h) > 2)
-              setBox({ w: r.width, h: r.height });
-          }
+    /* يمتد من أقصى اليمين إلى أقصى اليسار وحتى أسفل الشاشة،
+       ويلغي حشوة <main> بهوامش سالبة. لا إطار ولا بطاقة. */
+    <div
+      className="relative left-1/2 right-1/2 -mt-7 -mb-7 h-[calc(100vh-4.2rem)] w-screen -translate-x-1/2 overflow-hidden bg-black"
+      dir={isAr ? "rtl" : "ltr"}
+    >
+      {/* التضاريس تملأ كامل المساحة */}
+      <WireTerrain
+        anchors={ANCHORS}
+        activeId={selected}
+        hoverId={hover}
+        onProject={(list) => {
+          const m: Record<string, Projected> = {};
+          for (const p of list) m[p.id] = p;
+          setPts(m);
         }}
-      >
-        {/* توهج علوي خافت */}
-        <div
-          className="pointer-events-none absolute inset-0 z-[1]"
-          style={{
-            background:
-              "radial-gradient(ellipse 70% 40% at 50% 78%, rgba(180,200,235,0.09), transparent 65%)",
-          }}
-        />
+        className="absolute inset-0 block h-full w-full"
+      />
 
-        <WireTerrain
-          summits={SUMMITS}
-          activeIndex={selIdx >= 0 ? selIdx : null}
-          hoverIndex={hovIdx >= 0 ? hovIdx : null}
-          onProject={setPts}
-          className="relative z-[2] block h-[clamp(340px,54vw,560px)] w-full"
-        />
+      {/* عناوين الأقسام — مثبّتة فوق مناطق من الأرض */}
+      <div className="pointer-events-none absolute inset-0 z-20">
+        {SITES.map((s, i) => {
+          const p = pts[s.key];
+          if (!p || !p.visible) return null;
 
-        {/* تلاشي الحواف */}
-        <div
-          className="pointer-events-none absolute inset-0 z-[3]"
-          style={{
-            background:
-              "linear-gradient(to right, #000 0%, transparent 9%, transparent 91%, #000 100%), linear-gradient(to bottom, #000 0%, transparent 14%, transparent 88%, rgba(0,0,0,0.85) 100%)",
-          }}
-        />
+          const locked = rankOrd < s.minRank;
+          const isSel = selected === s.key;
+          const isHov = hover === s.key;
+          const on = isSel || isHov;
 
-        {/* التسميات فوق القمم */}
-        <div className="absolute inset-0 z-[4]">
-          {PEAKS.map((p, i) => {
-            const locked = rankOrd < p.minRank;
-            const isSel = selected === p.key;
-            const isHov = hover === p.key;
-            const active = isSel || isHov;
-            const pt = pts[i];
-            if (!pt) return null;
+          // ارتفاع العنوان فوق نقطته على الأرض
+          const lift = s.major ? 104 : 82;
+          const top = p.sy - lift;
 
-            return (
-              <motion.button
-                key={p.key}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + i * 0.08, duration: 0.55 }}
-                onMouseEnter={() => setHover(p.key)}
-                onMouseLeave={() => setHover(null)}
-                onFocus={() => setHover(p.key)}
-                onBlur={() => setHover(null)}
-                onClick={() => onSelect(p.key)}
-                className="absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg px-3 pb-4 pt-1 text-center outline-none"
+          return (
+            <div key={s.key}>
+              {/* خيط رفيع يربط العنوان بموقعه على التضاريس */}
+              <span
+                className="pointer-events-none absolute"
                 style={{
-                  left: pt.x,
-                  top: pt.y,
-                  background: p.major
-                    ? "none"
-                    : "radial-gradient(ellipse 62% 58% at 50% 42%, rgba(0,0,0,0.88), rgba(0,0,0,0) 72%)",
+                  left: p.sx,
+                  top,
+                  width: 1,
+                  height: lift,
+                  background: `linear-gradient(to bottom, rgba(255,255,255,${
+                    on ? 0.5 : 0.22
+                  }), rgba(255,255,255,${on ? 0.9 : 0.55}))`,
+                  transition: "background 0.35s",
                 }}
+              />
+
+              <motion.button
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 + i * 0.09, duration: 0.55 }}
+                onMouseEnter={() => setHover(s.key)}
+                onMouseLeave={() => setHover(null)}
+                onFocus={() => setHover(s.key)}
+                onBlur={() => setHover(null)}
+                onClick={() => onSelect(s.key)}
+                className="pointer-events-auto absolute -translate-x-1/2 -translate-y-full cursor-pointer whitespace-nowrap px-5 py-3 text-center outline-none"
+                style={{ left: clampX(p.sx), top }}
               >
                 <span
                   className={[
                     "block transition-all duration-300",
-                    p.major
-                      ? "text-[clamp(0.9rem,2.2vw,1.4rem)] font-semibold"
-                      : "text-[clamp(0.64rem,1.4vw,0.9rem)] font-medium",
-                    isSel
-                      ? "text-white"
-                      : active
-                      ? "text-[#f2f6ff]"
-                      : p.major
-                      ? "text-[#e4eaf4]"
-                      : "text-[#9aa5b5]",
+                    s.major
+                      ? "text-[clamp(0.78rem,1.7vw,1.12rem)] font-medium"
+                      : "text-[clamp(0.6rem,1.15vw,0.8rem)] font-light",
+                    isSel ? "text-white" : on ? "text-white" : "text-white/72",
                   ].join(" ")}
                   style={{
-                    fontFamily: p.major ? "var(--font-luxury)" : "inherit",
-                    letterSpacing: p.major ? "0.05em" : "0.02em",
+                    letterSpacing: s.major ? "0.3em" : "0.24em",
+                    textTransform: "uppercase",
                     textShadow: isSel
-                      ? "0 2px 20px rgba(0,0,0,1), 0 0 40px rgba(220,235,255,0.75)"
-                      : p.major
-                      ? "0 2px 22px rgba(0,0,0,1), 0 0 32px rgba(210,228,255,0.32)"
-                      : "0 2px 16px rgba(0,0,0,1)",
+                      ? "0 0 14px rgba(255,255,255,0.95), 0 0 38px rgba(255,255,255,0.5), 0 2px 16px #000"
+                      : on
+                      ? "0 0 12px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.35), 0 2px 16px #000"
+                      : "0 0 9px rgba(255,255,255,0.42), 0 2px 16px #000",
                   }}
                 >
-                  {isAr ? p.labelAr : p.labelEn}
+                  {isAr ? s.labelAr : s.labelEn}
                 </span>
 
-                {p.unfinished && (
-                  <span className="mx-auto mt-1 block h-px w-14 bg-[repeating-linear-gradient(90deg,rgba(230,240,255,0.55)_0_5px,transparent_5px_10px)]" />
-                )}
-
                 {locked && (
-                  <span className="mono mt-1 inline-flex items-center gap-1 text-[0.5rem] uppercase tracking-[0.16em] text-[#8a7a58]">
+                  <span className="mono mt-1 inline-flex items-center gap-1 text-[0.5rem] uppercase tracking-[0.18em] text-white/45">
                     <Lock size={8} />
-                    {isAr ? `رتبة ${p.minRank}+` : `TIER ${p.minRank}+`}
+                    {isAr ? `رتبة ${s.minRank}+` : `TIER ${s.minRank}+`}
                   </span>
                 )}
-
-                {isSel && (
-                  <motion.span
-                    layoutId="peak-underline"
-                    className="mx-auto mt-1.5 block h-px w-12 bg-gradient-to-r from-transparent via-white to-transparent"
-                  />
-                )}
               </motion.button>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* زر الدخول */}
-      <div className="mt-8 flex flex-col items-center gap-3">
-        <p className="mono text-[0.58rem] uppercase tracking-[0.28em] text-[#4d545f]">
+      {/* العنوان العلوي — نص متوهّج فقط، بلا خلفية */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 z-20 px-6 pb-10 pt-5 text-center"
+        style={{
+          background:
+            "linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0) 100%)",
+        }}
+      >
+        <p
+          className="mono text-[0.55rem] uppercase tracking-[0.42em] text-white/45"
+          style={{ textShadow: "0 2px 14px #000" }}
+        >
+          {isAr ? "بوابة المشاريع" : "Venture Gateway"}
+        </p>
+        <h2
+          className="mt-2 text-[clamp(1.1rem,2.4vw,1.7rem)] font-light uppercase tracking-[0.3em] text-white"
+          style={{
+            fontFamily: "var(--font-luxury)",
+            textShadow:
+              "0 0 16px rgba(255,255,255,0.6), 0 0 44px rgba(255,255,255,0.22), 0 2px 18px #000",
+          }}
+        >
+          {isAr ? "اختر مسارك" : "Choose Your Ascent"}
+        </h2>
+      </div>
+
+      {/* الدخول — نص متوهّج فقط */}
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-2 pb-8 pt-32"
+        style={{
+          background:
+            "linear-gradient(to top, #000 0%, rgba(0,0,0,0.95) 30%, rgba(0,0,0,0.6) 62%, rgba(0,0,0,0) 100%)",
+        }}
+      >
+        <p
+          className="mono text-[0.55rem] uppercase tracking-[0.3em] text-white/45"
+          style={{ textShadow: "0 2px 14px #000" }}
+        >
           {selected
             ? isAr
               ? "المسار المحدد"
               : "Selected Track"
             : isAr
-            ? "اختر قمة أولًا"
-            : "Select a peak first"}
+            ? "اختر منطقة أولًا"
+            : "Select a region first"}
         </p>
 
         {selected && (
           <motion.p
             key={selected}
-            initial={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-lg text-[#eaeef5]"
-            style={{ fontFamily: "var(--font-luxury)" }}
+            className="text-sm uppercase tracking-[0.2em] text-white"
+            style={{
+              fontFamily: "var(--font-luxury)",
+              textShadow: "0 0 14px rgba(255,255,255,0.7), 0 2px 16px #000",
+            }}
           >
             {isAr
-              ? PEAKS.find((p) => p.key === selected)?.labelAr
-              : PEAKS.find((p) => p.key === selected)?.labelEn}
+              ? SITES.find((s) => s.key === selected)?.labelAr
+              : SITES.find((s) => s.key === selected)?.labelEn}
           </motion.p>
         )}
 
@@ -248,12 +225,19 @@ export default function MountainScene({
           disabled={!selected}
           onClick={onEnter}
           className={[
-            "mt-1 rounded-xl border px-14 py-4 text-sm font-semibold uppercase tracking-[0.22em] transition-all duration-300",
+            "pointer-events-auto mt-1 bg-transparent px-6 py-2 text-[0.85rem] uppercase transition-all duration-300",
             selected
-              ? "cursor-pointer border-[#c3c9d3]/35 bg-gradient-to-b from-[#2a313d] to-[#0a0d13] text-[#eaeef5] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_34px_rgba(0,0,0,0.65)] hover:border-[#c3c9d3]/60 hover:text-white"
-              : "cursor-not-allowed border-white/[0.07] bg-black/30 text-[#3f4550]",
+              ? "cursor-pointer text-white hover:tracking-[0.62em]"
+              : "cursor-not-allowed text-white/25",
           ].join(" ")}
-          style={{ fontFamily: "var(--font-luxury)" }}
+          style={{
+            fontFamily: "var(--font-luxury)",
+            letterSpacing: "0.5em",
+            textIndent: "0.5em",
+            textShadow: selected
+              ? "0 0 14px rgba(255,255,255,0.9), 0 0 40px rgba(255,255,255,0.42), 0 2px 16px #000"
+              : "0 2px 12px #000",
+          }}
         >
           {isAr ? "الدخول" : "Enter"}
         </button>
