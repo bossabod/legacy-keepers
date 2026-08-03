@@ -112,13 +112,13 @@ export function groundAt(x: number, z: number, t: number): number {
 
   let h = broad * 1.55 + ridged * 0.62 + fine * 0.16 - 0.30;
 
-  /* قناع سعة كبير المقياس: أعلى ارتفاع يساراً، انخفاض نسبي في
-     الوسط، وارتفاعات متوسطة يميناً — كلها من نفس الأرض.        */
+  /* قناع كبير المقياس — مُعايَر رقمياً على خط قمة الصورة المرجعية.
+     قمة بارزة في أقصى اليسار، ثم ميل عام هابط باتجاه اليمين، فتصبح
+     الأرض غير متناظرة تماماً كالمرجع بدل أن تكون شريطاً مسطحاً.      */
   const nx = x / 3400;
-  const leftMass = Math.exp(-Math.pow((nx + 0.58) / 0.40, 2)) * 1.35;
-  const midDip = -Math.exp(-Math.pow((nx - 0.04) / 0.32, 2)) * 0.40;
-  const rightMass = Math.exp(-Math.pow((nx - 0.70) / 0.48, 2)) * 0.72;
-  const mask = 0.46 + leftMass + midDip + rightMass;
+  const leftPeak = Math.exp(-Math.pow((nx + 0.85) / 0.22, 2)) * 0.50;
+  const tilt = -nx * 0.95;
+  const mask = 1.0 + leftPeak + tilt;
 
   /* الأرض ترتفع قليلاً كلما ابتعدت — عمق لا نهائي */
   const depthLift = Math.min(1, Math.max(0, (z + 400) / 5200)) * 0.30;
@@ -129,7 +129,7 @@ export function groundAt(x: number, z: number, t: number): number {
   const u = Math.min(1, Math.max(0, (z - 150) / 1600));
   const nearDamp = 0.22 + 0.78 * (u * u * (3 - 2 * u));
 
-  return h * (mask + depthLift) * 520 * nearDamp;
+  return (h * mask + leftPeak * 0.9) * (1 + depthLift) * 380 * nearDamp;
 }
 
 /* ------------------------------------------------------------------
