@@ -1,180 +1,503 @@
 "use client";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Lock, ShieldCheck, Check, Loader2, X } from "lucide-react";
-import { SectionHeading, Reveal, Tag } from "@/components/ui";
+import { useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowLeft, ArrowRight, FileText, Lock } from "lucide-react";
+import FileStack, { type StackItem } from "@/components/archive/FileStack";
+import {
+  FileFace, PasswordGate, Breadcrumb, MONO, LUX,
+} from "@/components/archive/ArchiveParts";
+import { useApp } from "@/lib/store";
+import { t } from "@/lib/i18n";
 import { play } from "@/lib/sound";
-import type { AppData, ArchiveFile, Classification } from "@/lib/types";
+import {
+  VAULTS, ARCHIVE_YEARS, MONTH_KEYS, monthAr, monthHasRecords,
+  recordsFor, yearVolume, type Vault, type ArchiveRecord,
+} from "@/lib/archive-registry";
+import type { AppData } from "@/lib/types";
 
-const FILTERS: (Classification | "الكل")[] = [
-  "الكل", "عام داخلي", "محدود", "سري", "سري جدًا",
-];
+type Level = "vaults" | "years" | "months" | "records" | "detail";
 
-export default function ArchiveSection({ data }: { data: AppData }) {
-  const [filter, setFilter] = useState<Classification | "الكل">("الكل");
-  const [selected, setSelected] = useState<ArchiveFile | null>(null);
-  const [reason, setReason] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [comments, setComments] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "done">("idle");
+export default function ArchiveSection(_props: { data: AppData }) {
+  const { lang } = useApp();
+  const ar = lang === "ar";
+  const Back = ar ? ArrowRight : ArrowLeft;
 
-  const list = filter === "الكل" ? data.archive : data.archive.filter((a) => a.classification === filter);
+  const [level, setLevel] = useState<Level>("vaults");
+  const [year, setYear] = useState<number>(ARCHIVE_YEARS[0]);
+  const [month, setMonth] = useState(0);
+  const [gate, setGate] = useState<Vault | null>(null);
+  const [unlocked, setUnlocked] = useState<Set<string>>(new Set());
 
-  const submitAccess = () => {
-    setStatus("submitting");
-    play("vault");
-    setTimeout(() => { setStatus("done"); play("granted"); }, 1600);
+  /* موضع المؤشّر في كل مستوى — يُستعاد عند الرجوع */
+  const [posVault, setPosVault] = useState(0);
+  const [posYear, setPosYear] = useState(0);
+  const [posMonth, setPosMonth] = useState(0);
+  const [posRecord, setPosRecord] = useState(0);
+  /* آخر موضع لكل شهر على حدة */
+  const memory = useRef<Map<string, number>>(new Map());
+
+  const months = useMemo(
+    () => MONTH_KEYS.map((m, i) => ({ name: m, index: i })).filter((m) => monthHasRecords(year, m.index)),
+    [year]
+  );
+  const records = useMemo(() => recordsFor(year, month), [year, month]);
+  const record = records[posRecord];
+
+  const monthLabel = (i: number) => (ar ? monthAr(i) : MONTH_KEYS[i]);
+
+  /* ---------- المسار ---------- */
+  const crumbs = useMemo(() => {
+    const c: { label: string; onClick?: () => void }[] = [
+      { label: t("ar.root", lang), onClick: () => setLevel("vaults") },
+    ];
+    if (level !== "vaults") {
+      c.push({ label: t("ar.projects", lang), onClick: () => setLevel("years") });
+    }
+    if (level === "months" || level === "records" || level === "detail") {
+      c.push({ label: String(year), onClick: () => setLevel("months") });
+    }
+    if (level === "records" || level === "detail") {
+      c.push({ label: monthLabel(month), onClick: () => setLevel("records") });
+    }
+    if (level === "detail" && record) {
+      c.push({ label: `${t("ar.record", lang)} ${String(record.seq).padStart(3, "0")}` });
+    }
+    return c;
+  }, [level, year, month, record, lang, ar]);
+
+  /* ---------- بطاقات كل مستوى ---------- */
+
+  const vaultItems: StackItem[] = VAULTS.map((v) => {
+    const open = !v.locked || unlocked.has(v.key);
+    return {
+      id: v.key,
+      node: (
+        <FileFace
+          ref_={ar ? v.codeAr : v.codeEn}
+          eyebrow={open ? t("ar.available", lang) : t("ar.sealed", lang)}
+          title={ar ? v.titleAr : v.titleEn}
+          sub={ar ? v.descAr : v.descEn}
+          locked={!open}
+          accent={!open}
+          meta={[
+            { label: t("ar.volume", lang), value: String(v.volume) },
+            { label: t("ar.grade", lang), value: ar ? v.gradeAr : v.gradeEn },
+            { label: t("ar.state", lang), value: open ? t("ar.open", lang) : t("ar.locked", lang) },
+          ]}
+          footer={t("ar.registerFooter", lang)}
+          onOpen={() => {
+            if (open) {
+              if (v.key === "projects") { setLevel("years"); play("open"); }
+            } else {
+              setGate(v);
+              play("click");
+            }
+          }}
+        />
+      ),
+    };
+  });
+
+  const yearItems: StackItem[] = ARCHIVE_YEARS.map((y) => ({
+    id: String(y),
+    node: (
+      <FileFace
+        ref_={`ARC-P/${y}`}
+        eyebrow={t("ar.yearVolume", lang)}
+        title={String(y)}
+        sub={t("ar.yearDesc", lang)}
+        meta={[
+          { label: t("ar.records", lang), value: String(yearVolume(y)) },
+          { label: t("ar.months", lang), value: y === 2026 ? "08" : "12" },
+          { label: t("ar.state", lang), value: y === 2026 ? t("ar.current", lang) : t("ar.closed", lang) },
+        ]}
+        footer={t("ar.registerFooter", lang)}
+        onOpen={() => {
+          setYear(y);
+          setLevel("months");
+          play("open");
+        }}
+      />
+    ),
+  }));
+
+  const monthItems: StackItem[] = months.map((m) => {
+    const count = recordsFor(year, m.index).length;
+    return {
+      id: `${year}-${m.index}`,
+      node: (
+        <FileFace
+          ref_={`ARC-P/${year}/${String(m.index + 1).padStart(2, "0")}`}
+          eyebrow={String(year)}
+          title={monthLabel(m.index)}
+          sub={t("ar.monthDesc", lang)}
+          meta={[
+            { label: t("ar.records", lang), value: String(count).padStart(2, "0") },
+            { label: t("ar.period", lang), value: `${String(m.index + 1).padStart(2, "0")}/${year}` },
+            { label: t("ar.state", lang), value: t("ar.filed", lang) },
+          ]}
+          footer={t("ar.registerFooter", lang)}
+          onOpen={() => {
+            setMonth(m.index);
+            /* استعادة آخر موضع في هذا الشهر */
+            setPosRecord(memory.current.get(`${year}-${m.index}`) ?? 0);
+            setLevel("records");
+            play("open");
+          }}
+        />
+      ),
+    };
+  });
+
+  const recordItems: StackItem[] = records.map((r) => ({
+    id: r.ref,
+    node: (
+      <FileFace
+        ref_={r.ref}
+        eyebrow={ar ? r.categoryAr : r.categoryEn}
+        title={ar ? r.titleAr : r.titleEn}
+        sub={ar ? r.abstractAr : r.abstractEn}
+        accent={r.gradeEn === "Sealed"}
+        meta={[
+          { label: t("ar.grade", lang), value: ar ? r.gradeAr : r.gradeEn },
+          { label: t("ar.custodian", lang), value: ar ? r.custodianAr : r.custodianEn },
+          { label: t("ar.pages", lang), value: String(r.pages) },
+        ]}
+        footer={`${t("ar.hash", lang)} ${r.hash}`}
+        onOpen={() => {
+          setLevel("detail");
+          play("open");
+        }}
+      />
+    ),
+  }));
+
+  /* ---------- الرجوع مستوى واحد ---------- */
+  const up = () => {
+    play("click");
+    if (level === "detail") setLevel("records");
+    else if (level === "records") {
+      memory.current.set(`${year}-${month}`, posRecord);
+      setLevel("months");
+    } else if (level === "months") setLevel("years");
+    else if (level === "years") setLevel("vaults");
   };
 
-  const closeModal = () => {
-    setSelected(null);
-    setStatus("idle");
-    setReason(""); setPurpose(""); setComments("");
-  };
+  const heading =
+    level === "vaults" ? t("ar.title", lang)
+    : level === "years" ? t("ar.projects", lang)
+    : level === "months" ? String(year)
+    : level === "records" ? monthLabel(month)
+    : record ? (ar ? record.titleAr : record.titleEn) : "";
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <SectionHeading
-        eyebrow="Classified Archive"
-        title="Intelligence Archive"
-        desc="Every file is individually classified and locked. Click any file to submit a formal access request."
-      />
+    <div className="w-full" dir={ar ? "rtl" : "ltr"}>
+      {/* ═══════ الترويسة ═══════ */}
+      <header className="mb-6 border-b border-white/[0.06] pb-4">
+        <Breadcrumb crumbs={crumbs} isAr={ar} />
 
-      {/* Filters */}
-      <div className="mb-5 flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <button
-            key={f}
-            onClick={() => { setFilter(f); play("click"); }}
-            className={`rounded-full border px-3.5 py-1.5 text-[0.78rem] tracking-wide transition-all duration-250 ${
-              filter === f
-                ? "border-[#c3c9d3]/35 bg-[#c3c9d3]/8 text-[#eaeef5]"
-                : "border-white/10 text-[#7f8896] hover:text-[#aeb6c2] hover:border-[#c3c9d3]/20"
-            }`}
-            style={{ fontFamily: "var(--font-luxury)", fontWeight: 500 }}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
-      {/* File Grid */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {list.map((a, i) => (
-          <Reveal key={a.id} delay={(i % 6) * 0.04}>
-            <button
-              onMouseEnter={() => play("hover")}
-              onClick={() => { setSelected(a); play("open"); }}
-              className="group flex h-full w-full flex-col rounded-xl border border-[#c3c9d3]/12 bg-gradient-to-b from-[#0e1118]/90 to-[#06080c] p-5 text-left transition-all duration-400 hover:border-[#c3c9d3]/30 hover:shadow-[0_16px_40px_rgba(0,0,0,0.6)]"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Lock size={14} className="text-[#7f8896]" />
-                  <FileText size={16} className="text-[#7f8896]" />
-                </div>
-                <Tag level={a.classification} />
-              </div>
-              <div className="text-[0.92rem] font-medium text-[#eaeef5] mb-2" style={{ fontFamily: "var(--font-luxury)" }}>{a.title}</div>
-              <div className="mt-auto pt-3 border-t border-white/[0.05] flex items-center justify-between">
-                <span className="text-[0.66rem] text-[#565d68]" style={{ fontFamily: "var(--font-ibm-mono)" }}>
-                  {a.custodian} · {a.pages}p · {a.date}
-                </span>
-                <span className="text-[0.6rem] uppercase tracking-wide text-[#565d68]">Locked</span>
-              </div>
-            </button>
-          </Reveal>
-        ))}
-      </div>
-
-      {/* Access Request Modal */}
-      <AnimatePresence>
-        {selected && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            {/* Blurred vault/document background */}
-            <div
-              className="absolute inset-0 backdrop-blur-xl"
-              style={{
-                background:
-                  "linear-gradient(180deg, rgba(8,10,14,0.92), rgba(2,3,5,0.96)), url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%230a0c10'/%3E%3Cg stroke='%23565d68' stroke-width='1' fill='none'%3E%3Crect x='30' y='30' width='240' height='240'/%3E%3Cline x1='30' y1='80' x2='270' y2='80'/%3E%3Cline x1='30' y1='150' x2='270' y2='150'/%3E%3Cline x1='30' y1='220' x2='270' y2='220'/%3E%3Ccircle cx='150' cy='150' r='26'/%3E%3C/g%3E%3C/svg%3E\")",
-                backgroundSize: "cover",
-              }}
-              onClick={closeModal}
-            />
-            <motion.div
-              className="glass-strong relative z-10 w-full max-w-md rounded-2xl p-8 shadow-[0_30px_80px_rgba(0,0,0,0.9)]"
-              initial={{ opacity: 0, scale: 0.92, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.4, ease: [0.2, 0.7, 0.2, 1] }}
-            >
-              <button onClick={closeModal} className="absolute top-5 right-5 text-[#8b95a5] hover:text-[#eaeef5] transition-colors">
-                <X size={18} />
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {level !== "vaults" && (
+              <button
+                type="button"
+                onClick={up}
+                aria-label={t("ar.up", lang)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.10] text-[#98a2b1] transition-colors hover:border-white/30 hover:text-white"
+              >
+                <Back size={13} />
               </button>
+            )}
+            <h2
+              className="text-[clamp(1.15rem,2.6vw,1.7rem)] font-light uppercase tracking-[0.22em] text-[#eaeef5]"
+              style={{ fontFamily: LUX }}
+            >
+              {heading}
+            </h2>
+          </div>
 
-              {status === "done" ? (
-                <div className="flex flex-col items-center gap-4 py-8 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[#c3c9d3]/30 bg-gradient-to-b from-[#1e2430] to-[#0a0d12]">
-                    <Check size={24} className="text-[#c3c9d3]" />
-                  </div>
-                  <p className="max-w-xs text-sm leading-relaxed text-[#aeb6c2]">
-                    Your access request has been submitted. A custodian will review your clearance level and respond via encrypted channel.
-                  </p>
-                  <button onClick={closeModal} className="mt-2 text-[0.72rem] uppercase tracking-[0.2em] text-[#565d68] hover:text-[#aeb6c2] transition-colors" style={{ fontFamily: "var(--font-luxury)" }}>
-                    Close
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="mb-6 flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#c3c9d3]/20 bg-[#c3c9d3]/5">
-                      <ShieldCheck size={18} className="text-[#c3c9d3]" />
-                    </div>
-                    <div>
-                      <div className="text-[0.6rem] uppercase tracking-[0.2em] text-[#565d68]" style={{ fontFamily: "var(--font-ibm-mono)" }}>Access Request</div>
-                      <h3 className="text-lg font-semibold text-[#eaeef5]" style={{ fontFamily: "var(--font-luxury)" }}>{selected.title}</h3>
-                    </div>
-                  </div>
+          <span
+            className="text-[0.44rem] uppercase tracking-[0.24em] text-[#5d6675]"
+            style={{ fontFamily: MONO }}
+          >
+            {t("ar.eyebrow", lang)}
+          </span>
+        </div>
+      </header>
 
-                  <div className="mb-5"><Tag level={selected.classification} /></div>
+      {/* ═══════ المستويات ═══════ */}
+      <>
+        {level === "vaults" && (
+          <Layer key="vaults" hint={t("ar.hintVaults", lang)}>
+            <FileStack
+              key="stack-vaults"
+              items={vaultItems} index={posVault} onIndex={setPosVault} isAr={ar}
+              labelPrev={t("ar.prev", lang)} labelNext={t("ar.next", lang)}
+            />
+          </Layer>
+        )}
 
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block mb-2 text-[0.68rem] uppercase tracking-[0.2em] text-[#aeb6c2]">Reason</label>
-                      <input value={reason} onChange={(e) => setReason(e.target.value)} className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#c3c9d3]/60 rounded-xl px-4 py-3 text-[#eaeef5] text-sm outline-none transition-all duration-300" />
-                    </div>
-                    <div>
-                      <label className="block mb-2 text-[0.68rem] uppercase tracking-[0.2em] text-[#aeb6c2]">Purpose</label>
-                      <input value={purpose} onChange={(e) => setPurpose(e.target.value)} className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#c3c9d3]/60 rounded-xl px-4 py-3 text-[#eaeef5] text-sm outline-none transition-all duration-300" />
-                    </div>
-                    <div>
-                      <label className="block mb-2 text-[0.68rem] uppercase tracking-[0.2em] text-[#aeb6c2]">Comments</label>
-                      <textarea value={comments} onChange={(e) => setComments(e.target.value)} rows={3} className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#c3c9d3]/60 rounded-xl px-4 py-3 text-[#eaeef5] text-sm outline-none transition-all duration-300 resize-none" />
-                    </div>
-                    <button
-                      onClick={submitAccess}
-                      disabled={status === "submitting"}
-                      onMouseEnter={() => play("hover")}
-                      className="w-full rounded-xl border border-[#c3c9d3]/30 bg-gradient-to-b from-[#2a313d] to-[#0a0d13] py-4 text-sm font-semibold uppercase tracking-[0.18em] text-[#eaeef5] transition-all duration-300 hover:border-[#c3c9d3]/50 hover:text-white disabled:opacity-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_10px_30px_rgba(0,0,0,0.6)]"
-                      style={{ fontFamily: "var(--font-luxury)" }}
-                    >
-                      {status === "submitting" ? (
-                        <span className="flex items-center justify-center gap-2 mono text-xs tracking-widest">
-                          <Loader2 className="animate-spin text-[#c3c9d3]" size={16} /> SUBMITTING...
-                        </span>
-                      ) : "Submit Request"}
-                    </button>
-                  </div>
-                </>
-              )}
-            </motion.div>
-          </motion.div>
+        {level === "years" && (
+          <Layer key="years" hint={t("ar.hintYears", lang)}>
+            <FileStack
+              key="stack-years"
+              items={yearItems} index={posYear} onIndex={setPosYear} isAr={ar}
+              labelPrev={t("ar.prev", lang)} labelNext={t("ar.next", lang)}
+            />
+          </Layer>
+        )}
+
+        {level === "months" && (
+          <Layer key="months" hint={t("ar.hintMonths", lang)}>
+            <FileStack
+              key={`stack-months-${year}`}
+              items={monthItems} index={posMonth} onIndex={setPosMonth} isAr={ar}
+              labelPrev={t("ar.prev", lang)} labelNext={t("ar.next", lang)}
+            />
+          </Layer>
+        )}
+
+        {level === "records" && (
+          <Layer key="records" hint={t("ar.hintRecords", lang)}>
+            <FileStack
+              key={`stack-records-${year}-${month}`}
+              items={recordItems}
+              index={posRecord}
+              onIndex={(i) => {
+                setPosRecord(i);
+                memory.current.set(`${year}-${month}`, i);
+              }}
+              isAr={ar}
+              labelPrev={t("ar.prev", lang)} labelNext={t("ar.next", lang)}
+            />
+          </Layer>
+        )}
+
+        {level === "detail" && record && (
+          <Detail key={record.ref} r={record} ar={ar} lang={lang} onBack={up} />
+        )}
+      </>
+
+      {/* ═══════ بوابة كلمة المرور ═══════ */}
+      <AnimatePresence>
+        {gate && (
+          <PasswordGate
+            vaultTitle={ar ? gate.titleAr : gate.titleEn}
+            onClose={() => setGate(null)}
+            onGranted={() => {
+              setUnlocked((s) => new Set(s).add(gate.key));
+              setGate(null);
+            }}
+          />
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/* ---------- غلاف مستوى ---------- */
+
+function Layer({ children, hint }: { children: React.ReactNode; hint: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+      <p
+        className="mt-5 text-center text-[0.42rem] uppercase tracking-[0.24em] text-[#454c59]"
+        style={{ fontFamily: MONO }}
+      >
+        {hint}
+      </p>
+    </motion.div>
+  );
+}
+
+/* ---------- صفحة السجلّ ---------- */
+
+function Detail({
+  r, ar, lang, onBack,
+}: {
+  r: ArchiveRecord;
+  ar: boolean;
+  lang: "en" | "ar";
+  onBack: () => void;
+}) {
+  const entries = ar ? r.entriesAr : r.entriesEn;
+  const chain = ar ? r.chainAr : r.chainEn;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      className="mx-auto max-w-5xl"
+    >
+      {/* رأس السجلّ */}
+      <div
+        className="relative overflow-hidden rounded-2xl border p-6 sm:p-7"
+        style={{
+          borderColor: "rgba(196,72,72,0.28)",
+          background: "linear-gradient(158deg, #12151c 0%, #080a0e 100%)",
+          boxShadow: "0 0 40px rgba(196,72,72,0.05) inset",
+        }}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span
+                className="rounded-sm border px-2 py-0.5 text-[0.42rem] uppercase tracking-[0.2em]"
+                style={{
+                  fontFamily: MONO,
+                  borderColor: "rgba(196,72,72,0.5)",
+                  color: "#e0a2a2",
+                  background: "rgba(196,72,72,0.1)",
+                }}
+              >
+                {r.ref}
+              </span>
+              <span
+                className="rounded-sm border border-white/12 px-2 py-0.5 text-[0.42rem] uppercase tracking-[0.18em] text-[#9aa3b1]"
+                style={{ fontFamily: MONO }}
+              >
+                {ar ? r.gradeAr : r.gradeEn}
+              </span>
+            </div>
+
+            <h3
+              className="mt-3 text-[clamp(1.2rem,3vw,1.9rem)] font-light uppercase tracking-[0.12em] text-white"
+              style={{ fontFamily: LUX, textShadow: "0 0 20px rgba(255,255,255,0.2)" }}
+            >
+              {ar ? r.titleAr : r.titleEn}
+            </h3>
+            <p
+              className="mt-1.5 text-[0.5rem] uppercase tracking-[0.2em] text-[#8e97a5]"
+              style={{ fontFamily: MONO }}
+            >
+              {ar ? r.categoryAr : r.categoryEn}
+            </p>
+          </div>
+
+          <FileText size={20} className="shrink-0 text-white/15" />
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Fact label={t("ar.custodian", lang)} value={ar ? r.custodianAr : r.custodianEn} />
+          <Fact label={t("ar.pages", lang)} value={String(r.pages)} />
+          <Fact label={t("ar.state", lang)} value={ar ? r.statusAr : r.statusEn} />
+          <Fact label={t("ar.hash", lang)} value={r.hash} />
+        </div>
+      </div>
+
+      {/* المتن */}
+      <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <Panel title={t("ar.abstract", lang)}>
+            <p className="text-[0.84rem] leading-[1.85] text-[#a9b2c0]">
+              {ar ? r.abstractAr : r.abstractEn}
+            </p>
+          </Panel>
+
+          <div className="mt-5">
+            <Panel title={t("ar.entries", lang)}>
+              <ul className="space-y-2.5">
+                {entries.map((e, i) => (
+                  <motion.li
+                    key={i}
+                    initial={{ opacity: 0, x: ar ? 8 : -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.08 + i * 0.06, duration: 0.4 }}
+                    className="flex items-start gap-3 text-[0.78rem] text-[#a9b2c0]"
+                  >
+                    <span
+                      className="mt-[0.45rem] h-1 w-1 shrink-0 rounded-full"
+                      style={{ background: "rgba(196,72,72,0.75)" }}
+                    />
+                    {e}
+                  </motion.li>
+                ))}
+              </ul>
+            </Panel>
+          </div>
+        </div>
+
+        <div>
+          <Panel title={t("ar.chain", lang)}>
+            <div className="space-y-4">
+              {chain.map((c, i) => (
+                <div key={i} className="flex gap-3">
+                  <span
+                    className="w-[68px] shrink-0 pt-0.5 text-[0.42rem] uppercase tracking-[0.14em] text-[#6a7280]"
+                    style={{ fontFamily: MONO }}
+                  >
+                    {c.stamp}
+                  </span>
+                  <p className="text-[0.72rem] leading-relaxed text-[#a0a9b7]">{c.text}</p>
+                </div>
+              ))}
+            </div>
+          </Panel>
+
+          <div className="mt-5">
+            <Panel title={t("ar.access", lang)}>
+              <div className="flex items-center gap-2.5 text-[0.72rem] text-[#8d96a4]">
+                <Lock size={11} className="text-[#c46a6a]" />
+                {t("ar.accessNote", lang)}
+              </div>
+            </Panel>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 text-center">
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-[0.52rem] uppercase tracking-[0.26em] text-[#6d7684] transition-colors hover:text-white"
+          style={{ fontFamily: MONO }}
+        >
+          {t("ar.backRecords", lang)}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section
+      className="rounded-2xl border border-white/[0.07] p-5"
+      style={{ background: "linear-gradient(160deg, #0f1219 0%, #080a0f 100%)" }}
+    >
+      <h4
+        className="mb-4 text-[0.44rem] uppercase tracking-[0.28em] text-[#6a7280]"
+        style={{ fontFamily: MONO }}
+      >
+        {title}
+      </h4>
+      {children}
+    </section>
+  );
+}
+
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-black/25 p-3">
+      <div
+        className="text-[0.4rem] uppercase tracking-[0.18em] text-[#5f6875]"
+        style={{ fontFamily: MONO }}
+      >
+        {label}
+      </div>
+      <div
+        className="mt-1 truncate text-[0.74rem] text-[#dfe4ec]"
+        style={{ fontFamily: MONO }}
+      >
+        {value}
+      </div>
     </div>
   );
 }
