@@ -119,7 +119,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       case "home": return <HomeSection data={data} onNavigate={go} />;
       case "network": return <NetworkSection />;
       case "log": return <LogSection data={data} />;
-      case "projects": return <ProjectsSection data={data} />;
+      case "projects": return <ProjectsSection data={data} onNavigate={(k) => go(k as SectionKey)} />;
       case "investments": return <InvestmentsSection data={data} />;
       case "vault": return <VaultSection data={data} />;
       case "invoices": return <InvoicesSection data={data} />;
