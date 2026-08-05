@@ -1,5 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
+import { useApp } from "@/lib/store";
+import { t } from "@/lib/i18n";
 
 /**
  * واجهة دخول قسم المشاريع.
@@ -11,6 +13,7 @@ import { motion } from "framer-motion";
  * النصوص عناصر HTML فوق الصورة — لم تُعدَّل الصورة إطلاقاً.
  */
 export default function ProjectsGate({ onEnter }: { onEnter: () => void }) {
+  const { lang } = useApp();
   return (
     <motion.section
       initial={{ opacity: 0 }}
@@ -18,8 +21,13 @@ export default function ProjectsGate({ onEnter }: { onEnter: () => void }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
       /* ملء الشاشة تحت شريط التنقل، ويكسر حشوة <main> بهوامش سالبة */
-      className="relative left-1/2 right-1/2 -mb-7 -mt-7 flex h-[calc(100vh-4.2rem)] w-screen -translate-x-1/2 flex-col items-center justify-between overflow-hidden"
-      style={{ backgroundColor: "#141416" }}
+      className="relative -mb-7 -mt-7 flex h-[calc(100vh-4.2rem)] w-screen flex-col items-center justify-between overflow-hidden"
+      style={{
+        backgroundColor: "#141416",
+        // نخرج من حشوة <main> دون الاعتماد على اتجاه الكتابة
+        marginInlineStart: "calc(50% - 50vw)",
+        marginInlineEnd: "calc(50% - 50vw)",
+      }}
       dir="ltr"
     >
       {/* طبقة امتداد: نسخة مكبّرة ومموّهة بشدّة من الصورة نفسها تملأ
@@ -46,8 +54,9 @@ export default function ProjectsGate({ onEnter }: { onEnter: () => void }) {
         initial={{ opacity: 0, scale: 1.03 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
-        className="pointer-events-none absolute left-1/2 top-1/2 h-full -translate-x-1/2 -translate-y-1/2"
+        className="pointer-events-none absolute inset-y-0 mx-auto h-full"
         style={{
+          insetInline: 0,
           aspectRatio: "1023 / 1537",
           maxWidth: "100vw",
           WebkitMaskImage:
@@ -85,7 +94,7 @@ export default function ProjectsGate({ onEnter }: { onEnter: () => void }) {
             "0 0 10px rgba(255,255,255,0.42), 0 0 30px rgba(255,255,255,0.20), 0 0 70px rgba(255,255,255,0.10)",
         }}
       >
-        The Impact Club
+        {t("gate.club", lang)}
       </motion.h1>
 
       {/* ===== الدخول ===== */}
@@ -101,7 +110,7 @@ export default function ProjectsGate({ onEnter }: { onEnter: () => void }) {
           className="gate-enter__label text-[clamp(0.6rem,1.25vw,0.82rem)] font-light uppercase text-white"
           style={{ fontFamily: "var(--font-luxury)" }}
         >
-          Enter Projects Section
+          {t("gate.enter", lang)}
         </span>
         <span className="gate-enter__rule mt-3 block h-px w-[clamp(9rem,20vw,15rem)]" />
       </motion.button>

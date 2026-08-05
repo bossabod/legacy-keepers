@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
+import { useApp } from "@/lib/store";
+import { t } from "@/lib/i18n";
 import {
   buildSeries,
   sliceRange,
@@ -84,6 +86,8 @@ const PAD_T = 18;
 const PAD_B = 26;
 
 export default function PerformanceCard() {
+  const { lang } = useApp();
+  const ar = lang === "ar";
   const hostRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const inView = useInView(hostRef, { once: true, amount: 0.35 });
@@ -146,7 +150,7 @@ export default function PerformanceCard() {
   const hd = hover !== null ? data[hover] : null;
 
   const fmtDate = (d: Date) =>
-    d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    d.toLocaleDateString(ar ? "ar-EG" : "en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
   /* علامات المحور الزمني */
   const ticks = useMemo(() => {
@@ -156,7 +160,7 @@ export default function PerformanceCard() {
       const i = Math.round((k / (n - 1)) * (data.length - 1));
       return {
         x: geo.xs(i),
-        label: data[i].date.toLocaleDateString("en-GB", {
+        label: data[i].date.toLocaleDateString(ar ? "ar-EG" : "en-GB", {
           month: "short",
           ...(range === "1M" ? { day: "2-digit" } : {}),
         }),
@@ -170,7 +174,7 @@ export default function PerformanceCard() {
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-      dir="ltr"
+      dir={ar ? "rtl" : "ltr"}
       className="relative overflow-hidden rounded-2xl border border-white/[0.09] p-5 backdrop-blur-xl sm:p-6"
       style={{
         background:
@@ -197,7 +201,7 @@ export default function PerformanceCard() {
               className="truncate text-[0.6rem] uppercase tracking-[0.3em] text-[#98a3b4]"
               style={{ fontFamily: "var(--font-ibm-mono)" }}
             >
-              Project Performance
+              {t("pc.title", lang)}
             </h3>
           </div>
 
@@ -219,7 +223,7 @@ export default function PerformanceCard() {
               className="text-[0.54rem] uppercase tracking-[0.26em] text-[#6d7686]"
               style={{ fontFamily: "var(--font-ibm-mono)" }}
             >
-              {hover !== null && hd ? fmtDate(hd.date) : "This Year"}
+              {hover !== null && hd ? fmtDate(hd.date) : t("pc.thisYear", lang)}
             </span>
           </div>
         </div>
@@ -230,7 +234,7 @@ export default function PerformanceCard() {
             className="text-[0.5rem] uppercase tracking-[0.2em] text-[#8fa596]"
             style={{ fontFamily: "var(--font-ibm-mono)" }}
           >
-            ▲ Active
+            ▲ {t("pj.st.ACTIVE", lang)}
           </span>
         </div>
       </header>
