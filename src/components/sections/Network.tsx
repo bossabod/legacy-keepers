@@ -1,32 +1,21 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { MapPin, X, ChevronDown } from "lucide-react";
-import { generateStreets } from "@/lib/street-map";
+import { MapPin, ChevronDown } from "lucide-react";
 
-// ===== CDN Loaders =====
-function loadCSS(href: string) {
-  if (document.querySelector(`link[href="${href}"]`)) return;
-  const l = document.createElement("link");
-  l.rel = "stylesheet"; l.href = href;
-  document.head.appendChild(l);
-}
-function loadScript(src: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if ((window as any).L) { resolve(); return; }
-    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
-    const s = document.createElement("script");
-    s.src = src;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error("Leaflet CDN failed"));
-    document.head.appendChild(s);
-  });
-}
+/* ==================================================================
+   Network — clean city-limited Leaflet map (original style).
+   Plain CartoDB dark tiles, city selector, cinematic fly transition,
+   fixed city bounds. NO circles, NO network overlay, NO nodes.
+   ================================================================== */
 
-// ===== City Database =====
-interface City { id: string; name: string; country: string; flag: string; center: [number, number]; zoom: number; bounds: [[number, number], [number, number]] }
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+interface City {
+  id: string; name: string; country: string; flag: string;
+  center: [number, number]; zoom: number; bounds: [[number, number], [number, number]];
+}
 
 const CITIES: City[] = [
-  // USA
   { id: "nyc", name: "New York City", country: "United States", flag: "🇺🇸", center: [40.7589, -73.9851], zoom: 13, bounds: [[40.40, -74.30], [40.95, -73.65]] },
   { id: "la", name: "Los Angeles", country: "United States", flag: "🇺🇸", center: [34.0522, -118.2437], zoom: 12, bounds: [[33.70, -118.70], [34.40, -118.00]] },
   { id: "chi", name: "Chicago", country: "United States", flag: "🇺🇸", center: [41.8781, -87.6298], zoom: 12, bounds: [[41.60, -87.90], [42.10, -87.30]] },
@@ -34,227 +23,60 @@ const CITIES: City[] = [
   { id: "sea", name: "Seattle", country: "United States", flag: "🇺🇸", center: [47.6062, -122.3321], zoom: 12, bounds: [[47.45, -122.50], [47.80, -122.10]] },
   { id: "mia", name: "Miami", country: "United States", flag: "🇺🇸", center: [25.7617, -80.1918], zoom: 12, bounds: [[25.55, -80.35], [26.00, -80.00]] },
   { id: "dc", name: "Washington DC", country: "United States", flag: "🇺🇸", center: [38.8977, -77.0365], zoom: 13, bounds: [[38.75, -77.20], [39.05, -76.85]] },
-  // Türkiye
   { id: "ist", name: "Istanbul", country: "Türkiye", flag: "🇹🇷", center: [41.0082, 28.9784], zoom: 12, bounds: [[40.80, 28.50], [41.30, 29.50]] },
-  // Saudi Arabia
   { id: "ruh", name: "Riyadh", country: "Saudi Arabia", flag: "🇸🇦", center: [24.7136, 46.6753], zoom: 12, bounds: [[24.45, 46.45], [25.05, 46.95]] },
-  // UAE
   { id: "auh", name: "Abu Dhabi", country: "United Arab Emirates", flag: "🇦🇪", center: [24.4539, 54.3773], zoom: 12, bounds: [[24.25, 54.20], [24.65, 54.60]] },
-  // Sweden
+  { id: "dxb", name: "Dubai", country: "United Arab Emirates", flag: "🇦🇪", center: [25.2048, 55.2708], zoom: 12, bounds: [[24.90, 54.95], [25.45, 55.55]] },
   { id: "sto", name: "Stockholm", country: "Sweden", flag: "🇸🇪", center: [59.3293, 18.0686], zoom: 12, bounds: [[59.15, 17.80], [59.50, 18.40]] },
   { id: "gbr", name: "Gothenburg", country: "Sweden", flag: "🇸🇪", center: [57.7089, 11.9746], zoom: 12, bounds: [[57.55, 11.75], [57.80, 12.20]] },
-  // Norway
   { id: "osl", name: "Oslo", country: "Norway", flag: "🇳🇴", center: [59.9139, 10.7522], zoom: 12, bounds: [[59.80, 10.50], [60.05, 11.00]] },
   { id: "bgo", name: "Bergen", country: "Norway", flag: "🇳🇴", center: [60.3913, 5.3221], zoom: 12, bounds: [[60.25, 5.10], [60.55, 5.60]] },
-  // UK
   { id: "lon", name: "London", country: "United Kingdom", flag: "🇬🇧", center: [51.5074, -0.1278], zoom: 12, bounds: [[51.30, -0.35], [51.70, 0.15]] },
   { id: "man", name: "Manchester", country: "United Kingdom", flag: "🇬🇧", center: [53.4808, -2.2426], zoom: 12, bounds: [[53.35, -2.40], [53.60, -2.05]] },
-  // Canada
+  { id: "par", name: "Paris", country: "France", flag: "🇫🇷", center: [48.8566, 2.3522], zoom: 12, bounds: [[48.70, 2.15], [49.05, 2.60]] },
+  { id: "ber", name: "Berlin", country: "Germany", flag: "🇩🇪", center: [52.52, 13.405], zoom: 12, bounds: [[52.34, 13.09], [52.68, 13.76]] },
   { id: "tor", name: "Toronto", country: "Canada", flag: "🇨🇦", center: [43.6532, -79.3832], zoom: 12, bounds: [[43.50, -79.55], [43.80, -79.15]] },
   { id: "van", name: "Vancouver", country: "Canada", flag: "🇨🇦", center: [49.2827, -123.1207], zoom: 12, bounds: [[49.10, -123.30], [49.45, -122.90]] },
-  // Australia
+  { id: "mex", name: "Mexico City", country: "Mexico", flag: "🇲🇽", center: [19.4326, -99.1332], zoom: 12, bounds: [[19.20, -99.35], [19.60, -98.90]] },
+  { id: "sao", name: "São Paulo", country: "Brazil", flag: "🇧🇷", center: [-23.5505, -46.6333], zoom: 12, bounds: [[-23.75, -46.85], [-23.35, -46.40]] },
   { id: "syd", name: "Sydney", country: "Australia", flag: "🇦🇺", center: [-33.8688, 151.2093], zoom: 12, bounds: [[-34.00, 150.90], [-33.70, 151.50]] },
   { id: "mel", name: "Melbourne", country: "Australia", flag: "🇦🇺", center: [-37.8136, 144.9631], zoom: 12, bounds: [[-38.00, 144.70], [-37.60, 145.20]] },
   { id: "bne", name: "Brisbane", country: "Australia", flag: "🇦🇺", center: [-27.4698, 153.0251], zoom: 12, bounds: [[-27.60, 152.85], [-27.30, 153.25]] },
-  // Thailand
   { id: "bkk", name: "Bangkok", country: "Thailand", flag: "🇹🇭", center: [13.7563, 100.5018], zoom: 12, bounds: [[13.55, 100.30], [13.95, 100.80]] },
   { id: "cnx", name: "Chiang Mai", country: "Thailand", flag: "🇹🇭", center: [18.7883, 98.9853], zoom: 12, bounds: [[18.65, 98.85], [18.95, 99.15]] },
-  { id: "hkt", name: "Phuket", country: "Thailand", flag: "🇹🇭", center: [7.8804, 98.3923], zoom: 12, bounds: [[7.70, 98.20], [8.10, 98.55]] },
+  { id: "sgp", name: "Singapore", country: "Singapore", flag: "🇸🇬", center: [1.3521, 103.8198], zoom: 12, bounds: [[1.20, 103.60], [1.50, 104.05]] },
+  { id: "tyo", name: "Tokyo", country: "Japan", flag: "🇯🇵", center: [35.6762, 139.6503], zoom: 12, bounds: [[35.50, 139.40], [35.90, 139.95]] },
+  { id: "soul", name: "Seoul", country: "South Korea", flag: "🇰🇷", center: [37.5665, 126.978], zoom: 12, bounds: [[37.40, 126.80], [37.75, 127.15]] },
+  { id: "bom", name: "Mumbai", country: "India", flag: "🇮🇳", center: [19.076, 72.8777], zoom: 12, bounds: [[18.85, 72.65], [19.35, 73.10]] },
+  { id: "del", name: "Delhi", country: "India", flag: "🇮🇳", center: [28.7041, 77.1025], zoom: 12, bounds: [[28.45, 76.85], [28.95, 77.35]] },
+  { id: "cai", name: "Cairo", country: "Egypt", flag: "🇪🇬", center: [30.0444, 31.2357], zoom: 12, bounds: [[29.85, 31.05], [30.25, 31.45]] },
+  { id: "jnb", name: "Johannesburg", country: "South Africa", flag: "🇿🇦", center: [-26.2041, 28.0473], zoom: 12, bounds: [[-26.40, 27.80], [-26.00, 28.30]] },
 ];
 
-// Group cities by country
 const COUNTRIES = Array.from(new Set(CITIES.map(c => c.country)));
-
-// ===== Sleep helper =====
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-
-// ===== Network Node Definitions (32 total) =====
-interface NetNode {
-  id: number; lat: number; lon: number; size: number; label: string; isHQ?: boolean;
-}
-
-const NET_NODES: NetNode[] = [
-  // Oslo HQ — largest node
-  { id: 0, lat: 59.9139, lon: 10.7522, size: 7, label: "OSLO", isHQ: true },
-  // Norway/Sweden (3)
-  { id: 1, lat: 60.3913, lon: 5.3221, size: 3.5, label: "Bergen" },
-  { id: 2, lat: 59.3293, lon: 18.0686, size: 4, label: "Stockholm" },
-  { id: 3, lat: 57.7089, lon: 11.9746, size: 3, label: "Gothenburg" },
-  // UK (3)
-  { id: 4, lat: 51.5074, lon: -0.1278, size: 5, label: "London" },
-  { id: 5, lat: 51.45, lon: -0.1, size: 2.5, label: "" },
-  { id: 6, lat: 53.4808, lon: -2.2426, size: 3, label: "Manchester" },
-  // USA (10) — highest concentration
-  { id: 7, lat: 40.7589, lon: -73.9851, size: 5.5, label: "New York" },
-  { id: 8, lat: 38.8977, lon: -77.0365, size: 4.5, label: "Washington" },
-  { id: 9, lat: 41.8781, lon: -87.6298, size: 4, label: "Chicago" },
-  { id: 10, lat: 34.0522, lon: -118.2437, size: 4.5, label: "Los Angeles" },
-  { id: 11, lat: 37.7749, lon: -122.4194, size: 4, label: "San Francisco" },
-  { id: 12, lat: 47.6062, lon: -122.3321, size: 3.5, label: "Seattle" },
-  { id: 13, lat: 25.7617, lon: -80.1918, size: 3.5, label: "Miami" },
-  { id: 14, lat: 42.36, lon: -71.06, size: 2.5, label: "" },
-  { id: 15, lat: 33.75, lon: -84.39, size: 2.5, label: "" },
-  { id: 16, lat: 29.76, lon: -95.37, size: 3, label: "" },
-  // Gulf Region (7) — second highest
-  { id: 17, lat: 24.7136, lon: 46.6753, size: 5, label: "Riyadh" },
-  { id: 18, lat: 24.65, lon: 46.70, size: 2.5, label: "" },
-  { id: 19, lat: 21.49, lon: 39.19, size: 3, label: "Jeddah" },
-  { id: 20, lat: 26.30, lon: 50.15, size: 3, label: "" },
-  { id: 21, lat: 24.4539, lon: 54.3773, size: 4.5, label: "Abu Dhabi" },
-  { id: 22, lat: 25.20, lon: 55.27, size: 4, label: "Dubai" },
-  { id: 23, lat: 25.29, lon: 51.51, size: 3, label: "Doha" },
-  // Türkiye (2)
-  { id: 24, lat: 41.0082, lon: 28.9784, size: 4, label: "Istanbul" },
-  { id: 25, lat: 39.93, lon: 32.85, size: 2.5, label: "" },
-  // Canada (2)
-  { id: 26, lat: 43.6532, lon: -79.3832, size: 3.5, label: "Toronto" },
-  { id: 27, lat: 49.2827, lon: -123.1207, size: 3, label: "Vancouver" },
-  // Australia (2) — reduced
-  { id: 28, lat: -33.8688, lon: 151.2093, size: 3.5, label: "Sydney" },
-  { id: 29, lat: -37.8136, lon: 144.9631, size: 3, label: "Melbourne" },
-  // Thailand (2) — reduced
-  { id: 30, lat: 13.7563, lon: 100.5018, size: 3, label: "Bangkok" },
-  { id: 31, lat: 18.7883, lon: 98.9853, size: 2.5, label: "Chiang Mai" },
-];
-
-// ===== Strategic Network Connections =====
-// Regional clusters first, then inter-regional via Oslo hub
-const NET_LINKS: [number, number][] = [
-  // Nordic regional
-  [0, 1], [0, 2], [2, 3],
-  // UK internal
-  [4, 5], [4, 6],
-  // US East
-  [7, 8], [7, 14], [8, 15], [7, 16],
-  // US cross-country
-  [7, 9], [9, 10], [10, 11], [11, 12], [7, 13],
-  // Gulf regional
-  [17, 18], [17, 19], [17, 20], [21, 22], [22, 23], [17, 23],
-  // Türkiye
-  [24, 25],
-  // Canada
-  [7, 26], [12, 27],
-  // Australia
-  [28, 29],
-  // Thailand
-  [30, 31],
-  // Inter-regional via Oslo hub
-  [0, 4],   // Oslo → London
-  [0, 7],   // Oslo → New York
-  [0, 17],  // Oslo → Riyadh
-  [0, 24],  // Oslo → Istanbul
-  [0, 30],  // Oslo → Bangkok
-  [0, 28],  // Oslo → Sydney
-  // Secondary inter-regional
-  [4, 7],   // London → New York
-  [17, 24], // Riyadh → Istanbul
-  [22, 30], // Dubai → Bangkok
-  [22, 28], // Dubai → Sydney
-  [4, 24],  // London → Istanbul
-];
-
-/** Draw a fully self-contained city base inside the Leaflet map — no
-    external tiles/CDN. Dark ground + city blocks + parks + a street
-    grid (from generateStreets) + small district blocks. Everything is
-    drawn in-browser as georeferenced vector layers, so the map always
-    loads completely. */
-function buildLocalBase(L: any, map: any, city: City) {
-  const [[swLat, swLon], [neLat, neLon]] = city.bounds;
-  const cLat = (swLat + neLat) / 2, cLon = (swLon + neLon) / 2;
-  const latSpan = neLat - swLat;
-  const lonSpan = neLon - swLon;
-
-  const group = L.layerGroup().addTo(map);
-
-  // full dark ground
-  L.rectangle([[swLat, swLon], [neLat, neLon]], {
-    color: "#0a0c10", weight: 0, fillColor: "#0a0c10", fillOpacity: 1,
-    interactive: false,
-  }).addTo(group);
-
-  // city blocks (grid of small rectangles) — gives an urban fabric
-  const rows = 8, cols = 8;
-  const stepLat = latSpan / rows;
-  const stepLon = lonSpan / cols;
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const lat0 = swLat + r * stepLat, lon0 = swLon + c * stepLon;
-      // jitter block size slightly
-      const pad = 0.12;
-      const bLat = lat0 + stepLat * pad;
-      const bLon = lon0 + stepLon * pad;
-      const eLat = lat0 + stepLat * (1 - pad);
-      const eLon = lon0 + stepLon * (1 - pad);
-      const shade = ((r * 31 + c * 17) % 100) / 100;
-      L.rectangle([[bLat, bLon], [eLat, eLon]], {
-        color: "rgba(30,34,40,0)", weight: 0,
-        fillColor: `rgba(${26 + shade * 10},${29 + shade * 10},${34 + shade * 12},0.7)`,
-        fillOpacity: 0.7, interactive: false,
-      }).addTo(group);
-    }
-  }
-
-  // parks / green patches (dark muted green)
-  for (let p = 0; p < 6; p++) {
-    const fx = 0.15 + (p * 37 % 70) / 100;
-    const fy = 0.15 + (p * 53 % 70) / 100;
-    const pw = 0.03 + (p % 3) * 0.01;
-    const ph = 0.02 + ((p * 2) % 3) * 0.008;
-    L.rectangle(
-      [[swLat + fy * latSpan, swLon + fx * lonSpan], [swLat + (fy + ph) * latSpan, swLon + (fx + pw) * lonSpan]],
-      { color: "rgba(24,50,34,0)", weight: 0, fillColor: "#12251c", fillOpacity: 0.6, interactive: false }
-    ).addTo(group);
-  }
-
-  // streets (from generateStreets) — dark base grid
-  const streets = generateStreets({ id: city.id, center: [cLat, cLon], bbox: city.bounds });
-  for (const s of streets) {
-    const pts = s.pts.map(([la, lo]) => [la, lo] as [number, number]);
-    if (s.kind === "arterial") {
-      L.polyline(pts, { color: "#3a4049", weight: 1.4, opacity: 0.9, interactive: false }).addTo(group);
-    } else if (s.kind === "secondary") {
-      L.polyline(pts, { color: "#2b3038", weight: 0.9, opacity: 0.85, interactive: false }).addTo(group);
-    } else {
-      L.polyline(pts, { color: "#20242b", weight: 0.5, opacity: 0.7, interactive: false }).addTo(group);
-    }
-  }
-
-  // city label
-  L.marker([cLat, cLon], {
-    icon: L.divIcon({
-      className: "",
-      html: `<div style="color:#5d6675;font:600 13px var(--font-mono),monospace;letter-spacing:.2em;white-space:nowrap;text-shadow:0 0 8px rgba(0,0,0,.9)">${city.name.toUpperCase()}</div>`,
-      iconSize: [0, 0],
-    }),
-    interactive: false,
-  }).addTo(group);
-}
 
 export default function NetworkSection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
+  const leafletRef = useRef<any>(null);
   const [currentCity, setCurrentCity] = useState<City>(CITIES[0]);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [effectLevel, setEffectLevel] = useState(0);
-  const netCanvasRef = useRef<HTMLCanvasElement>(null);
-  const netRAFRef = useRef<number>(0);
   const selectorRef = useRef<HTMLDivElement>(null);
-  const baseRef = useRef<any>(null);
-  const leafletRef = useRef<any>(null);
 
-  // Initialize map
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
     let map: any = null;
+    let disposed = false;
     (async () => {
       if (typeof window === "undefined") return;
-      // Leaflet imported locally (npm) — no external CDN dependency.
       const Lmod = await import("leaflet");
       const L = Lmod.default;
       leafletRef.current = L;
-      if (!L || !containerRef.current) return;
-
-      map = L.map(containerRef.current, {
+      if (!L || !el) return;
+      map = L.map(el, {
         center: currentCity.center,
         zoom: currentCity.zoom,
         minZoom: 11,
@@ -267,251 +89,51 @@ export default function NetworkSection() {
         zoomDelta: 0.5,
         wheelPxPerZoomLevel: 120,
       });
-
-      // Local, fully self-contained city base (no external tiles/CDN):
-      // dark ground + city blocks + streets + parks, drawn in-browser.
-      baseRef.current = buildLocalBase(L, map, currentCity);
-
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
+        subdomains: "abcd", maxZoom: 20, crossOrigin: true,
+      }).addTo(map);
       L.control.zoom({ position: "bottomright" }).addTo(map);
+      if (disposed) { map.remove(); return; }
       mapRef.current = map;
-
-      // ===== Network Canvas Overlay — direct render loop, pixel-perfect =====
-      const netCanvas = netCanvasRef.current;
-      if (netCanvas) {
-        const nctx = netCanvas.getContext("2d");
-        if (nctx) {
-          let time = 0;
-          let lastT = performance.now();
-
-          const renderNet = () => {
-            const now = performance.now();
-            const dt = Math.min(50, now - lastT);
-            lastT = now;
-            time += dt * 0.001;
-
-            const w = netCanvas.width;
-            const h = netCanvas.height;
-            const z = map.getZoom();
-
-            nctx.clearRect(0, 0, w, h);
-
-            // Only draw network when zoomed out (world/regional view)
-            const opacity = z > 9.5 ? 0 : z > 8 ? 1 - (z - 8) / 1.5 : 1;
-
-            if (opacity > 0.01) {
-              nctx.globalAlpha = opacity;
-
-              // Project all nodes to screen coordinates
-              const screenNodes = NET_NODES.map(n => {
-                const p = map.latLngToContainerPoint([n.lat, n.lon]);
-                return { x: p.x, y: p.y, size: n.size, label: n.label, isHQ: !!n.isHQ };
-              });
-
-              // Draw connection lines
-              for (const [a, b] of NET_LINKS) {
-                const na = screenNodes[a], nb = screenNodes[b];
-                if (!na || !nb) continue;
-                // Cull off-screen lines
-                const minX = Math.min(na.x, nb.x), maxX = Math.max(na.x, nb.x);
-                const minY = Math.min(na.y, nb.y), maxY = Math.max(na.y, nb.y);
-                if (maxX < 0 || minX > w || maxY < 0 || minY > h) continue;
-
-                nctx.strokeStyle = "rgba(160,175,200,0.18)";
-                nctx.lineWidth = 0.5;
-                nctx.beginPath();
-                nctx.moveTo(na.x, na.y);
-                nctx.lineTo(nb.x, nb.y);
-                nctx.stroke();
-
-                // Data pulse traveling along the line
-                const speed = 0.15 + (a * 0.012 + b * 0.008);
-                const cycle = ((time * speed) % 1);
-                const px = na.x + (nb.x - na.x) * cycle;
-                const py = na.y + (nb.y - na.y) * cycle;
-                const pulseAlpha = Math.sin(cycle * Math.PI) * 0.6;
-                nctx.fillStyle = `rgba(200,215,240,${pulseAlpha})`;
-                nctx.beginPath();
-                nctx.arc(px, py, 1.2, 0, Math.PI * 2);
-                nctx.fill();
-              }
-
-              // Draw nodes
-              for (let i = 0; i < screenNodes.length; i++) {
-                const n = screenNodes[i];
-                if (n.x < -20 || n.x > w + 20 || n.y < -20 || n.y > h + 20) continue;
-
-                const phaseOffset = i * 0.7; // Different pulse timing per node
-                const pulseT = (time + phaseOffset) % 3.0; // 3-second cycle
-
-                // Ring 1 — outer expanding ring
-                if (pulseT < 1.5) {
-                  const ringProgress = pulseT / 1.5;
-                  const ringR = n.size + ringProgress * n.size * 3;
-                  const ringAlpha = (1 - ringProgress) * 0.3;
-                  nctx.strokeStyle = `rgba(200,215,240,${ringAlpha})`;
-                  nctx.lineWidth = 0.8;
-                  nctx.beginPath();
-                  nctx.arc(n.x, n.y, ringR, 0, Math.PI * 2);
-                  nctx.stroke();
-                }
-
-                // Ring 2 — second expanding ring (offset timing)
-                const pulseT2 = (time + phaseOffset + 1.5) % 3.0;
-                if (pulseT2 < 1.5) {
-                  const ringProgress = pulseT2 / 1.5;
-                  const ringR = n.size + ringProgress * n.size * 2.5;
-                  const ringAlpha = (1 - ringProgress) * 0.2;
-                  nctx.strokeStyle = `rgba(200,215,240,${ringAlpha})`;
-                  nctx.lineWidth = 0.6;
-                  nctx.beginPath();
-                  nctx.arc(n.x, n.y, ringR, 0, Math.PI * 2);
-                  nctx.stroke();
-                }
-
-                // Outer glow
-                const glowGrad = nctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.size * 2);
-                glowGrad.addColorStop(0, n.isHQ ? "rgba(255,255,255,0.2)" : "rgba(200,215,240,0.12)");
-                glowGrad.addColorStop(1, "transparent");
-                nctx.fillStyle = glowGrad;
-                nctx.beginPath();
-                nctx.arc(n.x, n.y, n.size * 2, 0, Math.PI * 2);
-                nctx.fill();
-
-                // Core
-                nctx.fillStyle = n.isHQ ? "#ffffff" : "rgba(220,230,245,0.9)";
-                nctx.beginPath();
-                nctx.arc(n.x, n.y, n.size, 0, Math.PI * 2);
-                nctx.fill();
-
-                // HQ label
-                if (n.isHQ) {
-                  nctx.fillStyle = "rgba(180,195,215,0.6)";
-                  nctx.font = "500 7px var(--font-mono), monospace";
-                  nctx.textAlign = "center";
-                  nctx.fillText("OSLO", n.x, n.y - n.size - 4);
-                }
-              }
-
-              nctx.globalAlpha = 1;
-            }
-
-            netRAFRef.current = requestAnimationFrame(renderNet);
-          };
-          renderNet();
-
-          // Resize canvas to match container
-          const resizeCanvas = () => {
-            const rect = containerRef.current?.getBoundingClientRect();
-            if (rect && netCanvas) {
-              const dpr = Math.min(window.devicePixelRatio || 1, 2);
-              netCanvas.width = rect.width * dpr;
-              netCanvas.height = rect.height * dpr;
-              netCanvas.style.width = rect.width + "px";
-              netCanvas.style.height = rect.height + "px";
-              nctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            }
-          };
-          resizeCanvas();
-          window.addEventListener("resize", resizeCanvas);
-        }
-      }
     })();
-
-    return () => {
-      if (netRAFRef.current) cancelAnimationFrame(netRAFRef.current);
-      if (map) map.remove();
-    };
+    return () => { disposed = true; if (map) map.remove(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ===== Cinematic 3-stage transition =====
+  // cinematic fly transition between cities (original)
   const flyToCity = async (city: City) => {
     const map = mapRef.current;
     if (!map || transitioning) return;
-
     setTransitioning(true);
     setSelectorOpen(false);
-
     map.setMaxBounds(undefined);
     map.setMinZoom(1);
-
     const startZoom = map.getZoom();
 
-    // ── 0. Freeze — dramatic hold before departure (0.9s)
     await sleep(900);
-
-    // ── ZOOM OUT STAGE 1: Slow pull back, medium blur, slight darken
     map.flyTo(map.getCenter(), Math.max(startZoom - 2, 10), { duration: 0.6, easeLinearity: 0.15 });
-    setEffectLevel(0.3);
-    await sleep(620);
-    // Camera lock impact — brief hold
-    setEffectLevel(0.35);
-    await sleep(250);
-
-    // ── ZOOM OUT STAGE 2: Further out, stronger blur, darker
+    setEffectLevel(0.3); await sleep(620); setEffectLevel(0.35); await sleep(250);
     map.flyTo(map.getCenter(), Math.max(startZoom - 5, 7), { duration: 0.55, easeLinearity: 0.15 });
-    setEffectLevel(0.6);
-    await sleep(570);
-    // Camera lock impact
-    setEffectLevel(0.65);
-    await sleep(250);
-
-    // ── ZOOM OUT STAGE 3: Furthest, heavy blur, almost black
+    setEffectLevel(0.6); await sleep(570); setEffectLevel(0.65); await sleep(250);
     map.flyTo(map.getCenter(), 4, { duration: 0.5, easeLinearity: 0.15 });
-    setEffectLevel(0.9);
-    await sleep(520);
-    // Brief hold at near-black
-    await sleep(200);
-    setEffectLevel(1.0); // Full black
+    setEffectLevel(0.9); await sleep(520); await sleep(200); setEffectLevel(1.0);
 
-    // ── SWITCH: Screen is fully black — instantly teleport to destination at HIGH altitude
-    // Start far above the city so the arrival feels like descending from the sky
-    const arrivalStartZoom = Math.max(city.zoom - 5, 4); // Very far away
+    const arrivalStartZoom = Math.max(city.zoom - 5, 4);
     map.setView(city.center, arrivalStartZoom, { animate: false });
-    // Let tiles begin loading at the destination
     await sleep(250);
-
-    // ── ZOOM IN STAGE 1: Descending from very high altitude — heavy blur, still dark
-    // Travel a large distance (from arrivalStartZoom toward city.zoom - 2)
     map.flyTo(city.center, city.zoom - 2, { duration: 0.6, easeLinearity: 0.15 });
-    setEffectLevel(0.85); // Still heavy blur, mostly dark
-    await sleep(620);
-    // Camera lock impact — first beat of arrival
-    setEffectLevel(0.8);
-    await sleep(250);
-
-    // ── ZOOM IN STAGE 2: Closer descent — blur decreasing, brightness returning
+    setEffectLevel(0.85); await sleep(620); setEffectLevel(0.8); await sleep(250);
     map.flyTo(city.center, city.zoom - 0.5, { duration: 0.55, easeLinearity: 0.15 });
-    setEffectLevel(0.5); // Noticeably clearer
-    await sleep(570);
-    // Camera lock impact
-    setEffectLevel(0.45);
-    await sleep(250);
-
-    // ── ZOOM IN STAGE 3: Final descent into the city — full sharpness
+    setEffectLevel(0.5); await sleep(570); setEffectLevel(0.45); await sleep(250);
     map.flyTo(city.center, city.zoom, { duration: 0.5, easeLinearity: 0.2 });
-    setEffectLevel(0.15);
-    await sleep(400);
-    setEffectLevel(0); // Perfectly clear — camera settled
-    await sleep(150);
+    setEffectLevel(0.15); await sleep(400); setEffectLevel(0); await sleep(150);
 
-    // Lock to new city
     map.setMaxBounds(city.bounds);
     map.setMinZoom(11);
     setCurrentCity(city);
     setTransitioning(false);
   };
 
-  // Rebuild the local city base when the city changes
-  useEffect(() => {
-    const map = mapRef.current;
-    const L = leafletRef.current;
-    if (!map || !L) return;
-    if (baseRef.current) map.removeLayer(baseRef.current);
-    baseRef.current = buildLocalBase(L, map, currentCity);
-  }, [currentCity]);
-
-  // Close selector on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (selectorRef.current && !selectorRef.current.contains(e.target as Node)) setSelectorOpen(false);
@@ -543,8 +165,7 @@ export default function NetworkSection() {
           <div className="absolute top-full left-0 mt-2 w-[280px] max-h-[500px] overflow-y-auto scroll-thin rounded-xl border border-[#1a1d22] bg-[#0a0b0e]/95 backdrop-blur-xl py-2 shadow-2xl">
             {COUNTRIES.map(country => (
               <div key={country}>
-                <div className="px-3.5 py-1.5 text-[0.54rem] font-bold uppercase tracking-[0.14em] text-[#2e333c] flex items-center gap-1.5"
-                  style={{ fontFamily: "var(--font-mono)" }}>
+                <div className="px-3.5 py-1.5 text-[0.54rem] font-bold uppercase tracking-[0.14em] text-[#2e333c] flex items-center gap-1.5" style={{ fontFamily: "var(--font-mono)" }}>
                   <span className="text-sm">{CITIES.find(c => c.country === country)?.flag}</span>
                   {country}
                 </div>
@@ -567,14 +188,7 @@ export default function NetworkSection() {
         )}
       </div>
 
-      {/* ===== Global Network Canvas Overlay ===== */}
-      <canvas
-        ref={netCanvasRef}
-        className="pointer-events-none absolute inset-0 z-[400]"
-      />
-
-      {/* ===== Cinematic visual effects ===== */}
-      {/* Blur + gradual darkening overlay — smooth continuous transition */}
+      {/* Cinematic transition effect */}
       <div
         className="pointer-events-none absolute inset-0 z-[500]"
         style={{
@@ -588,14 +202,10 @@ export default function NetworkSection() {
         }}
       />
 
-      {/* Transition status indicator */}
       {transitioning && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2.5 rounded-xl border border-[#1a1d22] bg-[#0a0b0e]/90 backdrop-blur-md px-4 py-2.5 shadow-lg"
-          style={{ marginBottom: effectLevel * 30 }}>
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2.5 rounded-xl border border-[#1a1d22] bg-[#0a0b0e]/90 backdrop-blur-md px-4 py-2.5 shadow-lg" style={{ marginBottom: effectLevel * 30 }}>
           <div className="h-3.5 w-3.5 rounded-full border-2 border-[#2a2f38] border-t-[#565d68] animate-spin" />
-          <span className="text-[0.66rem] tracking-[0.12em] text-[#565d68]" style={{ fontFamily: "var(--font-mono)" }}>
-            NAVIGATING
-          </span>
+          <span className="text-[0.66rem] tracking-[0.12em] text-[#565d68]" style={{ fontFamily: "var(--font-mono)" }}>NAVIGATING</span>
         </div>
       )}
     </div>
