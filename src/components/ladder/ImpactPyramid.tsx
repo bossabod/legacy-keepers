@@ -151,7 +151,7 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    const fog = new THREE.FogExp2(0x010203, 0.05); // dense to start
+    const fog = new THREE.FogExp2(0x010203, 0.16); // heavy, mysterious fog to start
     scene.fog = fog;
 
     const pmrem = new THREE.PMREMGenerator(renderer);
@@ -218,22 +218,22 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
       const geometry = new THREE.CylinderGeometry(topR, botR, TIER_H, 4, 1, false);
 
       // Dark smoked obsidian / graphite — almost black, only reflections
-      // and silver edges reveal the shape. No blue tint.
-      const light = 0.032 + (N - 1 - i) * 0.004;
-      const baseColor = new THREE.Color().setHSL(0.56, 0.08, Math.min(Math.max(light, 0.026), 0.07));
+      // and thin silver edges reveal the shape. Solid, heavy, no blue.
+      const light = 0.02 + (N - 1 - i) * 0.0025;
+      const baseColor = new THREE.Color().setHSL(0.56, 0.09, Math.min(Math.max(light, 0.016), 0.045));
 
       const mat = new THREE.MeshPhysicalMaterial({
         color: baseColor,
-        metalness: 0.72 - (N - 1 - i) * 0.012,
-        roughness: 0.3 - (N - 1 - i) * 0.014,
-        envMapIntensity: 1.15 + (N - 1 - i) * 0.03,
-        transmission: 0.16,
-        thickness: 2.6,
+        metalness: 0.85 - (N - 1 - i) * 0.012,
+        roughness: 0.34 - (N - 1 - i) * 0.016,
+        envMapIntensity: 0.8 + (N - 1 - i) * 0.025,
+        transmission: 0.04,
+        thickness: 4.2,
         ior: 1.6,
-        attenuationColor: new THREE.Color(0x0a0c0f),
-        attenuationDistance: 6,
-        clearcoat: 0.55,
-        clearcoatRoughness: 0.22,
+        attenuationColor: new THREE.Color(0x05070a),
+        attenuationDistance: 4,
+        clearcoat: 0.6,
+        clearcoatRoughness: 0.2,
         bumpMap: brushTex,
         bumpScale: 0.02,
       });
@@ -411,8 +411,9 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
     let raf = 0;
     let gap = 0;
     let openProgress = 0;
-    const FOG_CLOSED = 0.05;
-    const FOG_OPEN = 0.012;
+    let fogReveal = 0; // 0 dense fog … 1 fully revealed
+    const FOG_CLOSED = 0.16;
+    const FOG_OPEN = 0.008;
 
     const tick = () => {
       const dt = Math.min(clock.getDelta(), 0.05);
@@ -429,8 +430,11 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
       const targetOpen = isOpen ? 1 : 0;
       openProgress += (targetOpen - openProgress) * Math.min(1, dt * 0.85);
 
-      // Fog slowly parts to reveal the artifact.
-      fog.density = FOG_CLOSED + (FOG_OPEN - FOG_CLOSED) * openProgress;
+      // Fog dissolves naturally and a little faster than the reveal (~1–2s),
+      // so the artifact emerges gradually from the smoke.
+      const targetReveal = isOpen ? 1 : 0;
+      fogReveal += (targetReveal - fogReveal) * Math.min(1, dt * 1.5);
+      fog.density = FOG_CLOSED + (FOG_OPEN - FOG_CLOSED) * fogReveal;
 
       for (let i = 0; i < N; i++) {
         const rig = rigs[i];
@@ -449,7 +453,7 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
         const ei = glow * 0.5;
         rig.mat.emissive.setRGB(0.42 * ei, 0.46 * ei, 0.55 * ei);
         rig.mat.emissiveIntensity = 1.25;
-        rig.mat.envMapIntensity = (1.15 + (N - 1 - i) * 0.03) + glow * 0.5;
+        rig.mat.envMapIntensity = (0.8 + (N - 1 - i) * 0.025) + glow * 0.4;
         rig.edgeMat.opacity = Math.min(1, 0.14 + glow * 0.7 - dim * 0.12);
         rig.edgeMat.color.setHex(glow > 0.2 ? 0xffffff : 0xdfe8f2);
         rig.haloMat.opacity = glow * 0.26;

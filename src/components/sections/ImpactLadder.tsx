@@ -96,12 +96,6 @@ export default function LadderSection({ data }: { data: AppData }) {
             )}
           </AnimatePresence>
 
-          {opened && active === null && (
-            <div className="impact-hint">
-              <span className="impact-hint-line" />
-              <span>{ar ? "مرّر فوق طبقة أو اختر مرتبة" : "Hover a layer or choose a rank"}</span>
-            </div>
-          )}
         </div>
 
         <aside className="info-panel" aria-live="polite">
@@ -161,7 +155,7 @@ const impactStyles = `
   .impact-ladder:after { content:""; position:absolute; inset:0; pointer-events:none; opacity:.25; background:repeating-linear-gradient(90deg, transparent 0, transparent 120px, rgba(191,205,220,.012) 121px); }
 
   .impact-heading { position:relative; z-index:3; padding:24px clamp(20px,4vw,64px) 0; }
-  .impact-title, .impact-tagline, .info-num, .info-meta dt, .impact-foot, .impact-hint span, .rank-no, .ghost-open { font-family:var(--font-ibm-mono), monospace; }
+  .impact-title, .impact-tagline, .info-num, .info-meta dt, .impact-foot, .rank-no, .ghost-open { font-family:var(--font-ibm-mono), monospace; }
   .impact-title { margin:0; font-size:.68rem; letter-spacing:.3em; color:#eef2f7; }
   .impact-tagline { display:block; margin-top:9px; color:#5d6774; font-size:.54rem; letter-spacing:.16em; }
 
@@ -194,9 +188,6 @@ const impactStyles = `
   .ghost-open:hover .ghost-text { letter-spacing:.46em; }
   .is-rtl .ghost-open:hover .ghost-text { letter-spacing:.18em; }
   .ghost-open:hover .ghost-line { width:110px; box-shadow:0 0 18px rgba(240,246,253,.85); }
-
-  .impact-hint { position:absolute; bottom:8px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; color:#4a535f; font-size:.5rem; letter-spacing:.18em; white-space:nowrap; opacity:.8; }
-  .impact-hint-line { width:34px; height:1px; background:linear-gradient(90deg,transparent,#57606c); }
 
   .info-panel { width:min(92vw, 350px); display:flex; align-items:center; min-height:300px; order:3; }
   .info-record { border-inline-start:1px solid rgba(214,226,238,.18); padding-inline-start:clamp(16px,2.5vw,32px); }
@@ -234,7 +225,6 @@ const impactStyles = `
     .info-panel { width:100%; min-height:0; padding:4px 0 14px; }
     .info-record, .is-rtl .info-record { border-inline-start:0; border-inline-end:0; border-top:1px solid rgba(214,226,238,.18); padding:12px 2px 0; }
     .info-overview { max-width:100%; }
-    .impact-hint { display:none; }
     .ghost-open { letter-spacing:.22em; }
   }
 `;
