@@ -5,6 +5,8 @@ import { play } from "@/lib/sound";
 import {
   NET_NODES, NET_LINKS,
   MOUNTAIN_ZONES, WATER_ZONES, METRO_ZONES, REGION_ZONES, ROAD_ACTIVITY,
+  RADAR_HUBS, MOUNTAIN_CONTOURS, LOCATION_MARKERS, HUB_LABELS,
+  HOTSPOTS, GRID_METROS, ACTIVE_MEMBERS,
 } from "@/lib/gis-overlay";
 
 // ===== CDN Loaders =====
@@ -173,6 +175,103 @@ export default function NetworkSection() {
               // ---- Mountain tint (very dark forest green) ----
               for (const poly of MOUNTAIN_ZONES) {
                 drawPoly(nctx, poly, proj, "rgba(24,50,34,0.16)");
+              }
+
+              // ---- Contour-style analysis lines over mountains ----
+              for (const ring of MOUNTAIN_CONTOURS) {
+                nctx.beginPath();
+                let started = false;
+                for (const ll of ring) {
+                  const p = proj(ll);
+                  if (!started) { nctx.moveTo(p.x, p.y); started = true; }
+                  else nctx.lineTo(p.x, p.y);
+                }
+                nctx.closePath();
+                nctx.strokeStyle = "rgba(70,110,80,0.22)";
+                nctx.lineWidth = 0.5;
+                nctx.stroke();
+              }
+
+              // ---- Faint network grids in important metros ----
+              for (const g of GRID_METROS) {
+                const topLeft = proj([g.lat + g.size * g.cells, g.lon - g.size * g.cells]);
+                const bottomRight = proj([g.lat - g.size * g.cells, g.lon + g.size * g.cells]);
+                for (let c = 0; c <= g.cells * 2; c++) {
+                  const f = c / (g.cells * 2);
+                  // vertical
+                  const yTop = proj([g.lat + g.size * g.cells, g.lon - g.size * g.cells + (g.size * g.cells * 2) * f]);
+                  const yBot = proj([g.lat - g.size * g.cells, g.lon - g.size * g.cells + (g.size * g.cells * 2) * f]);
+                  nctx.strokeStyle = "rgba(210,220,232,0.06)";
+                  nctx.lineWidth = 0.4;
+                  nctx.beginPath(); nctx.moveTo(yTop.x, yTop.y); nctx.lineTo(yBot.x, yBot.y); nctx.stroke();
+                  // horizontal
+                  const xL = proj([g.lat + g.size * g.cells - (g.size * g.cells * 2) * f, g.lon - g.size * g.cells]);
+                  const xR = proj([g.lat + g.size * g.cells - (g.size * g.cells * 2) * f, g.lon + g.size * g.cells]);
+                  nctx.beginPath(); nctx.moveTo(xL.x, xL.y); nctx.lineTo(xR.x, xR.y); nctx.stroke();
+                }
+              }
+
+              // ---- Red hotspot clusters around high-density centres ----
+              for (const hs of HOTSPOTS) {
+                const p = proj([hs.lat, hs.lon]);
+                const r = hs.radius * 4;
+                const g = nctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+                g.addColorStop(0, `rgba(122,42,52,${0.28 * hs.intensity})`);
+                g.addColorStop(1, "transparent");
+                nctx.fillStyle = g;
+                nctx.beginPath(); nctx.arc(p.x, p.y, r, 0, Math.PI * 2); nctx.fill();
+              }
+
+              // ---- Radar scans around important hubs ----
+              for (const hub of RADAR_HUBS) {
+                const p = proj([hub.lat, hub.lon]);
+                const r = hub.radius * 6;
+                if (p.x < -r || p.x > w + r || p.y < -r || p.y > h + r) continue;
+                // base ring
+                nctx.strokeStyle = "rgba(210,220,232,0.10)";
+                nctx.lineWidth = 0.5;
+                nctx.beginPath(); nctx.arc(p.x, p.y, r, 0, Math.PI * 2); nctx.stroke();
+                nctx.beginPath(); nctx.arc(p.x, p.y, r * 0.6, 0, Math.PI * 2); nctx.stroke();
+                nctx.beginPath(); nctx.arc(p.x, p.y, r * 0.3, 0, Math.PI * 2); nctx.stroke();
+                // rotating sweep line + crosshair
+                const ang = time * hub.speed;
+                nctx.strokeStyle = "rgba(225,235,246,0.18)";
+                nctx.beginPath(); nctx.moveTo(p.x, p.y);
+                nctx.lineTo(p.x + Math.cos(ang) * r, p.y + Math.sin(ang) * r);
+                nctx.stroke();
+                nctx.beginPath();
+                nctx.moveTo(p.x - r, p.y); nctx.lineTo(p.x + r, p.y);
+                nctx.moveTo(p.x, p.y - r); nctx.lineTo(p.x, p.y + r);
+                nctx.stroke();
+              }
+
+              // ---- Small white location markers ----
+              for (const m of LOCATION_MARKERS) {
+                const p = proj([m.lat, m.lon]);
+                nctx.fillStyle = "rgba(235,242,250,0.75)";
+                nctx.beginPath(); nctx.arc(p.x, p.y, 1.4, 0, Math.PI * 2); nctx.fill();
+                nctx.strokeStyle = "rgba(235,242,250,0.4)";
+                nctx.lineWidth = 0.5;
+                nctx.beginPath(); nctx.arc(p.x, p.y, 3, 0, Math.PI * 2); nctx.stroke();
+              }
+
+              // ---- Strategic-hub labels ----
+              for (const hl of HUB_LABELS) {
+                const p = proj([hl.lat, hl.lon]);
+                if (p.x < 0 || p.x > w || p.y < 0 || p.y > h) continue;
+                nctx.fillStyle = "rgba(195,210,228,0.6)";
+                nctx.font = "500 8px var(--font-mono), monospace";
+                nctx.textAlign = "center";
+                nctx.fillText(hl.name, p.x, p.y - 8);
+              }
+
+              // ---- Tiny blinking active-member points ----
+              for (let i = 0; i < ACTIVE_MEMBERS.length; i++) {
+                const am = ACTIVE_MEMBERS[i];
+                const p = proj([am.lat, am.lon]);
+                const blink = (Math.sin(time * 2.2 + i * 1.7) + 1) / 2; // 0..1
+                nctx.fillStyle = `rgba(255,255,255,${0.4 + blink * 0.6})`;
+                nctx.beginPath(); nctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2); nctx.fill();
               }
 
               // ---- Regional activity zones (faint blurred dark-red circles) ----

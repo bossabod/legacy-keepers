@@ -242,3 +242,98 @@ export const REGION_LABELS: Record<string, { en: string; ar: string }> = {
   "Saudi Arabia": { en: "KSA", ar: "السعودية" },
   "South Korea": { en: "KOR", ar: "كوريا" },
 };
+
+/* ------------------------------------------------------------------ */
+/*  Additional analytical overlay data                                 */
+/* ------------------------------------------------------------------ */
+
+/* Radar-scan hubs — transparent circular sweeps around important hubs. */
+export interface RadarHub {
+  lat: number;
+  lon: number;
+  radius: number; // degrees-ish
+  speed: number;  // sweep rotation speed (rad/s)
+}
+export const RADAR_HUBS: RadarHub[] = [
+  { lat: 40.71, lon: -74.01, radius: 4.5, speed: 0.7 },   // New York
+  { lat: 51.51, lon: -0.13, radius: 4.5, speed: 0.65 },   // London
+  { lat: 41.01, lon: 28.98, radius: 4.0, speed: 0.6 },    // Istanbul
+  { lat: 24.71, lon: 46.68, radius: 4.0, speed: 0.55 },   // Riyadh
+  { lat: 25.20, lon: 55.27, radius: 3.5, speed: 0.6 },    // Dubai
+  { lat: 1.35, lon: 103.82, radius: 3.5, speed: 0.5 },    // Singapore
+  { lat: 35.68, lon: 139.65, radius: 4.0, speed: 0.6 },   // Tokyo
+  { lat: -23.55, lon: -46.63, radius: 4.0, speed: 0.5 },  // São Paulo
+  { lat: -33.87, lon: 151.21, radius: 3.5, speed: 0.5 },  // Sydney
+];
+
+/* Contour-style analysis lines over mountain regions. Each is a ring
+   of lat/lon forming an irregular oval (elevation-band analogue). */
+export const MOUNTAIN_CONTOURS: [number, number][][] = [
+  [[77, 31], [80, 34], [84, 33], [87, 30], [84, 28], [79, 29], [77, 31]],
+  [[76, 33], [79, 35], [83, 35], [86, 32], [83, 30], [78, 31], [76, 33]],
+  [[8, 44.5], [10, 46.5], [13, 46.8], [15, 46], [13, 44.2], [9.5, 44], [8, 44.5]],
+  [[7, 45.5], [9, 47], [12, 46.8], [14, 45.6], [11.5, 44.4], [8.5, 45], [7, 45.5]],
+  [[41, 41], [44, 43], [48, 42.5], [49, 40.5], [45, 39.5], [42, 40.5], [41, 41]],
+  [[-109, 38], [-106, 40], [-105, 43], [-109, 45], [-113, 44], [-114, 40], [-109, 38]],
+  [[-111, 40], [-108, 42], [-107, 45], [-111, 47], [-115, 46], [-116, 43], [-111, 40]],
+  [[-73, 7], [-70, 5], [-69, -2], [-72, -6], [-76, -3], [-77, 3], [-73, 7]],
+  [[-70, -30], [-67, -31], [-65, -37], [-68, -44], [-72, -42], [-73, -35], [-70, -30]],
+  [[-6, 31], [-2, 32], [3, 34], [5, 33], [2, 31], [-4, 31], [-6, 31]],
+];
+
+/* Small white location markers in important cities. */
+export const LOCATION_MARKERS: { lat: number; lon: number }[] = [
+  { lat: 40.71, lon: -74.01 }, { lat: 34.05, lon: -118.24 }, { lat: 41.88, lon: -87.63 },
+  { lat: 51.51, lon: -0.13 }, { lat: 48.86, lon: 2.35 }, { lat: 52.52, lon: 13.41 },
+  { lat: 41.01, lon: 28.98 }, { lat: 24.71, lon: 46.68 }, { lat: 25.20, lon: 55.27 },
+  { lat: 19.08, lon: 72.88 }, { lat: 1.35, lon: 103.82 }, { lat: 35.68, lon: 139.65 },
+  { lat: 37.57, lon: 126.98 }, { lat: -23.55, lon: -46.63 }, { lat: -33.87, lon: 151.21 },
+  { lat: 30.04, lon: 31.24 }, { lat: -26.20, lon: 28.05 }, { lat: 3.14, lon: 101.69 },
+];
+
+/* Strategic-hub labels. */
+export const HUB_LABELS: { lat: number; lon: number; name: string }[] = [
+  { lat: 40.71, lon: -74.01, name: "NEW YORK" },
+  { lat: 51.51, lon: -0.13, name: "LONDON" },
+  { lat: 41.01, lon: 28.98, name: "ISTANBUL" },
+  { lat: 24.71, lon: 46.68, name: "RIYADH" },
+  { lat: 25.20, lon: 55.27, name: "DUBAI" },
+  { lat: 1.35, lon: 103.82, name: "SINGAPORE" },
+  { lat: 35.68, lon: 139.65, name: "TOKYO" },
+  { lat: -23.55, lon: -46.63, name: "SÃO PAULO" },
+  { lat: -33.87, lon: 151.21, name: "SYDNEY" },
+];
+
+/* Red hotspot clusters around high-density urban centres. */
+export const HOTSPOTS: { lat: number; lon: number; radius: number; intensity: number }[] = [
+  { lat: 40.71, lon: -74.01, radius: 1.2, intensity: 0.5 },
+  { lat: 51.51, lon: -0.13, radius: 1.1, intensity: 0.5 },
+  { lat: 41.01, lon: 28.98, radius: 1.2, intensity: 0.55 },
+  { lat: 24.71, lon: 46.68, radius: 1.0, intensity: 0.5 },
+  { lat: 25.20, lon: 55.27, radius: 0.9, intensity: 0.55 },
+  { lat: 19.08, lon: 72.88, radius: 1.3, intensity: 0.55 },
+  { lat: 1.35, lon: 103.82, radius: 0.8, intensity: 0.55 },
+  { lat: 35.68, lon: 139.65, radius: 1.3, intensity: 0.6 },
+  { lat: -23.55, lon: -46.63, radius: 1.2, intensity: 0.5 },
+];
+
+/* Faint network grids in important metros (grid cell size in degrees). */
+export const GRID_METROS: { lat: number; lon: number; size: number; cells: number }[] = [
+  { lat: 40.71, lon: -74.01, size: 1.1, cells: 2 },
+  { lat: 51.51, lon: -0.13, size: 1.1, cells: 2 },
+  { lat: 41.01, lon: 28.98, size: 1.0, cells: 2 },
+  { lat: 35.68, lon: 139.65, size: 1.2, cells: 2 },
+  { lat: 1.35, lon: 103.82, size: 0.8, cells: 2 },
+];
+
+/* Active-member blinking points (subset of nodes flagged active). */
+export const ACTIVE_MEMBERS: { lat: number; lon: number }[] = (() => {
+  // deterministic selection of city anchors, weighted to major metros
+  const anchors = [
+    [40.71, -74.01], [34.05, -118.24], [51.51, -0.13], [48.86, 2.35],
+    [41.01, 28.98], [24.71, 46.68], [25.20, 55.27], [19.08, 72.88],
+    [1.35, 103.82], [35.68, 139.65], [-23.55, -46.63], [-33.87, 151.21],
+    [30.04, 31.24], [37.57, 126.98], [3.14, 101.69], [40.71, -74.01],
+  ];
+  return anchors.map((a, i) => ({ lat: a[0] + (i % 3) * 0.25, lon: a[1] + (i % 2) * 0.3 }));
+})();
