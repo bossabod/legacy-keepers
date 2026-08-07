@@ -188,11 +188,15 @@ export default function NetworkSection() {
       map = L.map(containerRef.current, {
         center: currentCity.center,
         zoom: currentCity.zoom,
-        minZoom: 2,
+        minZoom: 11,
         maxZoom: 18,
+        maxBounds: currentCity.bounds,
+        maxBoundsViscosity: 1.0,
         zoomControl: false,
         attributionControl: false,
-        worldCopyJump: true,
+        zoomSnap: 0.1,
+        zoomDelta: 0.5,
+        wheelPxPerZoomLevel: 120,
       });
       L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
         subdomains: "abcd", maxZoom: 20, crossOrigin: true,
@@ -454,16 +458,69 @@ export default function NetworkSection() {
   const flyToCity = async (city: City) => {
     const map = mapRef.current;
     if (!map || transitioning) return;
+
     setTransitioning(true);
     setSelectorOpen(false);
-    setCurrentCity(city);
-    map.setMinZoom(2);
-    await sleep(300);
-    map.flyTo(city.center, city.zoom, { duration: 1.1, easeLinearity: 0.15 });
-    setEffectLevel(0.4);
+
+    map.setMaxBounds(undefined);
+    map.setMinZoom(1);
+
+    const startZoom = map.getZoom();
+
+    // ── 0. Freeze — dramatic hold before departure (0.9s)
+    await sleep(900);
+
+    // ── ZOOM OUT STAGE 1: Slow pull back, medium blur, slight darken
+    map.flyTo(map.getCenter(), Math.max(startZoom - 2, 10), { duration: 0.6, easeLinearity: 0.15 });
+    setEffectLevel(0.3);
+    await sleep(620);
+    setEffectLevel(0.35);
+    await sleep(250);
+
+    // ── ZOOM OUT STAGE 2: Further out, stronger blur, darker
+    map.flyTo(map.getCenter(), Math.max(startZoom - 5, 7), { duration: 0.55, easeLinearity: 0.15 });
+    setEffectLevel(0.6);
+    await sleep(570);
+    setEffectLevel(0.65);
+    await sleep(250);
+
+    // ── ZOOM OUT STAGE 3: Furthest, heavy blur, almost black
+    map.flyTo(map.getCenter(), 4, { duration: 0.5, easeLinearity: 0.15 });
+    setEffectLevel(0.9);
+    await sleep(520);
+    await sleep(200);
+    setEffectLevel(1.0);
+
+    // ── SWITCH: screen fully black — teleport to destination at high altitude
+    const arrivalStartZoom = Math.max(city.zoom - 5, 4);
+    map.setView(city.center, arrivalStartZoom, { animate: false });
+    await sleep(250);
+
+    // ── ZOOM IN STAGE 1: descending, heavy blur, still dark
+    map.flyTo(city.center, city.zoom - 2, { duration: 0.6, easeLinearity: 0.15 });
+    setEffectLevel(0.85);
+    await sleep(620);
+    setEffectLevel(0.8);
+    await sleep(250);
+
+    // ── ZOOM IN STAGE 2: closer, blur decreasing, brightness returning
+    map.flyTo(city.center, city.zoom - 0.5, { duration: 0.55, easeLinearity: 0.15 });
+    setEffectLevel(0.5);
+    await sleep(570);
+    setEffectLevel(0.45);
+    await sleep(250);
+
+    // ── ZOOM IN STAGE 3: final descent into the city — full sharpness
+    map.flyTo(city.center, city.zoom, { duration: 0.5, easeLinearity: 0.2 });
+    setEffectLevel(0.15);
     await sleep(400);
     setEffectLevel(0);
-    await sleep(500);
+    await sleep(150);
+
+    // Lock to new city + load its overlays
+    map.setMaxBounds(city.bounds);
+    map.setMinZoom(11);
+    setCurrentCity(city);
     setTransitioning(false);
   };
 
