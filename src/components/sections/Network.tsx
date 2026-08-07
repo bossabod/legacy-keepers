@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { MapPin, X, ChevronDown } from "lucide-react";
+import { generateStreets } from "@/lib/street-map";
 
 // ===== CDN Loaders =====
 function loadCSS(href: string) {
@@ -152,6 +153,83 @@ const NET_LINKS: [number, number][] = [
   [4, 24],  // London → Istanbul
 ];
 
+/** Draw a fully self-contained city base inside the Leaflet map — no
+    external tiles/CDN. Dark ground + city blocks + parks + a street
+    grid (from generateStreets) + small district blocks. Everything is
+    drawn in-browser as georeferenced vector layers, so the map always
+    loads completely. */
+function buildLocalBase(L: any, map: any, city: City) {
+  const [[swLat, swLon], [neLat, neLon]] = city.bounds;
+  const cLat = (swLat + neLat) / 2, cLon = (swLon + neLon) / 2;
+  const latSpan = neLat - swLat;
+  const lonSpan = neLon - swLon;
+
+  const group = L.layerGroup().addTo(map);
+
+  // full dark ground
+  L.rectangle([[swLat, swLon], [neLat, neLon]], {
+    color: "#0a0c10", weight: 0, fillColor: "#0a0c10", fillOpacity: 1,
+    interactive: false,
+  }).addTo(group);
+
+  // city blocks (grid of small rectangles) — gives an urban fabric
+  const rows = 8, cols = 8;
+  const stepLat = latSpan / rows;
+  const stepLon = lonSpan / cols;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const lat0 = swLat + r * stepLat, lon0 = swLon + c * stepLon;
+      // jitter block size slightly
+      const pad = 0.12;
+      const bLat = lat0 + stepLat * pad;
+      const bLon = lon0 + stepLon * pad;
+      const eLat = lat0 + stepLat * (1 - pad);
+      const eLon = lon0 + stepLon * (1 - pad);
+      const shade = ((r * 31 + c * 17) % 100) / 100;
+      L.rectangle([[bLat, bLon], [eLat, eLon]], {
+        color: "rgba(30,34,40,0)", weight: 0,
+        fillColor: `rgba(${26 + shade * 10},${29 + shade * 10},${34 + shade * 12},0.7)`,
+        fillOpacity: 0.7, interactive: false,
+      }).addTo(group);
+    }
+  }
+
+  // parks / green patches (dark muted green)
+  for (let p = 0; p < 6; p++) {
+    const fx = 0.15 + (p * 37 % 70) / 100;
+    const fy = 0.15 + (p * 53 % 70) / 100;
+    const pw = 0.03 + (p % 3) * 0.01;
+    const ph = 0.02 + ((p * 2) % 3) * 0.008;
+    L.rectangle(
+      [[swLat + fy * latSpan, swLon + fx * lonSpan], [swLat + (fy + ph) * latSpan, swLon + (fx + pw) * lonSpan]],
+      { color: "rgba(24,50,34,0)", weight: 0, fillColor: "#12251c", fillOpacity: 0.6, interactive: false }
+    ).addTo(group);
+  }
+
+  // streets (from generateStreets) — dark base grid
+  const streets = generateStreets({ id: city.id, center: [cLat, cLon], bbox: city.bounds });
+  for (const s of streets) {
+    const pts = s.pts.map(([la, lo]) => [la, lo] as [number, number]);
+    if (s.kind === "arterial") {
+      L.polyline(pts, { color: "#3a4049", weight: 1.4, opacity: 0.9, interactive: false }).addTo(group);
+    } else if (s.kind === "secondary") {
+      L.polyline(pts, { color: "#2b3038", weight: 0.9, opacity: 0.85, interactive: false }).addTo(group);
+    } else {
+      L.polyline(pts, { color: "#20242b", weight: 0.5, opacity: 0.7, interactive: false }).addTo(group);
+    }
+  }
+
+  // city label
+  L.marker([cLat, cLon], {
+    icon: L.divIcon({
+      className: "",
+      html: `<div style="color:#5d6675;font:600 13px var(--font-mono),monospace;letter-spacing:.2em;white-space:nowrap;text-shadow:0 0 8px rgba(0,0,0,.9)">${city.name.toUpperCase()}</div>`,
+      iconSize: [0, 0],
+    }),
+    interactive: false,
+  }).addTo(group);
+}
+
 export default function NetworkSection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -162,6 +240,8 @@ export default function NetworkSection() {
   const netCanvasRef = useRef<HTMLCanvasElement>(null);
   const netRAFRef = useRef<number>(0);
   const selectorRef = useRef<HTMLDivElement>(null);
+  const baseRef = useRef<any>(null);
+  const leafletRef = useRef<any>(null);
 
   // Initialize map
   useEffect(() => {
@@ -171,6 +251,7 @@ export default function NetworkSection() {
       // Leaflet imported locally (npm) — no external CDN dependency.
       const Lmod = await import("leaflet");
       const L = Lmod.default;
+      leafletRef.current = L;
       if (!L || !containerRef.current) return;
 
       map = L.map(containerRef.current, {
@@ -187,9 +268,9 @@ export default function NetworkSection() {
         wheelPxPerZoomLevel: 120,
       });
 
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
-        subdomains: "abcd", maxZoom: 20, crossOrigin: true,
-      }).addTo(map);
+      // Local, fully self-contained city base (no external tiles/CDN):
+      // dark ground + city blocks + streets + parks, drawn in-browser.
+      baseRef.current = buildLocalBase(L, map, currentCity);
 
       L.control.zoom({ position: "bottomright" }).addTo(map);
       mapRef.current = map;
@@ -420,6 +501,15 @@ export default function NetworkSection() {
     setCurrentCity(city);
     setTransitioning(false);
   };
+
+  // Rebuild the local city base when the city changes
+  useEffect(() => {
+    const map = mapRef.current;
+    const L = leafletRef.current;
+    if (!map || !L) return;
+    if (baseRef.current) map.removeLayer(baseRef.current);
+    baseRef.current = buildLocalBase(L, map, currentCity);
+  }, [currentCity]);
 
   // Close selector on outside click
   useEffect(() => {
