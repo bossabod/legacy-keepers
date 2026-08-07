@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MapPin, X, ChevronDown, Layers } from "lucide-react";
 import { play } from "@/lib/sound";
+import { buildCityIntel } from "@/lib/city-intel";
 import {
   NET_NODES, NET_LINKS,
   MOUNTAIN_ZONES, WATER_ZONES, METRO_ZONES, REGION_ZONES, ROAD_ACTIVITY,
@@ -72,80 +73,6 @@ const COUNTRIES = Array.from(new Set(CITIES.map(c => c.country)));
    City-local overlay field — generated per city, deterministic.
    Only used at city zoom (z >= 10). Base map untouched.
    ============================================================ */
-
-interface CityFieldNode { lat: number; lon: number; center: number }
-interface CityField {
-  nodes: CityFieldNode[];
-  links: [number, number][];
-  arteries: [number, number][][];
-  hotspots: { lat: number; lon: number; radius: number; intensity: number }[];
-  mesh: { lat: number; lon: number; size: number; cells: number };
-}
-
-function seeded(seed: number) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function buildCityField(city: City): CityField {
-  const rnd = seeded(city.id.split("").reduce((s, c) => s + c.charCodeAt(0), 0) + 7);
-  const [[swLat, swLon], [neLat, neLon]] = city.bounds;
-  const cLat = (swLat + neLat) / 2, cLon = (swLon + neLon) / 2;
-  const latSpan = Math.max(0.06, neLat - swLat);
-  const lonSpan = Math.max(0.08, neLon - swLon);
-
-  const nodes: CityFieldNode[] = [];
-  const COUNT = 520;
-  for (let i = 0; i < COUNT; i++) {
-    const ring = Math.pow(rnd(), 0.6);
-    const ang = rnd() * Math.PI * 2;
-    const lat = cLat + Math.cos(ang) * (latSpan / 2) * ring * (0.6 + rnd() * 0.4);
-    const lon = cLon + Math.sin(ang) * (lonSpan / 2) * ring * (0.6 + rnd() * 0.4);
-    const d = Math.hypot((lat - cLat) / latSpan, (lon - cLon) / lonSpan);
-    nodes.push({ lat, lon, center: 1 - Math.min(1, d * 1.6) });
-  }
-  nodes.sort((a, b) => b.center - a.center);
-
-  const links: [number, number][] = [];
-  const POOL = Math.min(nodes.length, 140);
-  for (let i = 0; i < POOL; i++) {
-    let best = -1, bestD = 1e9;
-    for (let j = i + 1; j < POOL; j++) {
-      const d = Math.hypot(nodes[i].lat - nodes[j].lat, nodes[i].lon - nodes[j].lon);
-      if (d < bestD) { bestD = d; best = j; }
-    }
-    if (best >= 0 && bestD < latSpan * 0.22) links.push([i, best]);
-  }
-
-  const arteries: [number, number][][] = [];
-  for (let k = 0; k < 4; k++) {
-    const pts: [number, number][] = [];
-    const along = rnd();
-    for (let s = -1; s <= 1.001; s += 0.5) {
-      pts.push([
-        cLat + (along > 0.5 ? (s * latSpan * 0.42) : 0),
-        cLon + (along <= 0.5 ? (s * lonSpan * 0.42) : 0),
-      ]);
-    }
-    arteries.push(pts);
-  }
-
-  const hotspots = [
-    { lat: cLat + latSpan * 0.16, lon: cLon + lonSpan * 0.14, radius: latSpan * 0.22, intensity: 0.9 },
-    { lat: cLat - latSpan * 0.12, lon: cLon - lonSpan * 0.16, radius: latSpan * 0.18, intensity: 0.7 },
-    { lat: cLat + latSpan * 0.02, lon: cLon - lonSpan * 0.1, radius: latSpan * 0.2, intensity: 0.8 },
-  ];
-
-  return {
-    nodes, links, arteries, hotspots,
-    mesh: { lat: cLat, lon: cLon, size: latSpan * 0.4, cells: 4 },
-  };
-}
 
 /* Convert degrees-radius to Leaflet meters (approx) */
 function radToM(deg: number) { return deg * 111320; }
@@ -321,48 +248,91 @@ export default function NetworkSection() {
       cityGroup.current = L.layerGroup();
       const buildCity = (city: City) => {
         cityGroup.current.clearLayers();
-        const field = buildCityField(city);
+        const intel = buildCityIntel({ id: city.id, name: city.name, center: city.center, bounds: city.bounds });
         const G = cityGroup.current;
-        const latLon = (n: CityFieldNode) => [n.lat, n.lon] as [number, number];
 
-        // local hotspots / heat
-        for (const hz of field.hotspots) {
-          const r = radToM(hz.radius);
-          L.circle([hz.lat, hz.lon], { radius: r, color: "rgba(122,42,52,0.5)", weight: 0, fillColor: "#7A2A34", fillOpacity: 0.5 * hz.intensity, interactive: false }).addTo(G);
-          L.circle([hz.lat, hz.lon], { radius: r * 0.5, color: "rgba(122,42,52,0.6)", weight: 0, fillColor: "#7A2A34", fillOpacity: 0.5 * hz.intensity, interactive: false }).addTo(G);
+        /* ---- WATER: deep navy + shallow lighter band ---- */
+        for (const w of intel.water) {
+          const opts = {
+            color: w.deep ? "rgba(4,14,24,0.5)" : "rgba(7,20,34,0.32)",
+            weight: 0, fill: true,
+            fillColor: w.deep ? "#040E18" : "#071424",
+            fillOpacity: w.deep ? 0.55 : 0.34,
+            interactive: false,
+          };
+          L.rectangle([[w.lat, w.lon], [w.lat + w.dLat, w.lon + w.dLon]], opts).addTo(G);
         }
-        // red traffic arteries
-        for (const art of field.arteries) {
-          const pts = art.map(([lo, la]) => [la, lo] as [number, number]);
-          L.polyline(pts, { color: "rgba(150,60,60,0.55)", weight: 1.4, opacity: 0.7, interactive: false }).addTo(G);
-          L.polyline(pts, { color: "rgba(150,60,60,0.2)", weight: 4, opacity: 0.5, interactive: false }).addTo(G);
+
+        /* ---- MOUNTAIN: dark military green ---- */
+        for (const m of intel.mountains) {
+          L.rectangle([[m.lat, m.lon], [m.lat + m.dLat, m.lon + m.dLon]], {
+            color: "rgba(24,50,34,0.5)", weight: 0, fillColor: "#183222", fillOpacity: 0.34, interactive: false,
+          }).addTo(G);
         }
-        // faint network mesh
-        const mesh = field.mesh;
-        const half = mesh.size * mesh.cells;
-        for (let c = 0; c <= mesh.cells * 2; c++) {
-          const f = c / (mesh.cells * 2);
-          const lon = mesh.lon - half + (half * 2) * f;
-          const lat = mesh.lat + half - (half * 2) * f;
-          L.polyline([[mesh.lat + half, lon], [mesh.lat - half, lon]], { color: "rgba(210,220,232,0.12)", weight: 0.4, interactive: false }).addTo(G);
-          L.polyline([[lat, mesh.lon - half], [lat, mesh.lon + half]], { color: "rgba(210,220,232,0.12)", weight: 0.4, interactive: false }).addTo(G);
+
+        /* ---- RED = urban density (follows street blocks, no blobs) ----
+           Draw each density cell as a small georeferenced rectangle whose
+           opacity scales with road+intersection density. Dense downtown
+           cells glow deep red; the fill naturally tracks the street grid. */
+        for (const cell of intel.cells) {
+          if (cell.zone === "core") {
+            L.rectangle([[cell.lat, cell.lon], [cell.lat + cell.dLat, cell.lon + cell.dLon]], {
+              color: "rgba(122,42,52,0)", weight: 0,
+              fillColor: "#7A2A34", fillOpacity: 0.08 + cell.density * 0.26, interactive: false,
+            }).addTo(G);
+          } else if (cell.zone === "medium") {
+            L.rectangle([[cell.lat, cell.lon], [cell.lat + cell.dLat, cell.lon + cell.dLon]], {
+              color: "rgba(122,42,52,0)", weight: 0,
+              fillColor: "#7A2A34", fillOpacity: 0.05 + cell.density * 0.12, interactive: false,
+            }).addTo(G);
+          } else if (cell.zone === "low") {
+            // faint red fringe
+            L.rectangle([[cell.lat, cell.lon], [cell.lat + cell.dLat, cell.lon + cell.dLon]], {
+              color: "rgba(122,42,52,0)", weight: 0,
+              fillColor: "#7A2A34", fillOpacity: 0.03, interactive: false,
+            }).addTo(G);
+          } else {
+            // sparse → YELLOW low-activity amber
+            L.rectangle([[cell.lat, cell.lon], [cell.lat + cell.dLat, cell.lon + cell.dLon]], {
+              color: "rgba(150,120,60,0)", weight: 0,
+              fillColor: "#96783C", fillOpacity: 0.05, interactive: false,
+            }).addTo(G);
+          }
         }
-        // dense local nodes (up to 520, georeferenced circleMarkers)
-        for (const n of field.nodes) {
-          const r = n.center > 0.5 ? 2.2 : 1.5;
-          L.circleMarker(latLon(n), { radius: r, color: "rgba(235,242,250,0.5)", weight: 0.4, fillColor: "#eef3f9", fillOpacity: 0.9, interactive: false }).addTo(G);
+
+        /* ---- STREETS tinted by class (main roads glow stronger) ---- */
+        for (const road of intel.roads) {
+          const pts = road.pts.map(([la, lo]) => [la, lo] as [number, number]);
+          if (road.kind === "arterial") {
+            L.polyline(pts, { color: "rgba(170,60,60,0.6)", weight: 1.6, opacity: 0.7, interactive: false }).addTo(G);
+            L.polyline(pts, { color: "rgba(170,60,60,0.2)", weight: 4, opacity: 0.5, interactive: false }).addTo(G);
+          } else if (road.kind === "secondary") {
+            L.polyline(pts, { color: "rgba(150,70,60,0.4)", weight: 0.9, opacity: 0.5, interactive: false }).addTo(G);
+          } else {
+            L.polyline(pts, { color: "rgba(150,80,70,0.18)", weight: 0.5, opacity: 0.35, interactive: false }).addTo(G);
+          }
         }
-        // local communication links (thin)
-        for (const [ia, ib] of field.links) {
-          const a = field.nodes[ia], b = field.nodes[ib];
-          if (!a || !b) continue;
-          L.polyline([latLon(a), latLon(b)], { color: "rgba(200,214,232,0.22)", weight: 0.4, interactive: false }).addTo(G);
+
+        /* ---- INTELLIGENCE NODES (~70% fewer, density-driven, georeferenced) ---- */
+        for (const n of intel.nodes) {
+          const r = 1.3 + n.weight * 1.4; // downtown denser → slightly larger
+          L.circleMarker([n.lat, n.lon], {
+            radius: r, color: "rgba(235,242,250,0.5)", weight: 0.4,
+            fillColor: "#eef3f9", fillOpacity: 0.9, interactive: false,
+          }).addTo(G);
         }
-        // small radar circles on hotspots
-        for (let k = 0; k < 2; k++) {
-          const hz = field.hotspots[k];
-          const rr = radToM(hz.radius * 0.5);
-          L.circle([hz.lat, hz.lon], { radius: rr, color: "rgba(210,220,232,0.2)", weight: 0.5, fill: false, interactive: false }).addTo(G);
+
+        /* ---- thin local links among high-weight nodes ---- */
+        const top = intel.nodes.filter(n => n.weight > 0.6).slice(0, 60);
+        for (let i = 0; i < top.length; i++) {
+          for (let j = i + 1; j < top.length; j++) {
+            const d = Math.hypot(top[i].lat - top[j].lat, top[i].lon - top[j].lon);
+            if (d < 0.05) {
+              L.polyline([[top[i].lat, top[i].lon], [top[j].lat, top[j].lon]], {
+                color: "rgba(200,214,232,0.18)", weight: 0.4, interactive: false,
+              }).addTo(G);
+            }
+          }
         }
       };
       buildCity(currentCity);
