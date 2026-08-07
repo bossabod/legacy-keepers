@@ -29,13 +29,7 @@ interface Props {
   activeIndex: number | null;
   onHover: (index: number | null) => void;
   onPick: (index: number) => void;
-  handleRef?: React.MutableRefObject<PyramidHandle | null>;
 }
-
-export type PyramidHandle = {
-  /** Screen-space Y (px from canvas top) of each layer's vertical centre. */
-  getLayerYs: () => number[];
-};
 
 const N = 9;
 const TIER_H = 0.5;
@@ -106,6 +100,8 @@ function makeBrushedTexture(): THREE.Texture {
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.repeat.set(1, 1);
+  tex.anisotropy = 8; // crisp texture filtering while rotating
+  tex.generateMipmaps = true;
   return tex;
 }
 
@@ -126,7 +122,7 @@ function makeRadialTexture(): THREE.Texture {
   return tex;
 }
 
-export default function ImpactPyramid({ opened, activeIndex, onHover, onPick, handleRef }: Props) {
+export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: Props) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const onHoverRef = useRef(onHover);
   const onPickRef = useRef(onPick);
@@ -153,7 +149,7 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick, ha
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+    renderer.toneMappingExposure = 0.85; // darker, never blown out
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -167,23 +163,6 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick, ha
     camera.position.set(0, 0.9, 8.2);
     camera.lookAt(0, 0, 0);
 
-    // Expose each layer's screen-space vertical centre (in px from canvas top)
-    // so the page can draw fixed HUD connector lines to the rank list.
-    if (handleRef) {
-      handleRef.current = {
-        getLayerYs: () => {
-          const h = mount.clientHeight || 1;
-          const ys: number[] = [];
-          for (let i = 0; i < N; i++) {
-            const y = ((N - 1) / 2 - i) * (TIER_H + GAP_OPEN);
-            const v = new THREE.Vector3(0, y, 0).project(camera);
-            ys.push(((1 - v.y) / 2) * h);
-          }
-          return ys;
-        },
-      };
-    }
-
     // ----- Soft cinematic lighting (monochrome, no blue) -----
     const ambient = new THREE.AmbientLight(0x9aa3ad, 0.32);
     scene.add(ambient);
@@ -191,7 +170,7 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick, ha
     const hemi = new THREE.HemisphereLight(0x77828f, 0x04060a, 0.55);
     scene.add(hemi);
 
-    const key = new THREE.DirectionalLight(0xe9edf3, 1.5);
+    const key = new THREE.DirectionalLight(0xe9edf3, 1.05);
     key.castShadow = true;
     key.shadow.mapSize.set(1024, 1024);
     key.shadow.camera.near = 1;
@@ -238,27 +217,29 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick, ha
     for (let i = 0; i < N; i++) {
       const topR = R_TOP - i * SLOPE;
       const botR = R_TOP - (i + 1) * SLOPE;
-      const geometry = new THREE.CylinderGeometry(topR, botR, TIER_H, 4, 1, false);
+      // Higher height-segment count + smoother normal interpolation for a
+      // premium, refined frustum (still a crisp 4-sided inverted pyramid).
+      const geometry = new THREE.CylinderGeometry(topR, botR, TIER_H, 4, 3, false);
 
-      // Dark smoked obsidian / graphite — almost black, only reflections
-      // and thin silver edges reveal the shape. Solid, heavy, no blue.
-      const light = 0.02 + (N - 1 - i) * 0.0025;
-      const baseColor = new THREE.Color().setHSL(0.56, 0.09, Math.min(Math.max(light, 0.016), 0.045));
+      // Deep obsidian black / dark graphite — around 30% darker than before.
+      // Almost-black body; only thin silver edge reflections reveal the form.
+      const light = 0.014 + (N - 1 - i) * 0.0018;
+      const baseColor = new THREE.Color().setHSL(0.56, 0.09, Math.min(Math.max(light, 0.011), 0.03));
 
       const mat = new THREE.MeshPhysicalMaterial({
         color: baseColor,
-        metalness: 0.85 - (N - 1 - i) * 0.012,
-        roughness: 0.34 - (N - 1 - i) * 0.016,
-        envMapIntensity: 0.8 + (N - 1 - i) * 0.025,
-        transmission: 0.04,
+        metalness: 0.9 - (N - 1 - i) * 0.012,
+        roughness: 0.42 - (N - 1 - i) * 0.018,
+        envMapIntensity: 0.5 + (N - 1 - i) * 0.018,
+        transmission: 0.0, // solid, heavy — not translucent glass
         thickness: 4.2,
-        ior: 1.6,
-        attenuationColor: new THREE.Color(0x05070a),
+        ior: 1.55,
+        attenuationColor: new THREE.Color(0x04060a),
         attenuationDistance: 4,
-        clearcoat: 0.6,
-        clearcoatRoughness: 0.2,
+        clearcoat: 0.42,
+        clearcoatRoughness: 0.28,
         bumpMap: brushTex,
-        bumpScale: 0.02,
+        bumpScale: 0.014,
       });
 
       const mesh = new THREE.Mesh(geometry, mat);
@@ -385,7 +366,8 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick, ha
     // ----- Subtle bloom -----
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    const bloom = new UnrealBloomPass(new THREE.Vector2(width(), height()), 0.28, 0.5, 0.88);
+    // Reduced ~70%: subtle edge-only white highlight, never blown out.
+    const bloom = new UnrealBloomPass(new THREE.Vector2(width(), height()), 0.08, 0.55, 0.92);
     composer.addPass(bloom);
     composer.addPass(new OutputPass());
 
@@ -476,15 +458,15 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick, ha
         // 1 after reveal (sharp, reflective, crisp edges).
         const clarity = openProgress;
         rig.mat.color.copy(rig.baseColor)
-          .multiplyScalar(1 - clarity * 0.12)
-          .multiplyScalar(1 + glow * 0.18 - dim * 0.4);
-        const ei = glow * 0.5;
-        rig.mat.emissive.setRGB(0.42 * ei, 0.46 * ei, 0.55 * ei);
-        rig.mat.emissiveIntensity = 1.25;
-        rig.mat.envMapIntensity = (0.8 + (N - 1 - i) * 0.025) * (0.5 + 0.5 * clarity) + glow * 0.4;
-        rig.edgeMat.opacity = Math.min(1, (0.04 + clarity * 0.1) + glow * 0.7 - dim * 0.12);
-        rig.edgeMat.color.setHex(glow > 0.2 ? 0xffffff : 0xdfe8f2);
-        rig.haloMat.opacity = glow * 0.26;
+          .multiplyScalar(1 - clarity * 0.08)
+          .multiplyScalar(1 + glow * 0.12 - dim * 0.4);
+        const ei = glow * 0.35;
+        rig.mat.emissive.setRGB(0.3 * ei, 0.34 * ei, 0.42 * ei);
+        rig.mat.emissiveIntensity = 1.0;
+        rig.mat.envMapIntensity = (0.5 + (N - 1 - i) * 0.018) * (0.5 + 0.5 * clarity) + glow * 0.28;
+        rig.edgeMat.opacity = Math.min(1, (0.04 + clarity * 0.08) + glow * 0.45 - dim * 0.12);
+        rig.edgeMat.color.setHex(glow > 0.2 ? 0xf4f8fd : 0xdfe8f2);
+        rig.haloMat.opacity = glow * 0.18;
 
         // Hover pauses ONLY this tier; the others keep rotating with the body.
         const targetSpeed = active === i ? -OMEGA : 0;
@@ -569,9 +551,7 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick, ha
       pmrem.dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
-      if (handleRef) handleRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
