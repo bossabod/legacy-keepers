@@ -29,7 +29,8 @@ const N = 9;
 const TIER_H = 0.62;
 const GAP_OPEN = 0.075;
 const R_TOP = 3.0;
-const R_APEX = 0.28;
+// Near-zero apex radius so the base terminates in a sharp downward point.
+const R_APEX = 0.05;
 const SLOPE = (R_TOP - R_APEX) / N;
 
 // One synchronized rotation for every layer (rad/s) — slow & elegant.
@@ -49,6 +50,61 @@ interface TierRig {
   baseColor: THREE.Color;
   speed: number;
   focus: number; // -1 dimmed … 0 neutral … +1 focused
+}
+
+/* Procedural brushed-metal / scratched surface so the obsidian reads as
+   physically machined — fine vertical brush strokes, micro-scratches and
+   grain, used as a bump map (kept subtle, never glossy-toy). */
+function makeBrushedTexture(): THREE.Texture {
+  const size = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#9aa2ad";
+  ctx.fillRect(0, 0, size, size);
+
+  // Vertical brushed strokes (light + dark grooves).
+  for (let x = 0; x < size; x += 1) {
+    const a = 0.02 + Math.random() * 0.05;
+    ctx.strokeStyle = `rgba(255,255,255,${a})`;
+    ctx.lineWidth = 0.6 + Math.random() * 1.4;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x + (Math.random() - 0.5) * 8, size);
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(0,0,0,${a * 0.8})`;
+    ctx.beginPath();
+    ctx.moveTo(x - 1.2, 0);
+    ctx.lineTo(x - 1.2 + (Math.random() - 0.5) * 8, size);
+    ctx.stroke();
+  }
+  // Micro-scratches.
+  for (let s = 0; s < 420; s++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const len = 2 + Math.random() * 12;
+    const ang = (Math.random() - 0.5) * 0.9;
+    ctx.strokeStyle = `rgba(255,255,255,${0.05 + Math.random() * 0.12})`;
+    ctx.lineWidth = 0.4 + Math.random() * 0.7;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+    ctx.stroke();
+  }
+  // Fine grain noise.
+  const img = ctx.getImageData(0, 0, size, size);
+  const d = img.data;
+  for (let p = 0; p < d.length; p += 4) {
+    const n = (Math.random() - 0.5) * 10;
+    d[p] += n; d[p + 1] += n; d[p + 2] += n;
+  }
+  ctx.putImageData(img, 0, 0);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(1, 1);
+  return tex;
 }
 
 export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: Props) {
@@ -119,6 +175,16 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
     const centerLight = new THREE.PointLight(0xffffff, 0, 9);
     scene.add(centerLight);
 
+    // Faint volumetric light rising from beneath the pyramid.
+    const belowLight = new THREE.PointLight(0xdfe8f2, 0.6, 14, 2);
+    belowLight.position.set(0, -2.5, 0);
+    scene.add(belowLight);
+
+    // Subtle white rim light that outlines edges from behind.
+    const rim2 = new THREE.DirectionalLight(0xeef3fa, 0.4);
+    rim2.position.set(0, -1.2, -6);
+    scene.add(rim2);
+
     // ----- Ground shadow catcher -----
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(18, 18),
@@ -129,9 +195,47 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
     ground.receiveShadow = true;
     scene.add(ground);
 
+    // ----- Ceremonial platform: very faint concentric circles -----
+    const platform = new THREE.Group();
+    const ringCount = 6;
+    for (let i = 1; i <= ringCount; i++) {
+      const outer = i * 1.18;
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(Math.max(outer - 0.045, 0), outer, 128),
+        new THREE.MeshBasicMaterial({
+          color: 0xaeb9c6,
+          transparent: true,
+          opacity: 0.028 + i * 0.006,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        })
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = -2.78;
+      platform.add(ring);
+    }
+    // Faint inner glow disc.
+    const glowDisc = new THREE.Mesh(
+      new THREE.CircleGeometry(2.6, 64),
+      new THREE.MeshBasicMaterial({
+        color: 0xdfe8f2,
+        transparent: true,
+        opacity: 0.05,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      })
+    );
+    glowDisc.rotation.x = -Math.PI / 2;
+    glowDisc.position.y = -2.77;
+    platform.add(glowDisc);
+    scene.add(platform);
+
     // ----- The inverted pyramid (9 layers, wide at top) -----
     const pyramid = new THREE.Group();
     scene.add(pyramid);
+
+    // Shared brushed-metal bump map for a machined, physical surface.
+    const brushTex = makeBrushedTexture();
 
     const rigs: TierRig[] = [];
     for (let i = 0; i < N; i++) {
@@ -148,6 +252,8 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
         metalness: 0.82 - (N - 1 - i) * 0.012,
         roughness: 0.46 - (N - 1 - i) * 0.016,
         envMapIntensity: 0.55 + (N - 1 - i) * 0.022,
+        bumpMap: brushTex,
+        bumpScale: 0.012,
       });
 
       const mesh = new THREE.Mesh(geometry, mat);
@@ -362,6 +468,9 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
       centerLight.intensity = openFlash * (2.2 + 0.8 * pulse);
       fog.density = 0.012 + openProgress * 0.012;
 
+      // Faint below light breathes softly.
+      belowLight.intensity = 0.6 + pulse * 0.25;
+
       // Seams + apex glow follow open progress.
       seamMat.opacity = openProgress * 0.32;
       apexHalo.material.opacity = 0.12 + openProgress * 0.14 + (0.03 * pulse);
@@ -430,6 +539,12 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
       (dust.material as THREE.Material).dispose();
       ground.geometry.dispose();
       (ground.material as THREE.Material).dispose();
+      platform.children.forEach((c) => {
+        const m = c as THREE.Mesh;
+        m.geometry.dispose();
+        (m.material as THREE.Material).dispose();
+      });
+      brushTex.dispose();
       scene.environment?.dispose();
       pmrem.dispose();
       renderer.dispose();
