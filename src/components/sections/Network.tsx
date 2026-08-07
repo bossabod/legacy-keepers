@@ -93,6 +93,92 @@ function drawPoly(
   ctx.fill();
 }
 
+/* ============================================================
+   City-local overlay field — generated per city, deterministic.
+   Used only at city zoom (z >= 10); world/regional view renders
+   the global strategic overlays instead. Base map untouched.
+   ============================================================ */
+
+interface CityFieldNode { lat: number; lon: number; center: number }
+interface CityField {
+  nodes: CityFieldNode[];
+  links: [number, number][];
+  arteries: [number, number][][]; // red traffic-artery polylines
+  hotspots: { lat: number; lon: number; radius: number; intensity: number }[];
+  mesh: { lat: number; lon: number; size: number; cells: number };
+}
+
+function seeded(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function buildCityField(city: City): CityField {
+  const rnd = seeded(city.id.split("").reduce((s, c) => s + c.charCodeAt(0), 0) + 7);
+  const [[swLat, swLon], [neLat, neLon]] = city.bounds;
+  const cLat = (swLat + neLat) / 2, cLon = (swLon + neLon) / 2;
+  const latSpan = Math.max(0.06, neLat - swLat);
+  const lonSpan = Math.max(0.08, neLon - swLon);
+
+  // nodes — ordered by centrality (downtown first)
+  const nodes: CityFieldNode[] = [];
+  const COUNT = 520;
+  for (let i = 0; i < COUNT; i++) {
+    // radial density: more likely near centre
+    const ring = Math.pow(rnd(), 0.6); // bias to 0..1
+    const ang = rnd() * Math.PI * 2;
+    const lat = cLat + Math.cos(ang) * (latSpan / 2) * ring * (0.6 + rnd() * 0.4);
+    const lon = cLon + Math.sin(ang) * (lonSpan / 2) * ring * (0.6 + rnd() * 0.4);
+    const d = Math.hypot((lat - cLat) / latSpan, (lon - cLon) / lonSpan);
+    nodes.push({ lat, lon, center: 1 - Math.min(1, d * 1.6) });
+  }
+  // sort most central first so LOD reveals downtown first
+  nodes.sort((a, b) => b.center - a.center);
+
+  // links — nearest-neighbour within a small radius (among first 140)
+  const links: [number, number][] = [];
+  const POOL = Math.min(nodes.length, 140);
+  for (let i = 0; i < POOL; i++) {
+    let best = -1, bestD = 1e9;
+    for (let j = i + 1; j < POOL; j++) {
+      const d = Math.hypot(nodes[i].lat - nodes[j].lat, nodes[i].lon - nodes[j].lon);
+      if (d < bestD) { bestD = d; best = j; }
+    }
+    if (best >= 0 && bestD < latSpan * 0.22) links.push([i, best]);
+  }
+
+  // arteries — red polylines through the core
+  const arteries: [number, number][][] = [];
+  for (let k = 0; k < 4; k++) {
+    const pts: [number, number][] = [];
+    const along = rnd();
+    for (let s = -1; s <= 1.001; s += 0.5) {
+      pts.push([
+        cLat + (along > 0.5 ? (s * latSpan * 0.42) : 0),
+        cLon + (along <= 0.5 ? (s * lonSpan * 0.42) : 0),
+      ]);
+    }
+    arteries.push(pts);
+  }
+
+  // hotspots
+  const hotspots = [
+    { lat: cLat + latSpan * 0.16, lon: cLon + lonSpan * 0.14, radius: latSpan * 0.22, intensity: 0.9 },
+    { lat: cLat - latSpan * 0.12, lon: cLon - lonSpan * 0.16, radius: latSpan * 0.18, intensity: 0.7 },
+    { lat: cLat + latSpan * 0.02, lon: cLon - lonSpan * 0.1, radius: latSpan * 0.2, intensity: 0.8 },
+  ];
+
+  return {
+    nodes, links, arteries, hotspots,
+    mesh: { lat: cLat, lon: cLon, size: latSpan * 0.4, cells: 4 },
+  };
+}
+
 export default function NetworkSection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -106,6 +192,8 @@ export default function NetworkSection() {
   const netCanvasRef = useRef<HTMLCanvasElement>(null);
   const netRAFRef = useRef<number>(0);
   const selectorRef = useRef<HTMLDivElement>(null);
+  const cityFieldRef = useRef<CityField | null>(null);
+  useEffect(() => { cityFieldRef.current = buildCityField(currentCity); }, [currentCity]);
 
   // Initialize map
   useEffect(() => {
@@ -156,254 +244,311 @@ export default function NetworkSection() {
             const z = map.getZoom();
 
             nctx.clearRect(0, 0, w, h);
+            if (!showOverlaysRef.current) { netRAFRef.current = requestAnimationFrame(renderNet); return; }
 
-            // Only draw network when zoomed out (world/regional view)
-            const opacity = z > 9.5 ? 0 : z > 8 ? 1 - (z - 8) / 1.5 : 1;
+            const proj = (ll: [number, number]) => {
+              const p = map.latLngToContainerPoint(ll);
+              return { x: p.x, y: p.y };
+            };
 
-            if (opacity > 0.01 && showOverlaysRef.current) {
-              nctx.globalAlpha = opacity;
-              const proj = (ll: [number, number]) => {
-                const p = map.latLngToContainerPoint(ll);
-                return { x: p.x, y: p.y };
-              };
+            // ============================================================
+            //  CITY / REGIONAL VIEW  (z >= 10) — dense local intelligence
+            // ============================================================
+            if (z >= 10) {
+              const field = cityFieldRef.current;
+              if (field) {
+                // LOD: more nodes as you zoom in (0.15 → 1.0)
+                const lod = Math.min(1, Math.max(0.15, (z - 9) / 7));
+                const nodeCount = Math.floor(field.nodes.length * lod);
 
-              // ---- Water tint (very dark navy) ----
-              for (const poly of WATER_ZONES) {
-                drawPoly(nctx, poly, proj, "rgba(7,19,31,0.22)");
-              }
-
-              // ---- Mountain tint (very dark forest green) ----
-              for (const poly of MOUNTAIN_ZONES) {
-                drawPoly(nctx, poly, proj, "rgba(24,50,34,0.16)");
-              }
-
-              // ---- Contour-style analysis lines over mountains ----
-              for (const ring of MOUNTAIN_CONTOURS) {
-                nctx.beginPath();
-                let started = false;
-                for (const ll of ring) {
-                  const p = proj(ll);
-                  if (!started) { nctx.moveTo(p.x, p.y); started = true; }
-                  else nctx.lineTo(p.x, p.y);
+                // ---- local hotspots / heat around centre ----
+                for (const hz of field.hotspots) {
+                  const p = proj([hz.lat, hz.lon]);
+                  const r = hz.radius * 520;
+                  const g = nctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+                  g.addColorStop(0, `rgba(122,42,52,${0.5 * hz.intensity})`);
+                  g.addColorStop(0.6, `rgba(122,42,52,${0.22 * hz.intensity})`);
+                  g.addColorStop(1, "transparent");
+                  nctx.fillStyle = g;
+                  nctx.beginPath(); nctx.arc(p.x, p.y, r, 0, Math.PI * 2); nctx.fill();
                 }
-                nctx.closePath();
-                nctx.strokeStyle = "rgba(70,110,80,0.22)";
-                nctx.lineWidth = 0.5;
-                nctx.stroke();
-              }
 
-              // ---- Faint network grids in important metros ----
-              for (const g of GRID_METROS) {
-                const topLeft = proj([g.lat + g.size * g.cells, g.lon - g.size * g.cells]);
-                const bottomRight = proj([g.lat - g.size * g.cells, g.lon + g.size * g.cells]);
-                for (let c = 0; c <= g.cells * 2; c++) {
-                  const f = c / (g.cells * 2);
-                  // vertical
-                  const yTop = proj([g.lat + g.size * g.cells, g.lon - g.size * g.cells + (g.size * g.cells * 2) * f]);
-                  const yBot = proj([g.lat - g.size * g.cells, g.lon - g.size * g.cells + (g.size * g.cells * 2) * f]);
-                  nctx.strokeStyle = "rgba(210,220,232,0.06)";
-                  nctx.lineWidth = 0.4;
-                  nctx.beginPath(); nctx.moveTo(yTop.x, yTop.y); nctx.lineTo(yBot.x, yBot.y); nctx.stroke();
-                  // horizontal
-                  const xL = proj([g.lat + g.size * g.cells - (g.size * g.cells * 2) * f, g.lon - g.size * g.cells]);
-                  const xR = proj([g.lat + g.size * g.cells - (g.size * g.cells * 2) * f, g.lon + g.size * g.cells]);
-                  nctx.beginPath(); nctx.moveTo(xL.x, xL.y); nctx.lineTo(xR.x, xR.y); nctx.stroke();
+                // ---- red traffic arteries along main roads ----
+                for (const art of field.arteries) {
+                  nctx.beginPath();
+                  let started = false;
+                  for (const ll of art) {
+                    const p = proj(ll);
+                    if (!started) { nctx.moveTo(p.x, p.y); started = true; }
+                    else nctx.lineTo(p.x, p.y);
+                  }
+                  nctx.strokeStyle = "rgba(150,60,60,0.55)";
+                  nctx.lineWidth = 1.6;
+                  nctx.lineCap = "round";
+                  nctx.stroke();
+                  // glow pass
+                  nctx.strokeStyle = "rgba(150,60,60,0.18)";
+                  nctx.lineWidth = 5;
+                  nctx.stroke();
                 }
-              }
 
-              // ---- Red hotspot clusters around high-density centres ----
-              for (const hs of HOTSPOTS) {
-                const p = proj([hs.lat, hs.lon]);
-                const r = hs.radius * 4;
-                const g = nctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
-                g.addColorStop(0, `rgba(122,42,52,${0.28 * hs.intensity})`);
-                g.addColorStop(1, "transparent");
-                nctx.fillStyle = g;
-                nctx.beginPath(); nctx.arc(p.x, p.y, r, 0, Math.PI * 2); nctx.fill();
-              }
-
-              // ---- Radar scans around important hubs ----
-              for (const hub of RADAR_HUBS) {
-                const p = proj([hub.lat, hub.lon]);
-                const r = hub.radius * 6;
-                if (p.x < -r || p.x > w + r || p.y < -r || p.y > h + r) continue;
-                // base ring
+                // ---- faint network mesh over the city ----
+                const mesh = field.mesh;
+                const mSize = mesh.size * 420;
+                const mc = proj([mesh.lat, mesh.lon]);
+                const gMin = mc.x - mSize, gMax = mc.x + mSize;
+                const gTop = mc.y - mSize, gBot = mc.y + mSize;
                 nctx.strokeStyle = "rgba(210,220,232,0.10)";
-                nctx.lineWidth = 0.5;
-                nctx.beginPath(); nctx.arc(p.x, p.y, r, 0, Math.PI * 2); nctx.stroke();
-                nctx.beginPath(); nctx.arc(p.x, p.y, r * 0.6, 0, Math.PI * 2); nctx.stroke();
-                nctx.beginPath(); nctx.arc(p.x, p.y, r * 0.3, 0, Math.PI * 2); nctx.stroke();
-                // rotating sweep line + crosshair
-                const ang = time * hub.speed;
-                nctx.strokeStyle = "rgba(225,235,246,0.18)";
-                nctx.beginPath(); nctx.moveTo(p.x, p.y);
-                nctx.lineTo(p.x + Math.cos(ang) * r, p.y + Math.sin(ang) * r);
-                nctx.stroke();
-                nctx.beginPath();
-                nctx.moveTo(p.x - r, p.y); nctx.lineTo(p.x + r, p.y);
-                nctx.moveTo(p.x, p.y - r); nctx.lineTo(p.x, p.y + r);
-                nctx.stroke();
-              }
-
-              // ---- Small white location markers ----
-              for (const m of LOCATION_MARKERS) {
-                const p = proj([m.lat, m.lon]);
-                nctx.fillStyle = "rgba(235,242,250,0.75)";
-                nctx.beginPath(); nctx.arc(p.x, p.y, 1.4, 0, Math.PI * 2); nctx.fill();
-                nctx.strokeStyle = "rgba(235,242,250,0.4)";
-                nctx.lineWidth = 0.5;
-                nctx.beginPath(); nctx.arc(p.x, p.y, 3, 0, Math.PI * 2); nctx.stroke();
-              }
-
-              // ---- Strategic-hub labels ----
-              for (const hl of HUB_LABELS) {
-                const p = proj([hl.lat, hl.lon]);
-                if (p.x < 0 || p.x > w || p.y < 0 || p.y > h) continue;
-                nctx.fillStyle = "rgba(195,210,228,0.6)";
-                nctx.font = "500 8px var(--font-mono), monospace";
-                nctx.textAlign = "center";
-                nctx.fillText(hl.name, p.x, p.y - 8);
-              }
-
-              // ---- Tiny blinking active-member points ----
-              for (let i = 0; i < ACTIVE_MEMBERS.length; i++) {
-                const am = ACTIVE_MEMBERS[i];
-                const p = proj([am.lat, am.lon]);
-                const blink = (Math.sin(time * 2.2 + i * 1.7) + 1) / 2; // 0..1
-                nctx.fillStyle = `rgba(255,255,255,${0.4 + blink * 0.6})`;
-                nctx.beginPath(); nctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2); nctx.fill();
-              }
-
-              // ---- Regional activity zones (faint blurred dark-red circles) ----
-              for (const rz of REGION_ZONES) {
-                const p = proj([rz.lat, rz.lon]);
-                const r = rz.radius * 6.4;
-                const g = nctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
-                g.addColorStop(0, `rgba(122,42,52,${0.10 * rz.activity})`);
-                g.addColorStop(1, "transparent");
-                nctx.fillStyle = g;
-                nctx.beginPath(); nctx.arc(p.x, p.y, r, 0, Math.PI * 2); nctx.fill();
-              }
-
-              // ---- Road activity glow along metro corridors ----
-              for (const road of ROAD_ACTIVITY) {
-                const A = proj(road[0]), B = proj(road[1]);
-                const grad = nctx.createLinearGradient(A.x, A.y, B.x, B.y);
-                grad.addColorStop(0, "rgba(122,42,52,0.22)");
-                grad.addColorStop(1, "rgba(122,42,52,0.22)");
-                nctx.strokeStyle = grad;
-                nctx.lineWidth = 5;
-                nctx.lineCap = "round";
-                nctx.beginPath(); nctx.moveTo(A.x, A.y); nctx.lineTo(B.x, B.y); nctx.stroke();
-              }
-
-              // ---- Urban density heat (city centre → suburbs) ----
-              for (const mz of METRO_ZONES) {
-                const p = proj([mz.lat, mz.lon]);
-                const r = mz.radius * 4.6;
-                const g = nctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
-                g.addColorStop(0, `rgba(122,42,52,${0.34 * mz.intensity})`);
-                g.addColorStop(0.4, `rgba(122,42,52,${0.18 * mz.intensity})`);
-                g.addColorStop(1, "transparent");
-                nctx.fillStyle = g;
-                nctx.beginPath(); nctx.arc(p.x, p.y, r, 0, Math.PI * 2); nctx.fill();
-              }
-
-              // Project all nodes to screen coordinates
-              const screenNodes = NET_NODES.map(n => {
-                const p = map.latLngToContainerPoint([n.lat, n.lon]);
-                return { x: p.x, y: p.y, size: n.size, label: n.label, isHQ: !!n.isHQ };
-              });
-
-              // Draw connection lines
-              for (const link of NET_LINKS) {
-                const a = link.a, b = link.b;
-                const na = screenNodes[a], nb = screenNodes[b];
-                if (!na || !nb) continue;
-                // Cull off-screen lines
-                const minX = Math.min(na.x, nb.x), maxX = Math.max(na.x, nb.x);
-                const minY = Math.min(na.y, nb.y), maxY = Math.max(na.y, nb.y);
-                if (maxX < 0 || minX > w || maxY < 0 || minY > h) continue;
-
-                nctx.strokeStyle = "rgba(160,175,200,0.18)";
-                nctx.lineWidth = 0.5;
-                nctx.beginPath();
-                nctx.moveTo(na.x, na.y);
-                nctx.lineTo(nb.x, nb.y);
-                nctx.stroke();
-
-                // Data pulse traveling along the line
-                const speed = 0.15 + (a * 0.012 + b * 0.008);
-                const cycle = ((time * speed) % 1);
-                const px = na.x + (nb.x - na.x) * cycle;
-                const py = na.y + (nb.y - na.y) * cycle;
-                const pulseAlpha = Math.sin(cycle * Math.PI) * 0.6;
-                nctx.fillStyle = `rgba(200,215,240,${pulseAlpha})`;
-                nctx.beginPath();
-                nctx.arc(px, py, 1.2, 0, Math.PI * 2);
-                nctx.fill();
-              }
-
-              // Draw nodes
-              for (let i = 0; i < screenNodes.length; i++) {
-                const n = screenNodes[i];
-                if (n.x < -20 || n.x > w + 20 || n.y < -20 || n.y > h + 20) continue;
-
-                const phaseOffset = i * 0.7; // Different pulse timing per node
-                const pulseT = (time + phaseOffset) % 3.0; // 3-second cycle
-
-                // Ring 1 — outer expanding ring
-                if (pulseT < 1.5) {
-                  const ringProgress = pulseT / 1.5;
-                  const ringR = n.size + ringProgress * n.size * 3;
-                  const ringAlpha = (1 - ringProgress) * 0.3;
-                  nctx.strokeStyle = `rgba(200,215,240,${ringAlpha})`;
-                  nctx.lineWidth = 0.8;
-                  nctx.beginPath();
-                  nctx.arc(n.x, n.y, ringR, 0, Math.PI * 2);
-                  nctx.stroke();
+                nctx.lineWidth = 0.4;
+                for (let c = 0; c <= mesh.cells * 2; c++) {
+                  const f = c / (mesh.cells * 2);
+                  nctx.beginPath(); nctx.moveTo(gMin + (gMax - gMin) * f, gTop); nctx.lineTo(gMin + (gMax - gMin) * f, gBot); nctx.stroke();
+                  nctx.beginPath(); nctx.moveTo(gMin, gTop + (gBot - gTop) * f); nctx.lineTo(gMax, gTop + (gBot - gTop) * f); nctx.stroke();
                 }
 
-                // Ring 2 — second expanding ring (offset timing)
-                const pulseT2 = (time + phaseOffset + 1.5) % 3.0;
-                if (pulseT2 < 1.5) {
-                  const ringProgress = pulseT2 / 1.5;
-                  const ringR = n.size + ringProgress * n.size * 2.5;
-                  const ringAlpha = (1 - ringProgress) * 0.2;
-                  nctx.strokeStyle = `rgba(200,215,240,${ringAlpha})`;
+                // ---- local member nodes (hundreds as you zoom) ----
+                const screenLocal = field.nodes.slice(0, nodeCount).map(n => {
+                  const p = proj([n.lat, n.lon]);
+                  return { x: p.x, y: p.y, center: n.center, i: 0 };
+                });
+                field.nodes.slice(0, nodeCount).forEach((n, i) => { screenLocal[i].i = i; });
+
+                // tiny communication links between nearby local nodes
+                for (const [a, b] of field.links) {
+                  if (a >= nodeCount || b >= nodeCount) continue;
+                  const na = screenLocal[a], nb = screenLocal[b];
+                  if (!na || !nb) continue;
+                  nctx.strokeStyle = "rgba(200,214,232,0.20)";
+                  nctx.lineWidth = 0.4;
+                  nctx.beginPath(); nctx.moveTo(na.x, na.y); nctx.lineTo(nb.x, nb.y); nctx.stroke();
+                  // occasional tiny data pulse
+                  const cyc = (time * 0.3 + a * 0.11) % 1;
+                  const px = na.x + (nb.x - na.x) * cyc;
+                  const py = na.y + (nb.y - na.y) * cyc;
+                  nctx.fillStyle = `rgba(235,242,250,${Math.sin(cyc * Math.PI) * 0.8})`;
+                  nctx.beginPath(); nctx.arc(px, py, 1.0, 0, Math.PI * 2); nctx.fill();
+                }
+
+                // node rendering: pulse a subset, dots everywhere
+                for (let i = 0; i < screenLocal.length; i++) {
+                  const n = screenLocal[i];
+                  if (n.x < -20 || n.x > w + 20 || n.y < -20 || n.y > h + 20) continue;
+                  const r = n.center > 0.5 ? 1.8 : 1.2;
+                  // breathing pulse on a subset
+                  const ph = (time * 0.5 + i * 0.61) % 1;
+                  if (ph < 0.5 && n.center > 0.4) {
+                    const ringR = r + (ph / 0.5) * 7;
+                    nctx.strokeStyle = `rgba(220,230,244,${(1 - ph / 0.5) * 0.5})`;
+                    nctx.lineWidth = 0.6;
+                    nctx.beginPath(); nctx.arc(n.x, n.y, ringR, 0, Math.PI * 2); nctx.stroke();
+                  }
+                  nctx.fillStyle = "rgba(245,249,253,0.9)";
+                  nctx.beginPath(); nctx.arc(n.x, n.y, r, 0, Math.PI * 2); nctx.fill();
+                }
+
+                // small radar circles around a couple of local hotspots
+                for (let k = 0; k < 2; k++) {
+                  const hz = field.hotspots[k];
+                  const p = proj([hz.lat, hz.lon]);
+                  const rr = hz.radius * 240;
+                  nctx.strokeStyle = "rgba(210,220,232,0.22)";
                   nctx.lineWidth = 0.6;
-                  nctx.beginPath();
-                  nctx.arc(n.x, n.y, ringR, 0, Math.PI * 2);
-                  nctx.stroke();
+                  nctx.beginPath(); nctx.arc(p.x, p.y, rr, 0, Math.PI * 2); nctx.stroke();
+                  const ang = time * 0.7;
+                  nctx.strokeStyle = "rgba(230,238,248,0.3)";
+                  nctx.beginPath(); nctx.moveTo(p.x, p.y); nctx.lineTo(p.x + Math.cos(ang) * rr, p.y + Math.sin(ang) * rr); nctx.stroke();
                 }
 
-                // Outer glow
-                const glowGrad = nctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.size * 2);
-                glowGrad.addColorStop(0, n.isHQ ? "rgba(255,255,255,0.2)" : "rgba(200,215,240,0.12)");
-                glowGrad.addColorStop(1, "transparent");
-                nctx.fillStyle = glowGrad;
-                nctx.beginPath();
-                nctx.arc(n.x, n.y, n.size * 2, 0, Math.PI * 2);
-                nctx.fill();
-
-                // Core
-                nctx.fillStyle = n.isHQ ? "#ffffff" : "rgba(220,230,245,0.9)";
-                nctx.beginPath();
-                nctx.arc(n.x, n.y, n.size, 0, Math.PI * 2);
-                nctx.fill();
-
-                // HQ label
-                if (n.isHQ) {
-                  nctx.fillStyle = "rgba(180,195,215,0.6)";
-                  nctx.font = "500 7px var(--font-mono), monospace";
-                  nctx.textAlign = "center";
-                  nctx.fillText("OSLO", n.x, n.y - n.size - 4);
+                // small white neighbourhood dots + labels on central nodes
+                for (let i = 0; i < nodeCount; i += 5) {
+                  const n = screenLocal[i];
+                  if (n.x < 0 || n.x > w || n.y < 0 || n.y > h) continue;
+                  if (n.center > 0.7 && i % 40 === 0) {
+                    nctx.fillStyle = "rgba(200,214,232,0.5)";
+                    nctx.font = "500 8px var(--font-mono), monospace";
+                    nctx.textAlign = "center";
+                    nctx.fillText("·", n.x, n.y - 6);
+                  }
                 }
               }
-
-              nctx.globalAlpha = 1;
+              netRAFRef.current = requestAnimationFrame(renderNet);
+              return;
             }
 
+            // ============================================================
+            //  WORLD / REGIONAL VIEW  (z < 10) — large strategic overlays
+            // ============================================================
+            const opacity = z > 8 ? 1 - (z - 8) / 2 : 1;
+            nctx.globalAlpha = opacity;
+
+            // ---- water tint (very dark navy) ----
+            for (const poly of WATER_ZONES) drawPoly(nctx, poly, proj, "rgba(7,19,31,0.26)");
+            // ---- mountain tint (very dark forest green) ----
+            for (const poly of MOUNTAIN_ZONES) drawPoly(nctx, poly, proj, "rgba(24,50,34,0.20)");
+            // ---- contour lines over mountains ----
+            for (const ring of MOUNTAIN_CONTOURS) {
+              nctx.beginPath();
+              let started = false;
+              for (const ll of ring) {
+                const p = proj(ll);
+                if (!started) { nctx.moveTo(p.x, p.y); started = true; }
+                else nctx.lineTo(p.x, p.y);
+              }
+              nctx.closePath();
+              nctx.strokeStyle = "rgba(70,110,80,0.26)";
+              nctx.lineWidth = 0.5;
+              nctx.stroke();
+            }
+            // ---- faint network grids in major metros ----
+            for (const g of GRID_METROS) {
+              for (let c = 0; c <= g.cells * 2; c++) {
+                const f = c / (g.cells * 2);
+                const yTop = proj([g.lat + g.size * g.cells, g.lon - g.size * g.cells + (g.size * g.cells * 2) * f]);
+                const yBot = proj([g.lat - g.size * g.cells, g.lon - g.size * g.cells + (g.size * g.cells * 2) * f]);
+                nctx.strokeStyle = "rgba(210,220,232,0.10)";
+                nctx.lineWidth = 0.4;
+                nctx.beginPath(); nctx.moveTo(yTop.x, yTop.y); nctx.lineTo(yBot.x, yBot.y); nctx.stroke();
+                const xL = proj([g.lat + g.size * g.cells - (g.size * g.cells * 2) * f, g.lon - g.size * g.cells]);
+                const xR = proj([g.lat + g.size * g.cells - (g.size * g.cells * 2) * f, g.lon + g.size * g.cells]);
+                nctx.beginPath(); nctx.moveTo(xL.x, xL.y); nctx.lineTo(xR.x, xR.y); nctx.stroke();
+              }
+            }
+            // ---- red hotspot clusters ----
+            for (const hs of HOTSPOTS) {
+              const p = proj([hs.lat, hs.lon]);
+              const r = hs.radius * 5;
+              const g = nctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+              g.addColorStop(0, `rgba(122,42,52,${0.5 * hs.intensity})`);
+              g.addColorStop(1, "transparent");
+              nctx.fillStyle = g;
+              nctx.beginPath(); nctx.arc(p.x, p.y, r, 0, Math.PI * 2); nctx.fill();
+            }
+            // ---- radar scans around hubs ----
+            for (const hub of RADAR_HUBS) {
+              const p = proj([hub.lat, hub.lon]);
+              const r = hub.radius * 7;
+              if (p.x < -r || p.x > w + r || p.y < -r || p.y > h + r) continue;
+              nctx.strokeStyle = "rgba(210,220,232,0.16)";
+              nctx.lineWidth = 0.5;
+              nctx.beginPath(); nctx.arc(p.x, p.y, r, 0, Math.PI * 2); nctx.stroke();
+              nctx.beginPath(); nctx.arc(p.x, p.y, r * 0.6, 0, Math.PI * 2); nctx.stroke();
+              nctx.beginPath(); nctx.arc(p.x, p.y, r * 0.3, 0, Math.PI * 2); nctx.stroke();
+              const ang = time * hub.speed;
+              nctx.strokeStyle = "rgba(225,235,246,0.26)";
+              nctx.beginPath(); nctx.moveTo(p.x, p.y);
+              nctx.lineTo(p.x + Math.cos(ang) * r, p.y + Math.sin(ang) * r); nctx.stroke();
+              nctx.beginPath();
+              nctx.moveTo(p.x - r, p.y); nctx.lineTo(p.x + r, p.y);
+              nctx.moveTo(p.x, p.y - r); nctx.lineTo(p.x, p.y + r); nctx.stroke();
+            }
+            // ---- small white location markers ----
+            for (const m of LOCATION_MARKERS) {
+              const p = proj([m.lat, m.lon]);
+              nctx.fillStyle = "rgba(235,242,250,0.9)";
+              nctx.beginPath(); nctx.arc(p.x, p.y, 1.6, 0, Math.PI * 2); nctx.fill();
+              nctx.strokeStyle = "rgba(235,242,250,0.5)";
+              nctx.lineWidth = 0.5;
+              nctx.beginPath(); nctx.arc(p.x, p.y, 3.4, 0, Math.PI * 2); nctx.stroke();
+            }
+            // ---- strategic-hub labels ----
+            for (const hl of HUB_LABELS) {
+              const p = proj([hl.lat, hl.lon]);
+              if (p.x < 0 || p.x > w || p.y < 0 || p.y > h) continue;
+              nctx.fillStyle = "rgba(210,224,240,0.75)";
+              nctx.font = "500 9px var(--font-mono), monospace";
+              nctx.textAlign = "center";
+              nctx.fillText(hl.name, p.x, p.y - 9);
+            }
+            // ---- tiny blinking active-member points ----
+            for (let i = 0; i < ACTIVE_MEMBERS.length; i++) {
+              const am = ACTIVE_MEMBERS[i];
+              const p = proj([am.lat, am.lon]);
+              const blink = (Math.sin(time * 2.2 + i * 1.7) + 1) / 2;
+              nctx.fillStyle = `rgba(255,255,255,${0.5 + blink * 0.5})`;
+              nctx.beginPath(); nctx.arc(p.x, p.y, 1.4, 0, Math.PI * 2); nctx.fill();
+            }
+            // ---- regional activity zones ----
+            for (const rz of REGION_ZONES) {
+              const p = proj([rz.lat, rz.lon]);
+              const r = rz.radius * 7;
+              const g = nctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+              g.addColorStop(0, `rgba(122,42,52,${0.16 * rz.activity})`);
+              g.addColorStop(1, "transparent");
+              nctx.fillStyle = g;
+              nctx.beginPath(); nctx.arc(p.x, p.y, r, 0, Math.PI * 2); nctx.fill();
+            }
+            // ---- road activity glow along metro corridors ----
+            for (const road of ROAD_ACTIVITY) {
+              const A = proj(road[0]), B = proj(road[1]);
+              nctx.strokeStyle = "rgba(140,52,52,0.34)";
+              nctx.lineWidth = 6;
+              nctx.lineCap = "round";
+              nctx.beginPath(); nctx.moveTo(A.x, A.y); nctx.lineTo(B.x, B.y); nctx.stroke();
+            }
+            // ---- urban density heat ----
+            for (const mz of METRO_ZONES) {
+              const p = proj([mz.lat, mz.lon]);
+              const r = mz.radius * 5;
+              const g = nctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+              g.addColorStop(0, `rgba(122,42,52,${0.55 * mz.intensity})`);
+              g.addColorStop(0.4, `rgba(122,42,52,${0.28 * mz.intensity})`);
+              g.addColorStop(1, "transparent");
+              nctx.fillStyle = g;
+              nctx.beginPath(); nctx.arc(p.x, p.y, r, 0, Math.PI * 2); nctx.fill();
+            }
+
+            // ---- strategic connection links (long) ----
+            const screenNodes = NET_NODES.map(n => {
+              const p = map.latLngToContainerPoint([n.lat, n.lon]);
+              return { x: p.x, y: p.y, size: n.size, label: n.label, isHQ: !!n.isHQ };
+            });
+            for (const link of NET_LINKS) {
+              const a = link.a, b = link.b;
+              const na = screenNodes[a], nb = screenNodes[b];
+              if (!na || !nb) continue;
+              const minX = Math.min(na.x, nb.x), maxX = Math.max(na.x, nb.x);
+              const minY = Math.min(na.y, nb.y), maxY = Math.max(na.y, nb.y);
+              if (maxX < 0 || minX > w || maxY < 0 || minY > h) continue;
+              nctx.strokeStyle = "rgba(170,185,205,0.28)";
+              nctx.lineWidth = 0.5;
+              nctx.beginPath(); nctx.moveTo(na.x, na.y); nctx.lineTo(nb.x, nb.y); nctx.stroke();
+              const speed = 0.15 + (a * 0.012 + b * 0.008);
+              const cycle = (time * speed) % 1;
+              const px = na.x + (nb.x - na.x) * cycle;
+              const py = na.y + (nb.y - na.y) * cycle;
+              nctx.fillStyle = `rgba(215,228,242,${Math.sin(cycle * Math.PI) * 0.8})`;
+              nctx.beginPath(); nctx.arc(px, py, 1.3, 0, Math.PI * 2); nctx.fill();
+            }
+
+            // ---- strategic white intelligence nodes ----
+            for (let i = 0; i < screenNodes.length; i++) {
+              const n = screenNodes[i];
+              if (n.x < -20 || n.x > w + 20 || n.y < -20 || n.y > h + 20) continue;
+              const phaseOffset = i * 0.7;
+              const pulseT = (time + phaseOffset) % 3.0;
+              if (pulseT < 1.5) {
+                const ringProgress = pulseT / 1.5;
+                const ringR = n.size + ringProgress * n.size * 3;
+                nctx.strokeStyle = `rgba(210,224,240,${(1 - ringProgress) * 0.5})`;
+                nctx.lineWidth = 0.8;
+                nctx.beginPath(); nctx.arc(n.x, n.y, ringR, 0, Math.PI * 2); nctx.stroke();
+              }
+              const glowGrad = nctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.size * 2);
+              glowGrad.addColorStop(0, n.isHQ ? "rgba(255,255,255,0.3)" : "rgba(210,224,240,0.2)");
+              glowGrad.addColorStop(1, "transparent");
+              nctx.fillStyle = glowGrad;
+              nctx.beginPath(); nctx.arc(n.x, n.y, n.size * 2, 0, Math.PI * 2); nctx.fill();
+              nctx.fillStyle = n.isHQ ? "#ffffff" : "rgba(230,238,248,0.95)";
+              nctx.beginPath(); nctx.arc(n.x, n.y, n.size, 0, Math.PI * 2); nctx.fill();
+              if (n.isHQ) {
+                nctx.fillStyle = "rgba(210,224,240,0.8)";
+                nctx.font = "500 8px var(--font-mono), monospace";
+                nctx.textAlign = "center";
+                nctx.fillText("OSLO", n.x, n.y - n.size - 5);
+              }
+            }
+
+            nctx.globalAlpha = 1;
             netRAFRef.current = requestAnimationFrame(renderNet);
           };
           renderNet();
