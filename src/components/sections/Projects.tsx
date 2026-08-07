@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ProjectsGate from "@/components/projects/ProjectsGate";
-import PerformanceCard from "@/components/projects/PerformanceCard";
+import ProjectsDashboard from "@/components/projects/ProjectsDashboard";
 import TrackBrowser from "@/components/projects/TrackBrowser";
 import SubmitProject from "@/components/projects/SubmitProject";
 import { useApp } from "@/lib/store";
@@ -131,11 +131,11 @@ export default function ProjectsSection({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="grid auto-rows-min grid-cols-1 gap-5 md:grid-cols-8 lg:grid-cols-12"
               >
-                <div className="md:col-span-5 lg:col-span-4">
-                  <PerformanceCard />
-                </div>
+                <ProjectsDashboard
+                  data={_data}
+                  onOpenTrack={(track) => setTab(track)}
+                />
               </motion.div>
             )}
           </AnimatePresence>
