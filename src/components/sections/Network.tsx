@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { MapPin, ChevronDown } from "lucide-react";
+import { generateStreets } from "@/lib/street-map";
 
 /* ==================================================================
    Network — clean city-limited Leaflet map (original style).
@@ -55,10 +56,66 @@ const CITIES: City[] = [
 
 const COUNTRIES = Array.from(new Set(CITIES.map(c => c.country)));
 
+/** Elegant local city base — always renders (no external dependency), so
+    the map is never blank even if the tile CDN is unreachable. Streets,
+    a dark ground and the city name are drawn in-browser as georeferenced
+    vector layers. When tiles ARE available they render above this. */
+function buildLocalBase(L: any, map: any, city: City) {
+  const [[swLat, swLon], [neLat, neLon]] = city.bounds;
+  const cLat = (swLat + neLat) / 2, cLon = (swLon + neLon) / 2;
+  const latSpan = neLat - swLat, lonSpan = neLon - swLon;
+  const g = L.layerGroup();
+
+  // dark ground
+  L.rectangle([[swLat, swLon], [neLat, neLon]], {
+    color: "#0b0e13", weight: 0, fillColor: "#0b0e13", fillOpacity: 1, interactive: false,
+  }).addTo(g);
+
+  // subtle city blocks (fabric) in a grid
+  const rows = 7, cols = 7;
+  const sl = latSpan / rows, sc = lonSpan / cols;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const lat0 = swLat + r * sl, lon0 = swLon + c * sc;
+      const pad = 0.14;
+      const bLat = lat0 + sl * pad, bLon = lon0 + sc * pad;
+      const eLat = lat0 + sl * (1 - pad), eLon = lon0 + sc * (1 - pad);
+      const shade = ((r * 29 + c * 13) % 100) / 100;
+      L.rectangle([[bLat, bLon], [eLat, eLon]], {
+        color: "rgba(30,34,40,0)", weight: 0,
+        fillColor: `rgba(${24 + shade * 8},${27 + shade * 8},${32 + shade * 10},0.55)`,
+        fillOpacity: 0.55, interactive: false,
+      }).addTo(g);
+    }
+  }
+
+  // streets
+  const streets = generateStreets({ id: city.id, center: [cLat, cLon], bbox: city.bounds });
+  for (const s of streets) {
+    const pts = s.pts.map(([la, lo]) => [la, lo] as [number, number]);
+    if (s.kind === "arterial") L.polyline(pts, { color: "#383e48", weight: 1.2, opacity: 0.9, interactive: false }).addTo(g);
+    else if (s.kind === "secondary") L.polyline(pts, { color: "#282d35", weight: 0.7, opacity: 0.85, interactive: false }).addTo(g);
+    else L.polyline(pts, { color: "#1d2128", weight: 0.4, opacity: 0.7, interactive: false }).addTo(g);
+  }
+
+  // city name
+  L.marker([cLat, cLon], {
+    icon: L.divIcon({
+      className: "", html: `<div style="color:#6b7686;font:600 13px var(--font-mono),monospace;letter-spacing:.2em;white-space:nowrap;text-shadow:0 0 10px rgba(0,0,0,.9)">${city.name.toUpperCase()}</div>`,
+      iconSize: [0, 0],
+    }),
+    interactive: false,
+  }).addTo(g);
+
+  g.addTo(map);
+  return g;
+}
+
 export default function NetworkSection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const leafletRef = useRef<any>(null);
+  const baseRef = useRef<any>(null);
   const [currentCity, setCurrentCity] = useState<City>(CITIES[0]);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
@@ -89,6 +146,9 @@ export default function NetworkSection() {
         zoomDelta: 0.5,
         wheelPxPerZoomLevel: 120,
       });
+      // local in-browser base (guaranteed to render — map never blank)
+      baseRef.current = buildLocalBase(L, map, currentCity);
+      // real tiles on top when available (original look on the live site)
       L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
         subdomains: "abcd", maxZoom: 20, crossOrigin: true,
       }).addTo(map);
@@ -99,6 +159,15 @@ export default function NetworkSection() {
     return () => { disposed = true; if (map) map.remove(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // rebuild the local base when the city changes
+  useEffect(() => {
+    const map = mapRef.current;
+    const L = leafletRef.current;
+    if (!map || !L) return;
+    if (baseRef.current) map.removeLayer(baseRef.current);
+    baseRef.current = buildLocalBase(L, map, currentCity);
+  }, [currentCity]);
 
   // cinematic fly transition between cities (original)
   const flyToCity = async (city: City) => {
