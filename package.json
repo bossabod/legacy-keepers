@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@types/three": "^0.185.4",
     "dotenv": "17.3.1",
     "drizzle-orm": "0.45.2",
     "framer-motion": "^12.42.2",
@@ -18,7 +19,8 @@
     "pg": "8.20.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "terra-draw": "^1.32.2"
+    "terra-draw": "^1.32.2",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.1.17",
