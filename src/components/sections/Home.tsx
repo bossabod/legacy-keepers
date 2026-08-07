@@ -103,12 +103,12 @@ export default function HomeSection({
                 className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.74rem] font-medium"
                 style={{ border: "1px solid rgba(195,201,211,0.4)", background: "rgba(195,201,211,0.1)", color: "#eaeef5" }}
               >
-                <span className="h-2 w-2 rotate-45 bg-[#ef4444] shadow-[0_0_8px_#ef4444]" />
+                <span className="h-2 w-2 rotate-45 bg-[#c3c9d3] shadow-[0_0_8px_rgba(195,201,211,0.6)]" />
                 الرتبة: {me.rank}
               </span>
               <span className="text-[0.78rem] text-[#aeb6c2] bg-black/40 px-3 py-1.5 rounded-full border border-white/5">{me.role}</span>
               <span className="flex items-center gap-1.5 text-[0.74rem] text-[#8b95a5] bg-black/40 px-3 py-1.5 rounded-full border border-white/5">
-                <MapPin size={13} className="text-[#ef4444]" /> {me.city} · {me.country}
+                <MapPin size={13} className="text-[#9aa5b3]" /> {me.city} · {me.country}
               </span>
             </div>
 

@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useApp } from "@/lib/store";
 import { play } from "@/lib/sound";
 import { formatMoney } from "@/lib/format";
+import { Lock } from "lucide-react";
 import type { AppData } from "@/lib/types";
 import {
   INVOICE_YEARS, OPEN_YEAR, ACCESSIBLE_MONTHS, invoicesForMonth,
@@ -125,7 +126,7 @@ export default function InvoicesSection({
                     className={`inv-year ${open ? "is-open" : "is-locked"} ${active ? "is-active" : ""}`}
                   >
                     <span className="inv-year-num">{y}</span>
-                    <span className="inv-year-lock">{open ? "·" : "🔒"}</span>
+                    <span className="inv-year-lock">{open ? "·" : <Lock size={10} className="text-[#4a515e]" />}</span>
                     <span className="inv-year-state">{open ? "OPEN" : "SEALED"}</span>
                   </button>
                 );
