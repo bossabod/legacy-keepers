@@ -1,7 +1,28 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { MapPin, ChevronDown } from "lucide-react";
-import { generateCityNodes } from "@/lib/city-nodes";
+import { generateCityNodes, type IntelNode } from "@/lib/city-nodes";
+
+/* Build a soft radial-gradient divIcon for a white intelligence node.
+   Larger, ~40% opacity, feathered edges (no sharp circle). Hub nodes
+   are 2–3× larger and occasionally deep red. Georeferenced marker. */
+function nodeIcon(L: any, n: IntelNode) {
+  const base = n.isHub ? 22 : 7 + n.weight * 3;
+  const color = n.hubRed ? "#b32020" : "#ffffff";
+  const inner = n.isHub ? 0.55 : 0.5;
+  const html = `
+    <div class="intel-node" style="
+      width:${base * 2}px;height:${base * 2}px;
+      background:radial-gradient(circle, ${color}33 0%, ${color}1a 34%, ${color}0a 60%, transparent 75%);
+    "></div>`;
+  return L.divIcon({
+    className: "",
+    html,
+    iconSize: [base * 2, base * 2],
+    iconAnchor: [base, base],
+    interactive: false,
+  });
+}
 
 /* ==================================================================
    Network — city-limited intelligence map.
@@ -133,15 +154,7 @@ export default function NetworkSection() {
           bounds: city.bounds,
         });
         nodes.forEach((n) => {
-          L.circleMarker([n.lat, n.lon], {
-            radius: 1.5 + n.weight * 1.1,
-            color: "#ffffff",
-            weight: 0.6,
-            fillColor: "#ffffff",
-            fillOpacity: 0.95,
-            className: "intel-node",
-            interactive: false,
-          }).addTo(layer);
+          L.marker([n.lat, n.lon], { icon: nodeIcon(L, n), interactive: false }).addTo(layer);
         });
         layer.addTo(map);
         nodeLayerRef.current = layer;
@@ -165,12 +178,7 @@ export default function NetworkSection() {
     const layer = L.layerGroup();
     const nodes = generateCityNodes({ id: currentCity.id, center: currentCity.center, bounds: currentCity.bounds });
     nodes.forEach((n) => {
-      L.circleMarker([n.lat, n.lon], {
-        radius: 1.5 + n.weight * 1.1,
-        color: "#ffffff", weight: 0.6,
-        fillColor: "#ffffff", fillOpacity: 0.95,
-        className: "intel-node", interactive: false,
-      }).addTo(layer);
+      L.marker([n.lat, n.lon], { icon: nodeIcon(L, n), interactive: false }).addTo(layer);
     });
     layer.addTo(map);
     nodeLayerRef.current = layer;
@@ -249,11 +257,12 @@ export default function NetworkSection() {
     <div className="relative w-full overflow-hidden bg-[#0a0a0d]" style={{ height: "calc(100vh - 60px)" }}>
       <style>{`
         .intel-node {
+          border-radius: 50%;
           animation: intelPulse 5s ease-in-out infinite;
         }
         @keyframes intelPulse {
-          0%, 100% { opacity: 0.85; }
-          50% { opacity: 0.45; }
+          0%, 100% { opacity: 0.42; }
+          50% { opacity: 0.3; }
         }
       `}</style>
       <div ref={containerRef} className="absolute inset-0" />

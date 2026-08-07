@@ -15,6 +15,8 @@ export interface IntelNode {
   lat: number;
   lon: number;
   weight: number; // 0..1 → affects size slightly
+  isHub?: boolean;      // priority hub node (1–2 per city)
+  hubRed?: boolean;     // occasionally a hub is deep red
 }
 
 interface CitySpec {
@@ -85,6 +87,7 @@ export function generateCityNodes(city: CitySpec): IntelNode[] {
     [order[i], order[j]] = [order[j], order[i]];
   }
 
+  const result: IntelNode[] = [];
   for (let n = 0; n < count; n++) {
     const zone = order[n % order.length];
     const [dx, dy] = ZONES[zone];
@@ -98,7 +101,22 @@ export function generateCityNodes(city: CitySpec): IntelNode[] {
     const clon = Math.max(swLon + 0.002, Math.min(neLon - 0.002, lon));
     // downtown & finance nodes weigh higher (slightly larger)
     const weight = zone === 0 || zone === 7 ? 0.9 : zone === 1 || zone === 3 ? 0.7 : 0.5;
-    nodes.push({ lat: clat, lon: clon, weight });
+    result.push({ lat: clat, lon: clon, weight });
   }
-  return nodes;
+
+  // 1–2 priority hub nodes per city — downtown / business / financial only,
+  // noticeably larger. One is occasionally deep red (#b32020).
+  const hubCount = count >= 16 ? 2 : 1;
+  const hubCandidates = result
+    .map((n, i) => ({ n, i }))
+    .filter(({ n }) => n.weight >= 0.7)
+    .sort((a, b) => a.i - b.i);
+  for (let h = 0; h < Math.min(hubCount, hubCandidates.length); h++) {
+    const c = hubCandidates[h];
+    c.n.isHub = true;
+    // ~25% chance one hub is deep red; never two red in the same city
+    c.n.hubRed = h === 0 && rnd() < 0.25;
+  }
+
+  return result;
 }
