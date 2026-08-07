@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { MapPin, X, ChevronDown, Layers } from "lucide-react";
 import { play } from "@/lib/sound";
-import { buildCityIntel } from "@/lib/city-intel";
+import { buildCityIntel, type CityIntel } from "@/lib/city-intel";
+import { fetchOsmRoads } from "@/lib/osm-roads";
 import {
   NET_NODES, NET_LINKS,
   MOUNTAIN_ZONES, WATER_ZONES, METRO_ZONES, REGION_ZONES, ROAD_ACTIVITY,
@@ -246,10 +247,7 @@ export default function NetworkSection() {
 
       /* ============ CITY LAYERS (dense local) ============ */
       cityGroup.current = L.layerGroup();
-      const buildCity = (city: City) => {
-        cityGroup.current.clearLayers();
-        const intel = buildCityIntel({ id: city.id, name: city.name, center: city.center, bounds: city.bounds });
-        const G = cityGroup.current;
+      const renderIntel = (intel: CityIntel, G: any) => {
 
         /* ---- WATER: deep navy + shallow lighter band ---- */
         for (const w of intel.water) {
@@ -334,6 +332,27 @@ export default function NetworkSection() {
             }
           }
         }
+      };
+      const buildCity = (city: City) => {
+        // clear previous city overlays
+        cityGroup.current.clearLayers();
+        // render procedural fallback immediately so the map is never empty
+        const procIntel = buildCityIntel({ id: city.id, name: city.name, center: city.center, bounds: city.bounds });
+        renderIntel(procIntel, cityGroup.current);
+        // fetch REAL street geometry from OpenStreetMap and re-render on success
+        fetchOsmRoads(city.bounds).then((res) => {
+          if (disposed || mapRef.current?.isDestroyed?.()) return;
+          if (res.ok && res.roads.length) {
+            const realIntel = buildCityIntel(
+              { id: city.id, name: city.name, center: city.center, bounds: city.bounds },
+              res.roads
+            );
+            if (cityGroup.current) {
+              cityGroup.current.clearLayers();
+              renderIntel(realIntel, cityGroup.current);
+            }
+          }
+        }).catch(() => { /* keep procedural fallback */ });
       };
       buildCity(currentCity);
       buildCityRef.current = buildCity;

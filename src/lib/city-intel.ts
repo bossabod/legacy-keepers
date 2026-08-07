@@ -65,6 +65,7 @@ export interface CityIntel {
   water: WaterBand[];
   mountains: MountainZone[];
   nodes: IntelNode[];
+  realRoads: boolean; // true if derived from real OSM street data
 }
 
 function mulberry(seed: number) {
@@ -105,7 +106,48 @@ function mountainCorner(id: string): "n" | "w" | "ne" | null {
   return null;
 }
 
-export function buildCityIntel(city: CityBound): CityIntel {
+/** Rasterize arbitrary road polylines into a density grid.
+    Counts sampled points per cell; also detects intersections
+    (multiple roads crossing a cell) to bias density. */
+function rasterDensity(
+  roads: RoadSeg[],
+  cells: HeatCell[],
+  GRID: number,
+  cellLat: number,
+  cellLon: number,
+  swLat: number,
+  swLon: number
+) {
+  const counts = new Array<number>(GRID * GRID).fill(0);
+  const SAMPLE = 0.0009; // ~100m sampling along roads
+  for (const road of roads) {
+    for (let i = 0; i < road.pts.length - 1; i++) {
+      const [la0, lo0] = road.pts[i];
+      const [la1, lo1] = road.pts[i + 1];
+      const segLen = Math.hypot(la1 - la0, lo1 - lo0);
+      const steps = Math.max(1, Math.ceil(segLen / SAMPLE));
+      for (let s = 0; s <= steps; s++) {
+        const f = s / steps;
+        const lat = la0 + (la1 - la0) * f;
+        const lon = lo0 + (lo1 - lo0) * f;
+        const ci = Math.min(GRID - 1, Math.max(0, Math.floor((lat - swLat) / cellLat)));
+        const cj = Math.min(GRID - 1, Math.max(0, Math.floor((lon - swLon) / cellLon)));
+        counts[ci * GRID + cj]++;
+      }
+    }
+  }
+  const max = Math.max(1, ...counts);
+  cells.forEach((cell, idx) => {
+    const d = counts[idx] / max;
+    cell.density = Math.min(1, d * 1.2);
+    if (cell.density > 0.5) cell.zone = "core";
+    else if (cell.density > 0.28) cell.zone = "medium";
+    else if (cell.density > 0.1) cell.zone = "low";
+    else cell.zone = "sparse";
+  });
+}
+
+export function buildCityIntel(city: CityBound, realRoads?: RoadSeg[]): CityIntel {
   const rnd = mulberry(seedOf(city.id) + 0x51);
   const [[swLat, swLon], [neLat, neLon]] = city.bounds;
   const cLat = (swLat + neLat) / 2, cLon = (swLon + neLon) / 2;
@@ -115,34 +157,37 @@ export function buildCityIntel(city: CityBound): CityIntel {
   /* ---------------- ROAD NETWORK ---------------- */
   // downtown occupies inner ~55%; spacing tightens toward centre.
   const downtown = { lat: cLat, lon: cLon, rLat: latSpan * 0.30, rLon: lonSpan * 0.30 };
-  const roads: RoadSeg[] = [];
-
-  // horizontal arterial streets
-  const nHor = 9;
-  for (let i = 0; i < nHor; i++) {
-    const f = i / (nHor - 1);
-    // bias lines toward centre (log spacing) so downtown is denser
-    const b = Math.pow(Math.abs(2 * f - 1), 1.4);
-    const lat = cLat + (2 * f - 1) * (latSpan / 2) * (0.55 + b * 0.6);
-    const kind: RoadSeg["kind"] = i % 3 === 0 ? "arterial" : i % 2 === 0 ? "secondary" : "local";
-    roads.push({ pts: [[lat, swLon], [lat, neLon]], kind });
-  }
-  // vertical streets
-  const nVer = 11;
-  for (let i = 0; i < nVer; i++) {
-    const f = i / (nVer - 1);
-    const b = Math.pow(Math.abs(2 * f - 1), 1.4);
-    const lon = cLon + (2 * f - 1) * (lonSpan / 2) * (0.5 + b * 0.6);
-    const kind: RoadSeg["kind"] = i % 3 === 0 ? "arterial" : i % 2 === 0 ? "secondary" : "local";
-    roads.push({ pts: [[swLat, lon], [neLat, lon]], kind });
-  }
-  // a few diagonal connectors through downtown
-  for (let k = 0; k < 4; k++) {
-    const a = k % 2;
-    const p1: [number, number] = [downtown.lat + (a ? -1 : 1) * downtown.rLat, downtown.lon + (a ? 1 : -1) * downtown.rLon];
-    const p2: [number, number] = [downtown.lat + (a ? 1 : -1) * downtown.rLat, downtown.lon + (a ? -1 : 1) * downtown.rLon];
-    roads.push({ pts: [p1, p2], kind: "secondary" });
-  }
+  const roads: RoadSeg[] = realRoads && realRoads.length
+    ? realRoads
+    : (() => {
+        const procedural: RoadSeg[] = [];
+        // horizontal arterial streets
+        const nHor = 9;
+        for (let i = 0; i < nHor; i++) {
+          const f = i / (nHor - 1);
+          const b = Math.pow(Math.abs(2 * f - 1), 1.4);
+          const lat = cLat + (2 * f - 1) * (latSpan / 2) * (0.55 + b * 0.6);
+          const kind: RoadSeg["kind"] = i % 3 === 0 ? "arterial" : i % 2 === 0 ? "secondary" : "local";
+          procedural.push({ pts: [[lat, swLon], [lat, neLon]], kind });
+        }
+        // vertical streets
+        const nVer = 11;
+        for (let i = 0; i < nVer; i++) {
+          const f = i / (nVer - 1);
+          const b = Math.pow(Math.abs(2 * f - 1), 1.4);
+          const lon = cLon + (2 * f - 1) * (lonSpan / 2) * (0.5 + b * 0.6);
+          const kind: RoadSeg["kind"] = i % 3 === 0 ? "arterial" : i % 2 === 0 ? "secondary" : "local";
+          procedural.push({ pts: [[swLat, lon], [neLat, lon]], kind });
+        }
+        // a few diagonal connectors through downtown
+        for (let k = 0; k < 4; k++) {
+          const a = k % 2;
+          const p1: [number, number] = [downtown.lat + (a ? -1 : 1) * downtown.rLat, downtown.lon + (a ? 1 : -1) * downtown.rLon];
+          const p2: [number, number] = [downtown.lat + (a ? 1 : -1) * downtown.rLat, downtown.lon + (a ? -1 : 1) * downtown.rLon];
+          procedural.push({ pts: [p1, p2], kind: "secondary" });
+        }
+        return procedural;
+      })();
 
   /* ---------------- DENSITY GRID (from road network) ---------------- */
   const GRID = 16;
@@ -151,42 +196,10 @@ export function buildCityIntel(city: CityBound): CityIntel {
   const cellLon = lonSpan / GRID;
   for (let r = 0; r < GRID; r++) {
     for (let c = 0; c < GRID; c++) {
-      const lat0 = swLat + r * cellLat, lon0 = swLon + c * cellLon;
-      const lat1 = lat0 + cellLat, lon1 = lon0 + cellLon;
-      // count road length inside cell + intersections
-      let len = 0, inter = 0;
-      for (const road of roads) {
-        for (const [pl, pn] of road.pts.slice(0, -1).map((p, i) => [p, road.pts[i + 1]] as const)) {
-          // axis-aligned segments → clip along axis
-          const lo = Math.min(pl[0], pn[0]), hi = Math.max(pl[0], pn[0]);
-          const llo = Math.min(pl[1], pn[1]), lhi = Math.max(pl[1], pn[1]);
-          // horizontal line (constant lat): intersects cell if lat in range
-          if (Math.abs(llo - lhi) < 1e-9) {
-            const lat = pl[0];
-            if (lat >= lat0 && lat < lat1) {
-              const o = Math.max(lon0, llo), o2 = Math.min(lon1, lhi);
-              if (o2 > o) len += (o2 - o);
-            }
-          } else if (Math.abs(lo - hi) < 1e-9) {
-            const lon = pl[1];
-            if (lon >= lon0 && lon < lon1) {
-              const o = Math.max(lat0, lo), o2 = Math.min(lat1, hi);
-              if (o2 > o) len += (o2 - o);
-            }
-          }
-        }
-      }
-      // road density normalized
-      const diag = Math.hypot(cellLat, cellLon);
-      const density = Math.min(1, len / diag);
-      let zone: HeatCell["zone"];
-      if (density > 0.5) zone = "core";
-      else if (density > 0.28) zone = "medium";
-      else if (density > 0.1) zone = "low";
-      else zone = "sparse";
-      cells.push({ lat: lat0, lon: lon0, dLat: cellLat, dLon: cellLon, density, zone });
+      cells.push({ lat: swLat + r * cellLat, lon: swLon + c * cellLon, dLat: cellLat, dLon: cellLon, density: 0, zone: "sparse" });
     }
   }
+  rasterDensity(roads, cells, GRID, cellLat, cellLon, swLat, swLon);
 
   /* ---------------- WATER (coastal) ---------------- */
   const water: WaterBand[] = [];
@@ -242,5 +255,5 @@ export function buildCityIntel(city: CityBound): CityIntel {
     }
   }
 
-  return { roads, cells, water, mountains, nodes };
+  return { roads, cells, water, mountains, nodes, realRoads: !!(realRoads && realRoads.length) };
 }
