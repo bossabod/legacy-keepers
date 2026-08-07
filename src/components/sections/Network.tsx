@@ -3,17 +3,17 @@ import { useEffect, useRef, useState } from "react";
 import { MapPin, ChevronDown } from "lucide-react";
 import { generateCityNodes, type IntelNode } from "@/lib/city-nodes";
 
-/* Build a soft radial-gradient divIcon for a white intelligence node.
-   Larger, ~40% opacity, feathered edges (no sharp circle). Hub nodes
-   are 2–3× larger and occasionally deep red. Georeferenced marker. */
+/* Build a clean radial-gradient divIcon for a white intelligence node.
+   Transparency (not blur) via alpha gradients: centre bright, edges fade
+   smoothly. The map (roads/buildings/terrain) stays fully sharp beneath.
+   Hub nodes are 2–3× larger and occasionally deep red. Georeferenced. */
 function nodeIcon(L: any, n: IntelNode) {
-  const base = n.isHub ? 22 : 7 + n.weight * 3;
+  const base = n.isHub ? 18 : 6 + n.weight * 2.5;
   const color = n.hubRed ? "#b32020" : "#ffffff";
-  const inner = n.isHub ? 0.55 : 0.5;
   const html = `
     <div class="intel-node" style="
       width:${base * 2}px;height:${base * 2}px;
-      background:radial-gradient(circle, ${color}33 0%, ${color}1a 34%, ${color}0a 60%, transparent 75%);
+      background:radial-gradient(circle, ${color}59 0%, ${color}26 42%, ${color}0d 68%, ${color}00 82%);
     "></div>`;
   return L.divIcon({
     className: "",
@@ -22,6 +22,34 @@ function nodeIcon(L: any, n: IntelNode) {
     iconAnchor: [base, base],
     interactive: false,
   });
+}
+
+/* Build a thin 1px white connection line between two nodes. No glow,
+   no blur, no animation — a subtle local communication mesh. */
+function linkLatLngs(a: { lat: number; lon: number }, b: { lat: number; lon: number }) {
+  return [[a.lat, a.lon], [b.lat, b.lon]] as [number, number][];
+}
+
+/** Pair each node with ONE nearby node (small local network), skipping
+    pairs already used so lines never cross randomly everywhere. */
+function buildLocalLinks(nodes: IntelNode[]): [number, number][] {
+  const links: [number, number][] = [];
+  const used = new Set<number>();
+  for (let i = 0; i < nodes.length; i++) {
+    if (used.has(i)) continue;
+    let best = -1, bestD = Infinity;
+    for (let j = 0; j < nodes.length; j++) {
+      if (j === i || used.has(j)) continue;
+      const d = Math.hypot(nodes[i].lat - nodes[j].lat, nodes[i].lon - nodes[j].lon);
+      if (d < bestD) { bestD = d; best = j; }
+    }
+    if (best >= 0) {
+      links.push([i, best]);
+      used.add(i);
+      used.add(best);
+    }
+  }
+  return links;
 }
 
 /* ==================================================================
@@ -153,6 +181,12 @@ export default function NetworkSection() {
           center: city.center,
           bounds: city.bounds,
         });
+        // thin local connection lines first (under nodes)
+        for (const [ia, ib] of buildLocalLinks(nodes)) {
+          L.polyline(linkLatLngs(nodes[ia], nodes[ib]), {
+            color: "#ffffff", weight: 1, opacity: 0.2, interactive: false,
+          }).addTo(layer);
+        }
         nodes.forEach((n) => {
           L.marker([n.lat, n.lon], { icon: nodeIcon(L, n), interactive: false }).addTo(layer);
         });
@@ -177,6 +211,11 @@ export default function NetworkSection() {
     if (nodeLayerRef.current) nodeLayerRef.current.remove();
     const layer = L.layerGroup();
     const nodes = generateCityNodes({ id: currentCity.id, center: currentCity.center, bounds: currentCity.bounds });
+    for (const [ia, ib] of buildLocalLinks(nodes)) {
+      L.polyline(linkLatLngs(nodes[ia], nodes[ib]), {
+        color: "#ffffff", weight: 1, opacity: 0.2, interactive: false,
+      }).addTo(layer);
+    }
     nodes.forEach((n) => {
       L.marker([n.lat, n.lon], { icon: nodeIcon(L, n), interactive: false }).addTo(layer);
     });
@@ -258,11 +297,12 @@ export default function NetworkSection() {
       <style>{`
         .intel-node {
           border-radius: 50%;
-          animation: intelPulse 5s ease-in-out infinite;
+          /* pure transparency, no blur; slight slow breathing only */
+          animation: intelBreathe 6s ease-in-out infinite;
         }
-        @keyframes intelPulse {
-          0%, 100% { opacity: 0.42; }
-          50% { opacity: 0.3; }
+        @keyframes intelBreathe {
+          0%, 100% { opacity: 0.35; }
+          50% { opacity: 0.22; }
         }
       `}</style>
       <div ref={containerRef} className="absolute inset-0" />
