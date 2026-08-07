@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MapPin, ChevronDown } from "lucide-react";
 import { generateCityNodes, type IntelNode } from "@/lib/city-nodes";
+import { generateStreets } from "@/lib/street-map";
 
 /* Leaflet is imported dynamically inside the effect (client-only) so the
    server render never evaluates `window`. Imported locally (npm), so the
@@ -32,6 +33,26 @@ function nodeIcon(L: any, n: IntelNode) {
    no blur, no animation — a subtle local communication mesh. */
 function linkLatLngs(a: { lat: number; lon: number }, b: { lat: number; lon: number }) {
   return [[a.lat, a.lon], [b.lat, b.lon]] as [number, number][];
+}
+
+/** Build the georeferenced street layer for a city: dark base streets
+    + RED highlighted corridors. Works without external tiles. */
+function buildStreetLayer(L: any, city: { id: string; center: [number, number]; bounds: [[number, number], [number, number]] }) {
+  const group = L.layerGroup();
+  const streets = generateStreets({ id: city.id, center: city.center, bbox: city.bounds });
+  for (const s of streets) {
+    const pts = s.pts.map(([la, lo]) => [la, lo] as [number, number]);
+    if (s.red) {
+      // red highlighted corridor — glowing, clearly visible
+      L.polyline(pts, { color: "#c43a3a", weight: 2.6, opacity: 0.9, interactive: false }).addTo(group);
+      L.polyline(pts, { color: "#a02020", weight: 5, opacity: 0.35, interactive: false }).addTo(group);
+    } else {
+      const w = s.kind === "arterial" ? 1.3 : s.kind === "secondary" ? 0.8 : 0.4;
+      const op = s.kind === "arterial" ? 0.5 : s.kind === "secondary" ? 0.4 : 0.3;
+      L.polyline(pts, { color: "#2a2f37", weight: w, opacity: op, interactive: false }).addTo(group);
+    }
+  }
+  return group;
 }
 
 /** Pair each node with ONE nearby node (small local network), skipping
@@ -128,6 +149,7 @@ export default function NetworkSection() {
   const [effectLevel, setEffectLevel] = useState(0);
   const selectorRef = useRef<HTMLDivElement>(null);
   const leafletRef = useRef<any>(null);
+  const streetLayerRef = useRef<any>(null);
 
   // Initialize map + white intelligence nodes (Leaflet imported locally,
   // client-only — no external CDN, works offline)
@@ -164,6 +186,13 @@ export default function NetworkSection() {
       mapRef.current = map;
 
       const addNodes = (city: City) => {
+        // streets layer (dark base + red corridors) — rebuilt per city
+        if (streetLayerRef.current) { map.removeLayer(streetLayerRef.current); streetLayerRef.current = null; }
+        const streets = buildStreetLayer(L, city);
+        streets.addTo(map);
+        streetLayerRef.current = streets;
+
+        // white nodes
         if (nodeLayerRef.current) nodeLayerRef.current.remove();
         const layer = L.layerGroup();
         const nodes = generateCityNodes({ id: city.id, center: city.center, bounds: city.bounds });
@@ -190,6 +219,14 @@ export default function NetworkSection() {
     const map = mapRef.current;
     const L = leafletRef.current;
     if (!map || !L) return;
+
+    // rebuild streets for the new city
+    if (streetLayerRef.current) { map.removeLayer(streetLayerRef.current); streetLayerRef.current = null; }
+    const streets = buildStreetLayer(L, currentCity);
+    streets.addTo(map);
+    streetLayerRef.current = streets;
+
+    // rebuild white nodes
     if (nodeLayerRef.current) nodeLayerRef.current.remove();
     const layer = L.layerGroup();
     const nodes = generateCityNodes({ id: currentCity.id, center: currentCity.center, bounds: currentCity.bounds });
