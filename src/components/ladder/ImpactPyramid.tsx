@@ -29,7 +29,13 @@ interface Props {
   activeIndex: number | null;
   onHover: (index: number | null) => void;
   onPick: (index: number) => void;
+  handleRef?: React.MutableRefObject<PyramidHandle | null>;
 }
+
+export type PyramidHandle = {
+  /** Screen-space Y (px from canvas top) of each layer's vertical centre. */
+  getLayerYs: () => number[];
+};
 
 const N = 9;
 const TIER_H = 0.5;
@@ -120,7 +126,7 @@ function makeRadialTexture(): THREE.Texture {
   return tex;
 }
 
-export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: Props) {
+export default function ImpactPyramid({ opened, activeIndex, onHover, onPick, handleRef }: Props) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const onHoverRef = useRef(onHover);
   const onPickRef = useRef(onPick);
@@ -160,6 +166,23 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
     const camera = new THREE.PerspectiveCamera(48, width() / height(), 0.1, 80);
     camera.position.set(0, 0.9, 8.2);
     camera.lookAt(0, 0, 0);
+
+    // Expose each layer's screen-space vertical centre (in px from canvas top)
+    // so the page can draw fixed HUD connector lines to the rank list.
+    if (handleRef) {
+      handleRef.current = {
+        getLayerYs: () => {
+          const h = mount.clientHeight || 1;
+          const ys: number[] = [];
+          for (let i = 0; i < N; i++) {
+            const y = ((N - 1) / 2 - i) * (TIER_H + GAP_OPEN);
+            const v = new THREE.Vector3(0, y, 0).project(camera);
+            ys.push(((1 - v.y) / 2) * h);
+          }
+          return ys;
+        },
+      };
+    }
 
     // ----- Soft cinematic lighting (monochrome, no blue) -----
     const ambient = new THREE.AmbientLight(0x9aa3ad, 0.32);
@@ -449,12 +472,17 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
         const glow = Math.max(rig.focus, 0);
         const dim = Math.max(-rig.focus, 0);
 
-        rig.mat.color.copy(rig.baseColor).multiplyScalar(1 + glow * 0.18 - dim * 0.4);
+        // revealClarity: 0 while hidden (darker, duller, few reflections) →
+        // 1 after reveal (sharp, reflective, crisp edges).
+        const clarity = openProgress;
+        rig.mat.color.copy(rig.baseColor)
+          .multiplyScalar(1 - clarity * 0.12)
+          .multiplyScalar(1 + glow * 0.18 - dim * 0.4);
         const ei = glow * 0.5;
         rig.mat.emissive.setRGB(0.42 * ei, 0.46 * ei, 0.55 * ei);
         rig.mat.emissiveIntensity = 1.25;
-        rig.mat.envMapIntensity = (0.8 + (N - 1 - i) * 0.025) + glow * 0.4;
-        rig.edgeMat.opacity = Math.min(1, 0.14 + glow * 0.7 - dim * 0.12);
+        rig.mat.envMapIntensity = (0.8 + (N - 1 - i) * 0.025) * (0.5 + 0.5 * clarity) + glow * 0.4;
+        rig.edgeMat.opacity = Math.min(1, (0.04 + clarity * 0.1) + glow * 0.7 - dim * 0.12);
         rig.edgeMat.color.setHex(glow > 0.2 ? 0xffffff : 0xdfe8f2);
         rig.haloMat.opacity = glow * 0.26;
 
@@ -541,7 +569,9 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
       pmrem.dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
+      if (handleRef) handleRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
