@@ -3,20 +3,25 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 
 /* ------------------------------------------------------------------ */
-/*  ImpactPyramid — a real WebGL/Three.js INVERTED pyramid.            */
+/*  ImpactPyramid — a real WebGL/Three.js INVERTED pyramid treated as  */
+/*  a heavy ceremonial obsidian artifact.                              */
 /*                                                                     */
-/*  The pyramid rotates as ONE rigid body around its exact centre at a */
-/*  constant speed, so the silhouette stays perfectly clean from every */
-/*  angle — no stretching, clipping or wobble. Each of the nine levels */
-/*  bears a tiny 01–09 label plus a hairline "blueprint" guide pointing  */
-/*  toward the rank list. A thin white vertical line runs through the  */
-/*  centre; it lights up when the pyramid is opened.                   */
-/*                                                                     */
-/*  Material is almost-black obsidian/graphite — only reflections and  */
-/*  silver edges reveal the shape. Nothing sits beneath it except a    */
-/*  soft shadow.                                                       */
+/*  - Dark smoked-crystal / black-metallic physical material with      */
+/*    subtle internal reflections, soft metallic highlights and        */
+/*    micro-brushed bump — never transparent-looking or flat.          */
+/*  - Rotates as ONE rigid body around its exact centre at a constant  */
+/*    slow speed: perfectly clean silhouette from every angle.         */
+/*  - No floating numbers — the rank list on the left is the only      */
+/*    source of the names/numbers.                                     */
+/*  - Dense volumetric fog before opening (only silhouette + edges     */
+/*    visible); the fog slowly parts over ~2–3s to reveal the object.  */
+/*  - Slow-drifting smoke + faint dust + subtle bloom + vignette.      */
 /* ------------------------------------------------------------------ */
 
 interface Props {
@@ -28,34 +33,29 @@ interface Props {
 
 const N = 9;
 const TIER_H = 0.5;
-const GAP_OPEN = 0.045; // tiny, ceremonial separation
+const GAP_OPEN = 0.035; // hairline ceremonial separation
 const R_TOP = 3.3;
 const R_APEX = 0.04;
 const SLOPE = (R_TOP - R_APEX) / N;
 
 // One slow, constant, synchronized rotation for the whole body (rad/s).
-const OMEGA = 0.18;
+const OMEGA = 0.14;
 
 interface TierRig {
   group: THREE.Group;
   mesh: THREE.Mesh;
   edges: THREE.LineSegments;
   halo: THREE.Mesh;
-  mat: THREE.MeshStandardMaterial;
+  mat: THREE.MeshPhysicalMaterial;
   edgeMat: THREE.LineBasicMaterial;
   haloMat: THREE.MeshBasicMaterial;
   geometry: THREE.CylinderGeometry;
   baseColor: THREE.Color;
-  speed: number; // relative rotation of this tier against the body (hover pause)
+  speed: number; // relative counter-rotation on hover pause
   focus: number; // -1 dimmed … 0 neutral … +1 focused
-  label: THREE.Sprite;
-  labelMat: THREE.SpriteMaterial;
-  guide: THREE.Line;
-  guideMat: THREE.LineBasicMaterial;
-  labelTex: THREE.Texture;
 }
 
-/* Procedural brushed-metal bump map — fine brush strokes + micro-scratches. */
+/* Procedural brushed-metal / micro-scratched bump map. */
 function makeBrushedTexture(): THREE.Texture {
   const size = 512;
   const canvas = document.createElement("canvas");
@@ -103,23 +103,20 @@ function makeBrushedTexture(): THREE.Texture {
   return tex;
 }
 
-/* Tiny elegant monochrome number label "01"…"09" rendered as a sprite. */
-function makeLabelTexture(text: string): THREE.Texture {
-  const size = 256;
+/* Soft radial texture for smoke puffs and dust. */
+function makeRadialTexture(): THREE.Texture {
+  const size = 128;
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d")!;
-  ctx.clearRect(0, 0, size, size);
-  ctx.font = "700 64px ui-monospace, SFMono-Regular, Menlo, monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = "rgba(220,230,240,0.9)";
-  ctx.shadowColor = "rgba(230,238,248,0.5)";
-  ctx.shadowBlur = 14;
-  ctx.fillText(text, size / 2, size / 2);
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0, "rgba(255,255,255,1)");
+  g.addColorStop(0.4, "rgba(255,255,255,0.5)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
   const tex = new THREE.CanvasTexture(canvas);
-  tex.anisotropy = 4;
   return tex;
 }
 
@@ -141,9 +138,12 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
     const mount = mountRef.current;
     if (!mount) return;
 
+    const width = () => mount.clientWidth || 1;
+    const height = () => mount.clientHeight || 1;
+
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(mount.clientWidth, mount.clientHeight);
+    renderer.setSize(width(), height());
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -151,26 +151,24 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    const fog = new THREE.FogExp2(0x020304, 0.008);
+    const fog = new THREE.FogExp2(0x010203, 0.05); // dense to start
     scene.fog = fog;
 
     const pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-    // Pyramid is centred at the origin; camera stays fixed so the body can
-    // rotate about its exact centre with a perfectly clean silhouette.
-    const camera = new THREE.PerspectiveCamera(44, mount.clientWidth / mount.clientHeight, 0.1, 80);
-    camera.position.set(0, 0.55, 8.6);
+    const camera = new THREE.PerspectiveCamera(48, width() / height(), 0.1, 80);
+    camera.position.set(0, 0.9, 8.2);
     camera.lookAt(0, 0, 0);
 
-    // ----- Soft cinematic lighting (monochrome) -----
-    const ambient = new THREE.AmbientLight(0x9aa5b3, 0.4);
+    // ----- Soft cinematic lighting (monochrome, no blue) -----
+    const ambient = new THREE.AmbientLight(0x9aa3ad, 0.32);
     scene.add(ambient);
 
-    const hemi = new THREE.HemisphereLight(0x7d8a9b, 0x04060a, 0.6);
+    const hemi = new THREE.HemisphereLight(0x77828f, 0x04060a, 0.55);
     scene.add(hemi);
 
-    const key = new THREE.DirectionalLight(0xe6edf6, 1.4);
+    const key = new THREE.DirectionalLight(0xe9edf3, 1.5);
     key.castShadow = true;
     key.shadow.mapSize.set(1024, 1024);
     key.shadow.camera.near = 1;
@@ -183,52 +181,61 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
     scene.add(key);
     scene.add(key.target);
 
-    const fill = new THREE.DirectionalLight(0x4c596a, 0.4);
+    const fill = new THREE.DirectionalLight(0x434e5c, 0.42);
     scene.add(fill);
 
-    const rim = new THREE.DirectionalLight(0xbccbdd, 0.7);
+    const rim = new THREE.DirectionalLight(0xc8d5e4, 0.85);
     scene.add(rim);
 
-    // Faint light from inside used during the opening ceremony.
+    const rimBack = new THREE.DirectionalLight(0xb8c6d6, 0.4);
+    rimBack.position.set(0, -1.5, -7);
+    scene.add(rimBack);
+
+    // Faint white light from the centre seam (opening).
     const centerLight = new THREE.PointLight(0xffffff, 0, 9);
     scene.add(centerLight);
 
-    // ----- Soft shadow catcher (the only thing beneath the pyramid) -----
+    // Soft shadow catcher — the only thing beneath the pyramid.
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(18, 18),
-      new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.35 })
+      new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.4 })
     );
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -((N - 1) / 2) * TIER_H - 0.5;
+    ground.position.y = -((N - 1) / 2) * TIER_H - 0.55;
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // ----- The inverted pyramid (one body, 9 levels) -----
+    // ----- The inverted pyramid (one heavy body, 9 levels) -----
     const pyramid = new THREE.Group();
     scene.add(pyramid);
 
     const brushTex = makeBrushedTexture();
     const rigs: TierRig[] = [];
 
-    const labelX = -(R_TOP + 1.1); // labels + guides sit toward the rank list (left)
-
     for (let i = 0; i < N; i++) {
       const topR = R_TOP - i * SLOPE;
       const botR = R_TOP - (i + 1) * SLOPE;
       const geometry = new THREE.CylinderGeometry(topR, botR, TIER_H, 4, 1, false);
 
-      // Almost-black obsidian / graphite. Barely any diffuse light; only
-      // reflections and silver edges reveal the geometry.
-      const light = 0.03 + (N - 1 - i) * 0.005;
-      const baseColor = new THREE.Color().setHSL(0.585, 0.12, Math.min(Math.max(light, 0.026), 0.08));
+      // Dark smoked obsidian / graphite — almost black, only reflections
+      // and silver edges reveal the shape. No blue tint.
+      const light = 0.032 + (N - 1 - i) * 0.004;
+      const baseColor = new THREE.Color().setHSL(0.56, 0.08, Math.min(Math.max(light, 0.026), 0.07));
 
-      const mat = new THREE.MeshStandardMaterial({
+      const mat = new THREE.MeshPhysicalMaterial({
         color: baseColor,
-        metalness: 0.9 - (N - 1 - i) * 0.012,
-        roughness: 0.52 - (N - 1 - i) * 0.018,
-        envMapIntensity: 0.45 + (N - 1 - i) * 0.02,
+        metalness: 0.72 - (N - 1 - i) * 0.012,
+        roughness: 0.3 - (N - 1 - i) * 0.014,
+        envMapIntensity: 1.15 + (N - 1 - i) * 0.03,
+        transmission: 0.16,
+        thickness: 2.6,
+        ior: 1.6,
+        attenuationColor: new THREE.Color(0x0a0c0f),
+        attenuationDistance: 6,
+        clearcoat: 0.55,
+        clearcoatRoughness: 0.22,
         bumpMap: brushTex,
-        bumpScale: 0.01,
+        bumpScale: 0.02,
       });
 
       const mesh = new THREE.Mesh(geometry, mat);
@@ -236,7 +243,7 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
       mesh.receiveShadow = true;
       mesh.userData.index = i;
 
-      const edgeMat = new THREE.LineBasicMaterial({ color: 0xdfe8f2, transparent: true, opacity: 0.12 });
+      const edgeMat = new THREE.LineBasicMaterial({ color: 0xdfe8f2, transparent: true, opacity: 0.14 });
       const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), edgeMat);
 
       const haloMat = new THREE.MeshBasicMaterial({
@@ -248,56 +255,26 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
         side: THREE.DoubleSide,
       });
       const halo = new THREE.Mesh(geometry, haloMat);
-      halo.scale.set(1.03, 1.015, 1.03);
+      halo.scale.set(1.025, 1.012, 1.025);
       mesh.add(edges);
       mesh.add(halo);
-
-      // --- Level label sprite "01"…"09" ---
-      const labelTex = makeLabelTexture(String(i + 1).padStart(2, "0"));
-      const labelMat = new THREE.SpriteMaterial({
-        map: labelTex,
-        transparent: true,
-        opacity: 0.7,
-        depthWrite: false,
-        depthTest: false,
-        sizeAttenuation: true,
-      });
-      const label = new THREE.Sprite(labelMat);
-      label.scale.set(0.62, 0.62, 1);
-
-      // --- Hairline blueprint guide toward the rank list ---
-      const guideMat = new THREE.LineBasicMaterial({
-        color: 0xcfdbe8,
-        transparent: true,
-        opacity: 0.08,
-        depthWrite: false,
-        depthTest: false,
-      });
-      const guideGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(labelX, 0, 0),
-        new THREE.Vector3(labelX + 1.6, 0, 0),
-      ]);
-      const guide = new THREE.Line(guideGeo, guideMat);
 
       const group = new THREE.Group();
       group.add(mesh);
       pyramid.add(group);
-      pyramid.add(label);
-      pyramid.add(guide);
 
       rigs.push({
         group, mesh, edges, halo, mat, edgeMat, haloMat, geometry,
         baseColor,
         speed: 0,
         focus: 0,
-        label, labelMat, guide, guideMat, labelTex,
       });
     }
 
     // ----- Seam rings (thin glowing lines that appear on opening) -----
     const seams: THREE.Mesh[] = [];
     const seamMat = new THREE.MeshBasicMaterial({
-      color: 0xeff4fb,
+      color: 0xf0f5fc,
       transparent: true,
       opacity: 0,
       blending: THREE.AdditiveBlending,
@@ -306,29 +283,59 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
     });
     for (let i = 0; i < N - 1; i++) {
       const r = R_TOP - (i + 1) * SLOPE;
-      const ring = new THREE.Mesh(new THREE.RingGeometry(r * 0.98, r * 1.02, 4), seamMat);
+      const ring = new THREE.Mesh(new THREE.RingGeometry(r * 0.985, r * 1.015, 4), seamMat);
       ring.rotation.x = -Math.PI / 2;
       pyramid.add(ring);
       seams.push(ring);
     }
 
-    // ----- Central vertical line (through the exact centre) -----
+    // ----- Central vertical line (lights up on opening) -----
     const topY = ((N - 1) / 2) * TIER_H;
-    const lineGeo = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(0, topY, 0),
-      new THREE.Vector3(0, -topY, 0),
-    ]);
     const axisMat = new THREE.LineBasicMaterial({
-      color: 0xf2f7fd,
+      color: 0xf4f8fd,
       transparent: true,
-      opacity: 0.05,
+      opacity: 0,
       depthWrite: false,
     });
-    const axisLine = new THREE.Line(lineGeo, axisMat);
+    const axisLine = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, topY, 0),
+        new THREE.Vector3(0, -topY, 0),
+      ]),
+      axisMat
+    );
     pyramid.add(axisLine);
 
+    // ----- Slow-drifting smoke puffs (mystery) -----
+    const radialTex = makeRadialTexture();
+    const smokeGroup = new THREE.Group();
+    const smokePuffs: THREE.Sprite[] = [];
+    for (let s = 0; s < 5; s++) {
+      const mat = new THREE.SpriteMaterial({
+        map: radialTex,
+        color: 0x6a7480,
+        transparent: true,
+        opacity: 0.05 + Math.random() * 0.05,
+        depthWrite: false,
+        blending: THREE.NormalBlending,
+      });
+      const puff = new THREE.Sprite(mat);
+      const scale = 3 + Math.random() * 4;
+      puff.scale.set(scale, scale, 1);
+      puff.position.set(
+        (Math.random() - 0.5) * 10,
+        (Math.random() - 0.5) * 8,
+        (Math.random() - 0.5) * 6 - 2
+      );
+      puff.userData.drift = Math.random() * Math.PI * 2;
+      puff.userData.speed = 0.02 + Math.random() * 0.03;
+      smokeGroup.add(puff);
+      smokePuffs.push(puff);
+    }
+    scene.add(smokeGroup);
+
     // ----- Barely-visible ambient dust -----
-    const dustCount = 130;
+    const dustCount = 120;
     const dustPos = new Float32Array(dustCount * 3);
     for (let p = 0; p < dustCount; p++) {
       dustPos[p * 3] = (Math.random() - 0.5) * 20;
@@ -340,16 +347,24 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
     const dust = new THREE.Points(
       dustGeo,
       new THREE.PointsMaterial({
+        map: radialTex,
         color: 0x8b97a6,
-        size: 0.018,
+        size: 0.03,
         transparent: true,
-        opacity: 0.35,
+        opacity: 0.3,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         sizeAttenuation: true,
       })
     );
     scene.add(dust);
+
+    // ----- Subtle bloom -----
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloom = new UnrealBloomPass(new THREE.Vector2(width(), height()), 0.28, 0.5, 0.88);
+    composer.addPass(bloom);
+    composer.addPass(new OutputPass());
 
     // ----- Interaction -----
     const raycaster = new THREE.Raycaster();
@@ -396,7 +411,8 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
     let raf = 0;
     let gap = 0;
     let openProgress = 0;
-    const topHalf = ((N - 1) / 2) * TIER_H;
+    const FOG_CLOSED = 0.05;
+    const FOG_OPEN = 0.012;
 
     const tick = () => {
       const dt = Math.min(clock.getDelta(), 0.05);
@@ -407,19 +423,18 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
       // Whole body rotates around its exact centre at constant speed.
       pyramid.rotation.y += OMEGA * dt;
 
-      // Opening: tiny separation + animated seams.
+      // Opening: slow ceremonial separation (~2–3s).
       const targetGap = isOpen ? GAP_OPEN : 0;
-      gap += (targetGap - gap) * Math.min(1, dt * 1.4);
+      gap += (targetGap - gap) * Math.min(1, dt * 0.9);
       const targetOpen = isOpen ? 1 : 0;
-      openProgress += (targetOpen - openProgress) * Math.min(1, dt * 1.2);
+      openProgress += (targetOpen - openProgress) * Math.min(1, dt * 0.85);
+
+      // Fog slowly parts to reveal the artifact.
+      fog.density = FOG_CLOSED + (FOG_OPEN - FOG_CLOSED) * openProgress;
 
       for (let i = 0; i < N; i++) {
         const rig = rigs[i];
-        const y = ((N - 1) / 2 - i) * (TIER_H + gap);
-
-        rig.group.position.y = y;
-        rig.label.position.set(labelX, y, 0);
-        rig.guide.position.set(labelX, y, 0);
+        rig.group.position.y = ((N - 1) / 2 - i) * (TIER_H + gap);
 
         let target: number;
         if (active === null) target = 0;
@@ -430,43 +445,35 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
         const glow = Math.max(rig.focus, 0);
         const dim = Math.max(-rig.focus, 0);
 
-        rig.mat.color.copy(rig.baseColor).multiplyScalar(1 + glow * 0.22 - dim * 0.4);
+        rig.mat.color.copy(rig.baseColor).multiplyScalar(1 + glow * 0.18 - dim * 0.4);
         const ei = glow * 0.5;
-        rig.mat.emissive.setRGB(0.45 * ei, 0.5 * ei, 0.62 * ei);
-        rig.mat.emissiveIntensity = 1.3;
-        rig.mat.envMapIntensity = (0.45 + (N - 1 - i) * 0.02) + glow * 0.6;
-        rig.edgeMat.opacity = Math.min(1, 0.12 + glow * 0.7 - dim * 0.1);
+        rig.mat.emissive.setRGB(0.42 * ei, 0.46 * ei, 0.55 * ei);
+        rig.mat.emissiveIntensity = 1.25;
+        rig.mat.envMapIntensity = (1.15 + (N - 1 - i) * 0.03) + glow * 0.5;
+        rig.edgeMat.opacity = Math.min(1, 0.14 + glow * 0.7 - dim * 0.12);
         rig.edgeMat.color.setHex(glow > 0.2 ? 0xffffff : 0xdfe8f2);
-        rig.haloMat.opacity = glow * 0.3;
+        rig.haloMat.opacity = glow * 0.26;
 
-        // Labels + guides illuminate with focus (blueprint hover).
-        rig.labelMat.opacity = 0.55 + glow * 0.45 - dim * 0.3;
-        rig.guideMat.opacity = 0.06 + glow * 0.5 - dim * 0.04;
-        rig.guideMat.color.setHex(glow > 0.2 ? 0xf4f8fd : 0xcfdbe8);
-
-        // Hover pauses ONLY this tier (counter-rotation vs the body); the
-        // others keep rotating with the body. Release eases back into sync.
+        // Hover pauses ONLY this tier; the others keep rotating with the body.
         const targetSpeed = active === i ? -OMEGA : 0;
         rig.speed += (targetSpeed - rig.speed) * Math.min(1, dt * (targetSpeed === 0 ? 3 : 6));
         rig.mesh.rotation.y += rig.speed * dt;
       }
 
-      // Position seam rings inside the animated gaps.
       for (let i = 0; i < N - 1; i++) {
         seams[i].position.y = ((N - 1) / 2 - (i + 0.5)) * (TIER_H + gap);
       }
 
-      // Central vertical line lights up on opening.
-      axisMat.opacity = 0.05 + openProgress * 0.45;
+      // Central vertical line + seams light up on opening.
+      axisMat.opacity = openProgress * 0.5;
+      seamMat.opacity = openProgress * 0.3;
 
-      // Opening ceremony: white light from the centre + soft fog bloom.
-      const pulse = 0.5 + 0.5 * Math.sin(t * 1.1);
+      // Faint white centre seam light.
+      const pulse = 0.5 + 0.5 * Math.sin(t * 1.0);
       const openFlash = isOpen ? Math.min(openProgress * 1.5, 1) : 0;
-      centerLight.intensity = openFlash * (2.0 + 0.8 * pulse);
-      fog.density = 0.006 + openProgress * 0.012;
-      seamMat.opacity = openProgress * 0.28;
+      centerLight.intensity = openFlash * (1.8 + 0.6 * pulse);
 
-      // Orbiting lights reveal true depth as the body turns.
+      // Orbiting lights reveal real depth as the body turns.
       const la = t * 0.16;
       key.position.set(Math.cos(la) * 8, 4.6, Math.sin(la) * 8);
       key.target.position.set(0, 0, 0);
@@ -474,10 +481,16 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
       fill.position.set(-Math.cos(la) * 6.5, 1.8, -Math.sin(la) * 6.5);
       rim.position.set(Math.sin(la) * 5.5, 4.4, -Math.cos(la) * 5.5);
 
-      dust.rotation.y = t * 0.008;
+      // Slow smoke drift.
+      smokePuffs.forEach((p) => {
+        p.userData.drift += dt * p.userData.speed;
+        p.position.x += Math.sin(p.userData.drift) * dt * 0.04;
+        p.position.y += Math.cos(p.userData.drift) * dt * 0.03;
+      });
+      dust.rotation.y = t * 0.006;
       dust.rotation.x = Math.sin(t * 0.05) * 0.02;
 
-      renderer.render(scene, camera);
+      composer.render();
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -487,6 +500,8 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
       const h = mount.clientHeight;
       if (w === 0 || h === 0) return;
       renderer.setSize(w, h);
+      composer.setSize(w, h);
+      bloom.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     };
@@ -505,22 +520,19 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
         r.mat.dispose();
         r.edgeMat.dispose();
         r.haloMat.dispose();
-        r.labelMat.dispose();
-        r.guideMat.dispose();
-        r.labelTex.dispose();
-        (r.guide.geometry as THREE.BufferGeometry).dispose();
-        r.label.removeFromParent();
-        r.guide.removeFromParent();
       });
       seams.forEach((s) => s.geometry.dispose());
       seamMat.dispose();
       axisLine.geometry.dispose();
       axisMat.dispose();
+      smokePuffs.forEach((p) => (p.material as THREE.Material).dispose());
       dustGeo.dispose();
       (dust.material as THREE.Material).dispose();
+      radialTex.dispose();
       ground.geometry.dispose();
       (ground.material as THREE.Material).dispose();
       brushTex.dispose();
+      composer.dispose();
       scene.environment?.dispose();
       pmrem.dispose();
       renderer.dispose();
@@ -533,7 +545,7 @@ export default function ImpactPyramid({ opened, activeIndex, onHover, onPick }: 
       ref={mountRef}
       className="pyramid-canvas"
       role="img"
-      aria-label="Impact Ladder — an inverted three-dimensional pyramid"
+      aria-label="Impact Ladder — an inverted ceremonial pyramid"
       style={{ position: "relative", width: "100%", height: "100%" }}
     />
   );

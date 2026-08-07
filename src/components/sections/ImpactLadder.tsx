@@ -84,11 +84,13 @@ export default function LadderSection({ data }: { data: AppData }) {
                   onClick={open}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  exit={{ opacity: 0, scale: 0.98, filter: "blur(6px)" }}
                   transition={{ duration: 1.6, delay: 0.4 }}
                   aria-label={ar ? "فتح المسرح الهرمي" : "Open the pyramid"}
                 >
-                  {ar ? "فتح المسرح الهرمي" : "OPEN THE PYRAMID"}
+                  <span className="ghost-glow" aria-hidden="true" />
+                  <span className="ghost-text">{ar ? "فتح المسرح الهرمي" : "OPEN THE PYRAMID"}</span>
+                  <span className="ghost-line" aria-hidden="true" />
                 </motion.button>
               </motion.div>
             )}
@@ -183,9 +185,15 @@ const impactStyles = `
   .impact-canvas { width:100%; height:clamp(420px, 72svh, 780px); }
 
   /* Volumetric fog covering the closed pyramid + ghost call-to-open */
-  .pyramid-fog { position:absolute; inset:-4%; z-index:5; display:flex; align-items:center; justify-content:center; pointer-events:none; background:radial-gradient(ellipse 52% 58% at 50% 50%, rgba(170,185,200,.1) 0%, rgba(150,165,182,.05) 34%, rgba(60,70,82,.035) 60%, transparent 78%); backdrop-filter:blur(1.4px); }
-  .ghost-open { pointer-events:auto; cursor:pointer; background:transparent; border:0; padding:22px 40px; color:#dde6ef; font-size:.62rem; letter-spacing:.4em; text-shadow:0 0 18px rgba(225,234,246,.75), 0 0 40px rgba(225,234,246,.4); }
-  .is-rtl .ghost-open { letter-spacing:.12em; }
+  .pyramid-fog { position:absolute; inset:-4%; z-index:5; display:flex; align-items:center; justify-content:center; pointer-events:none; background:radial-gradient(ellipse 52% 58% at 50% 50%, rgba(150,165,182,.11) 0%, rgba(130,145,162,.055) 34%, rgba(55,65,78,.04) 60%, transparent 78%); backdrop-filter:blur(1.2px); }
+  .ghost-open { pointer-events:auto; cursor:pointer; position:relative; display:flex; flex-direction:column; align-items:center; gap:18px; background:transparent; border:0; padding:30px 44px; color:#dfe8f1; }
+  .ghost-glow { position:absolute; inset:50%; transform:translate(-50%,-50%); width:70%; height:70%; background:radial-gradient(ellipse 50% 50% at 50% 50%, rgba(225,234,246,.16) 0%, transparent 70%); filter:blur(14px); pointer-events:none; }
+  .ghost-text { position:relative; color:#e2ebf4; font-size:.64rem; letter-spacing:.4em; text-shadow:0 0 16px rgba(228,236,246,.7), 0 0 42px rgba(228,236,246,.35); transition:letter-spacing .6s ease; }
+  .is-rtl .ghost-text { letter-spacing:.14em; }
+  .ghost-line { position:relative; width:64px; height:1px; background:linear-gradient(90deg,transparent,rgba(235,242,250,.85),transparent); box-shadow:0 0 10px rgba(235,242,250,.6); transition:width .6s ease, box-shadow .6s ease; }
+  .ghost-open:hover .ghost-text { letter-spacing:.46em; }
+  .is-rtl .ghost-open:hover .ghost-text { letter-spacing:.18em; }
+  .ghost-open:hover .ghost-line { width:110px; box-shadow:0 0 18px rgba(240,246,253,.85); }
 
   .impact-hint { position:absolute; bottom:8px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; color:#4a535f; font-size:.5rem; letter-spacing:.18em; white-space:nowrap; opacity:.8; }
   .impact-hint-line { width:34px; height:1px; background:linear-gradient(90deg,transparent,#57606c); }
