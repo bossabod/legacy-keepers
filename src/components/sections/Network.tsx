@@ -431,7 +431,33 @@ export default function NetworkSection() {
 
   return (
     <div className="relative w-full overflow-hidden bg-[#0a0a0d]" style={{ height: "calc(100vh - 60px)" }}>
+      {/* Cinematic color grading — pure filter on the tile pane; the base
+          map (roads, coasts, cities, labels, zoom, interactions) stays
+          untouched. Only darkens into graphite land / navy water / muted
+          green parks. */}
+      <style>{`
+        .leaflet-tile-pane {
+          filter: brightness(0.8) contrast(1.05) saturate(0.86)
+                  sepia(0.14) hue-rotate(9deg);
+          transition: filter 0.6s ease;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .leaflet-tile-pane { transition: none; }
+        }
+      `}</style>
+
       <div ref={containerRef} className="absolute inset-0" />
+
+      {/* Color-grading tint overlay (multiply) — sits above the tiles,
+          below the network overlay; never repaints the map. */}
+      <div
+        className="pointer-events-none absolute inset-0 z-[350]"
+        style={{
+          mixBlendMode: "multiply",
+          background:
+            "linear-gradient(180deg, rgba(7,16,28,0.34) 0%, rgba(6,12,18,0.30) 45%, rgba(4,8,12,0.40) 100%)",
+        }}
+      />
 
       {/* City Selector */}
       <div ref={selectorRef} className="absolute top-4 left-4 z-[1000]">
