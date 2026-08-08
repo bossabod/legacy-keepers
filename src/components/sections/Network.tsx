@@ -55,8 +55,6 @@ export default function NetworkSection() {
       {/* the interactive map (original natural satellite) */}
       <div className="absolute inset-0 z-0">
         <NetworkMap />
-        {/* solid dark-gray overlay — makes the whole map dark gray */}
-        <div className="pointer-events-none absolute inset-0 bg-[#26262a]/95" />
       </div>
 
       {/* 3D View toggle */}
