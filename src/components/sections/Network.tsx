@@ -12,9 +12,9 @@ const NetworkMap = dynamic(() => import("@/components/sections/NetworkMap"), {
 });
 
 /* ==================================================================
-   Network — New York City interactive dark monochrome vector map.
-   "3D View" toggles to a tilted oblique 3D perspective with
-   real-height dark buildings + terrain.
+   Network — New York City interactive map (MapLibre GL).
+   Satellite (Esri) is the base mode. "3D View" toggles to a tilted
+   oblique 3D perspective with real-height buildings.
    ================================================================== */
 
 export default function NetworkSection() {
@@ -29,7 +29,7 @@ export default function NetworkSection() {
   };
 
   return (
-    <div className="relative w-full overflow-hidden" style={{ height: "calc(100vh - 66px)", background: "#050505" }}>
+    <div className="relative w-full overflow-hidden" style={{ height: "calc(100vh - 66px)", background: "#0b0e12" }}>
       {/* header */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between p-5">
         <div>
@@ -37,24 +37,26 @@ export default function NetworkSection() {
             {ar ? "محور العمليات · نيويورك" : "Operations Hub · New York"}
           </div>
           <div className="mt-1 text-[0.8rem] tracking-[0.12em] text-[#eaeef5]" style={{ fontFamily: "var(--font-luxury)" }}>
-            {ar ? "خريطة ليلية أحادية اللون" : "Monochrome Night Map"}
+            {ar ? "خريطة الأقمار الصناعية · مدينة نيويورك" : "Satellite Map · New York City"}
           </div>
         </div>
 
         {/* status chip */}
         <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-white/10 bg-[#05080d]/80 px-4 py-2.5 backdrop-blur-md">
-          <MapPin size={14} className="text-[#9aa3af]" />
+          <MapPin size={14} className="text-[#5d96b8]" />
           <span className="text-[0.74rem] text-[#c3c9d3]">
             {mode3D
               ? (ar ? "3D · مبانٍ وتضاريس" : "3D · Buildings + Terrain")
-              : (ar ? "ليلي · متجهي أحادي" : "Night · Dark Vector")}
+              : (ar ? "قمر صناعي · Esri" : "Satellite · Esri")}
           </span>
         </div>
       </div>
 
-      {/* the interactive dark vector map */}
+      {/* the interactive map (original natural satellite) */}
       <div className="absolute inset-0 z-0">
         <NetworkMap />
+        {/* translucent dark-gray overlay — darkens the overall look only */}
+        <div className="pointer-events-none absolute inset-0 bg-[#1a1a1c]/55" />
       </div>
 
       {/* 3D View toggle */}
@@ -63,11 +65,11 @@ export default function NetworkSection() {
           onClick={() => set3D(!mode3D)}
           className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-[0.72rem] backdrop-blur-md shadow-sm transition ${
             mode3D
-              ? "border-white/40 bg-white/15 text-white"
+              ? "border-sky-300/60 bg-sky-400/20 text-sky-100"
               : "border-white/10 bg-[#05080d]/85 text-[#c3c9d3] hover:border-white/30 hover:text-white"
           }`}
         >
-          <Box size={15} className={mode3D ? "text-white" : "text-[#8a95a3]"} />
+          <Box size={15} className={mode3D ? "text-sky-200" : "text-[#8a95a3]"} />
           {mode3D ? (ar ? "إيقاف 3D" : "Exit 3D") : (ar ? "عرض ثلاثي الأبعاد" : "3D View")}
         </button>
       </div>
