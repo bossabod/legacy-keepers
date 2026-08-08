@@ -1,323 +1,78 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { MapPin, ChevronDown } from "lucide-react";
-import { generateStreets } from "@/lib/street-map";
-import { generateCityNodes, linkNodes } from "@/lib/city-nodes";
+import { useState } from "react";
+import { MapPin, ChevronDown, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
+import Globe3D from "@/components/sections/Globe3D";
+import { useApp } from "@/lib/store";
+import { OPERATIONAL_CITIES } from "@/lib/earth-data";
+import { play } from "@/lib/sound";
 
 /* ==================================================================
-   Network — clean city-limited Leaflet map (original style).
-   Plain CartoDB dark tiles, city selector, cinematic fly transition,
-   fixed city bounds. NO circles, NO network overlay, NO nodes.
+   Network — a true 3D Earth globe command centre.
+   The full Earth is shown (continents, countries, cities) on a large
+   Three.js globe. Drag to spin, wheel to zoom, auto-rotation on idle.
+   City selector flies the camera focus. No flat map.
    ================================================================== */
 
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-
-interface City {
-  id: string; name: string; country: string; flag: string;
-  center: [number, number]; zoom: number; bounds: [[number, number], [number, number]];
-}
-
-const CITIES: City[] = [
-  { id: "nyc", name: "New York City", country: "United States", flag: "🇺🇸", center: [40.7589, -73.9851], zoom: 13, bounds: [[40.40, -74.30], [40.95, -73.65]] },
-  { id: "la", name: "Los Angeles", country: "United States", flag: "🇺🇸", center: [34.0522, -118.2437], zoom: 12, bounds: [[33.70, -118.70], [34.40, -118.00]] },
-  { id: "chi", name: "Chicago", country: "United States", flag: "🇺🇸", center: [41.8781, -87.6298], zoom: 12, bounds: [[41.60, -87.90], [42.10, -87.30]] },
-  { id: "sf", name: "San Francisco", country: "United States", flag: "🇺🇸", center: [37.7749, -122.4194], zoom: 13, bounds: [[37.60, -122.60], [37.90, -122.20]] },
-  { id: "sea", name: "Seattle", country: "United States", flag: "🇺🇸", center: [47.6062, -122.3321], zoom: 12, bounds: [[47.45, -122.50], [47.80, -122.10]] },
-  { id: "mia", name: "Miami", country: "United States", flag: "🇺🇸", center: [25.7617, -80.1918], zoom: 12, bounds: [[25.55, -80.35], [26.00, -80.00]] },
-  { id: "dc", name: "Washington DC", country: "United States", flag: "🇺🇸", center: [38.8977, -77.0365], zoom: 13, bounds: [[38.75, -77.20], [39.05, -76.85]] },
-  { id: "ist", name: "Istanbul", country: "Türkiye", flag: "🇹🇷", center: [41.0082, 28.9784], zoom: 12, bounds: [[40.80, 28.50], [41.30, 29.50]] },
-  { id: "ruh", name: "Riyadh", country: "Saudi Arabia", flag: "🇸🇦", center: [24.7136, 46.6753], zoom: 12, bounds: [[24.45, 46.45], [25.05, 46.95]] },
-  { id: "auh", name: "Abu Dhabi", country: "United Arab Emirates", flag: "🇦🇪", center: [24.4539, 54.3773], zoom: 12, bounds: [[24.25, 54.20], [24.65, 54.60]] },
-  { id: "dxb", name: "Dubai", country: "United Arab Emirates", flag: "🇦🇪", center: [25.2048, 55.2708], zoom: 12, bounds: [[24.90, 54.95], [25.45, 55.55]] },
-  { id: "sto", name: "Stockholm", country: "Sweden", flag: "🇸🇪", center: [59.3293, 18.0686], zoom: 12, bounds: [[59.15, 17.80], [59.50, 18.40]] },
-  { id: "gbr", name: "Gothenburg", country: "Sweden", flag: "🇸🇪", center: [57.7089, 11.9746], zoom: 12, bounds: [[57.55, 11.75], [57.80, 12.20]] },
-  { id: "osl", name: "Oslo", country: "Norway", flag: "🇳🇴", center: [59.9139, 10.7522], zoom: 12, bounds: [[59.80, 10.50], [60.05, 11.00]] },
-  { id: "bgo", name: "Bergen", country: "Norway", flag: "🇳🇴", center: [60.3913, 5.3221], zoom: 12, bounds: [[60.25, 5.10], [60.55, 5.60]] },
-  { id: "lon", name: "London", country: "United Kingdom", flag: "🇬🇧", center: [51.5074, -0.1278], zoom: 12, bounds: [[51.30, -0.35], [51.70, 0.15]] },
-  { id: "man", name: "Manchester", country: "United Kingdom", flag: "🇬🇧", center: [53.4808, -2.2426], zoom: 12, bounds: [[53.35, -2.40], [53.60, -2.05]] },
-  { id: "par", name: "Paris", country: "France", flag: "🇫🇷", center: [48.8566, 2.3522], zoom: 12, bounds: [[48.70, 2.15], [49.05, 2.60]] },
-  { id: "ber", name: "Berlin", country: "Germany", flag: "🇩🇪", center: [52.52, 13.405], zoom: 12, bounds: [[52.34, 13.09], [52.68, 13.76]] },
-  { id: "tor", name: "Toronto", country: "Canada", flag: "🇨🇦", center: [43.6532, -79.3832], zoom: 12, bounds: [[43.50, -79.55], [43.80, -79.15]] },
-  { id: "van", name: "Vancouver", country: "Canada", flag: "🇨🇦", center: [49.2827, -123.1207], zoom: 12, bounds: [[49.10, -123.30], [49.45, -122.90]] },
-  { id: "mex", name: "Mexico City", country: "Mexico", flag: "🇲🇽", center: [19.4326, -99.1332], zoom: 12, bounds: [[19.20, -99.35], [19.60, -98.90]] },
-  { id: "sao", name: "São Paulo", country: "Brazil", flag: "🇧🇷", center: [-23.5505, -46.6333], zoom: 12, bounds: [[-23.75, -46.85], [-23.35, -46.40]] },
-  { id: "syd", name: "Sydney", country: "Australia", flag: "🇦🇺", center: [-33.8688, 151.2093], zoom: 12, bounds: [[-34.00, 150.90], [-33.70, 151.50]] },
-  { id: "mel", name: "Melbourne", country: "Australia", flag: "🇦🇺", center: [-37.8136, 144.9631], zoom: 12, bounds: [[-38.00, 144.70], [-37.60, 145.20]] },
-  { id: "bne", name: "Brisbane", country: "Australia", flag: "🇦🇺", center: [-27.4698, 153.0251], zoom: 12, bounds: [[-27.60, 152.85], [-27.30, 153.25]] },
-  { id: "bkk", name: "Bangkok", country: "Thailand", flag: "🇹🇭", center: [13.7563, 100.5018], zoom: 12, bounds: [[13.55, 100.30], [13.95, 100.80]] },
-  { id: "cnx", name: "Chiang Mai", country: "Thailand", flag: "🇹🇭", center: [18.7883, 98.9853], zoom: 12, bounds: [[18.65, 98.85], [18.95, 99.15]] },
-  { id: "sgp", name: "Singapore", country: "Singapore", flag: "🇸🇬", center: [1.3521, 103.8198], zoom: 12, bounds: [[1.20, 103.60], [1.50, 104.05]] },
-  { id: "tyo", name: "Tokyo", country: "Japan", flag: "🇯🇵", center: [35.6762, 139.6503], zoom: 12, bounds: [[35.50, 139.40], [35.90, 139.95]] },
-  { id: "soul", name: "Seoul", country: "South Korea", flag: "🇰🇷", center: [37.5665, 126.978], zoom: 12, bounds: [[37.40, 126.80], [37.75, 127.15]] },
-  { id: "bom", name: "Mumbai", country: "India", flag: "🇮🇳", center: [19.076, 72.8777], zoom: 12, bounds: [[18.85, 72.65], [19.35, 73.10]] },
-  { id: "del", name: "Delhi", country: "India", flag: "🇮🇳", center: [28.7041, 77.1025], zoom: 12, bounds: [[28.45, 76.85], [28.95, 77.35]] },
-  { id: "cai", name: "Cairo", country: "Egypt", flag: "🇪🇬", center: [30.0444, 31.2357], zoom: 12, bounds: [[29.85, 31.05], [30.25, 31.45]] },
-  { id: "jnb", name: "Johannesburg", country: "South Africa", flag: "🇿🇦", center: [-26.2041, 28.0473], zoom: 12, bounds: [[-26.40, 27.80], [-26.00, 28.30]] },
-];
-
-const COUNTRIES = Array.from(new Set(CITIES.map(c => c.country)));
-
-/** Elegant local city base — always renders (no external dependency), so
-    the map is never blank even if the tile CDN is unreachable. Streets,
-    a dark ground and the city name are drawn in-browser as georeferenced
-    vector layers. When tiles ARE available they render above this. */
-function buildLocalBase(L: any, map: any, city: City) {
-  const [[swLat, swLon], [neLat, neLon]] = city.bounds;
-  const cLat = (swLat + neLat) / 2, cLon = (swLon + neLon) / 2;
-  const latSpan = neLat - swLat, lonSpan = neLon - swLon;
-  const g = L.layerGroup();
-
-  // wide dark ground — covers a much larger area than the city bounds so
-  // no light/grey Leaflet background ever shows anywhere on the map
-  L.rectangle([[swLat - latSpan * 4, swLon - lonSpan * 4], [neLat + latSpan * 4, neLon + lonSpan * 4]], {
-    color: "#0b0e13", weight: 0, fillColor: "#0b0e13", fillOpacity: 1, interactive: false,
-  }).addTo(g);
-
-  // subtle city blocks (fabric) in a grid
-  const rows = 7, cols = 7;
-  const sl = latSpan / rows, sc = lonSpan / cols;
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const lat0 = swLat + r * sl, lon0 = swLon + c * sc;
-      const pad = 0.14;
-      const bLat = lat0 + sl * pad, bLon = lon0 + sc * pad;
-      const eLat = lat0 + sl * (1 - pad), eLon = lon0 + sc * (1 - pad);
-      const shade = ((r * 29 + c * 13) % 100) / 100;
-      L.rectangle([[bLat, bLon], [eLat, eLon]], {
-        color: "rgba(30,34,40,0)", weight: 0,
-        fillColor: `rgba(${24 + shade * 8},${27 + shade * 8},${32 + shade * 10},0.55)`,
-        fillOpacity: 0.55, interactive: false,
-      }).addTo(g);
-    }
-  }
-
-  // streets
-  const streets = generateStreets({ id: city.id, center: [cLat, cLon], bbox: city.bounds });
-  for (const s of streets) {
-    const pts = s.pts.map(([la, lo]) => [la, lo] as [number, number]);
-    if (s.kind === "arterial") L.polyline(pts, { color: "#383e48", weight: 1.2, opacity: 0.9, interactive: false }).addTo(g);
-    else if (s.kind === "secondary") L.polyline(pts, { color: "#282d35", weight: 0.7, opacity: 0.85, interactive: false }).addTo(g);
-    else L.polyline(pts, { color: "#1d2128", weight: 0.4, opacity: 0.7, interactive: false }).addTo(g);
-  }
-
-  // city name
-  L.marker([cLat, cLon], {
-    icon: L.divIcon({
-      className: "", html: `<div style="color:#6b7686;font:600 13px var(--font-mono),monospace;letter-spacing:.2em;white-space:nowrap;text-shadow:0 0 10px rgba(0,0,0,.9)">${city.name.toUpperCase()}</div>`,
-      iconSize: [0, 0],
-    }),
-    interactive: false,
-  }).addTo(g);
-
-  g.addTo(map);
-  return g;
-}
-
-/** White intelligence node overlay — georeferenced GIS markers.
-    Semi-transparent radial gradient (map stays visible underneath),
-    logical distribution, thin local connection mesh, and 1–2 hub nodes
-    (occasionally soft red). Anchored to lat/lon; scales with the map. */
-function buildNodeOverlay(L: any, map: any, city: City) {
-  const g = L.layerGroup();
-  const nodes = generateCityNodes({ id: city.id, center: city.center, bounds: city.bounds });
-
-  // connection mesh (thin lines under nodes)
-  for (const [a, b] of linkNodes(nodes)) {
-    L.polyline([[nodes[a].lat, nodes[a].lon], [nodes[b].lat, nodes[b].lon]], {
-      color: "#ffffff", weight: 0.7, opacity: 0.16, interactive: false,
-    }).addTo(g);
-  }
-
-  for (const n of nodes) {
-    const base = n.isHub ? 22 : 6 + n.weight * 3;
-    const color = n.hubRed ? "#b32020" : "#ffffff";
-    const icon = L.divIcon({
-      className: "", interactive: false,
-      html: `<div style="width:${base * 2}px;height:${base * 2}px;border-radius:50%;background:radial-gradient(circle, ${color}4d 0%, ${color}1f 42%, ${color}08 68%, ${color}00 82%);"></div>`,
-      iconSize: [base * 2, base * 2],
-      iconAnchor: [base, base],
-    });
-    L.marker([n.lat, n.lon], { icon, interactive: false }).addTo(g);
-  }
-
-  g.addTo(map);
-  return g;
-}
+const CITIES = OPERATIONAL_CITIES.map((c, i) => ({
+  id: String(i),
+  name: c.name,
+  nameAr: c.nameAr,
+  lat: c.lat,
+  lon: c.lon,
+  tz: c.tz,
+}));
 
 export default function NetworkSection() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const leafletRef = useRef<any>(null);
-  const baseRef = useRef<any>(null);
-  const nodeRef = useRef<any>(null);
-  const [currentCity, setCurrentCity] = useState<City>(CITIES[0]);
+  const { lang } = useApp();
+  const ar = lang === "ar";
   const [selectorOpen, setSelectorOpen] = useState(false);
-  const [transitioning, setTransitioning] = useState(false);
-  const [effectLevel, setEffectLevel] = useState(0);
-  const selectorRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    let map: any = null;
-    let disposed = false;
-    (async () => {
-      if (typeof window === "undefined") return;
-      const Lmod = await import("leaflet");
-      const L = Lmod.default;
-      leafletRef.current = L;
-      if (!L || !el) return;
-      map = L.map(el, {
-        center: currentCity.center,
-        zoom: currentCity.zoom,
-        minZoom: 11,
-        maxZoom: 18,
-        maxBounds: currentCity.bounds,
-        maxBoundsViscosity: 1.0,
-        zoomControl: false,
-        attributionControl: false,
-        zoomSnap: 0.1,
-        zoomDelta: 0.5,
-        wheelPxPerZoomLevel: 120,
-      });
-      // ensure full render after mount (fixes half-drawn map)
-      setTimeout(() => { map.invalidateSize(); }, 300);
-      // local in-browser base (fully self-contained — renders completely
-      // in every environment, no external tile dependency)
-      baseRef.current = buildLocalBase(L, map, currentCity);
-      // white intelligence node overlay (GIS)
-      nodeRef.current = buildNodeOverlay(L, map, currentCity);
-      L.control.zoom({ position: "bottomright" }).addTo(map);
-      if (disposed) { map.remove(); return; }
-      mapRef.current = map;
-    })();
-    return () => { disposed = true; if (map) map.remove(); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // rebuild the local base + node overlay when the city changes
-  useEffect(() => {
-    const map = mapRef.current;
-    const L = leafletRef.current;
-    if (!map || !L) return;
-    if (baseRef.current) map.removeLayer(baseRef.current);
-    baseRef.current = buildLocalBase(L, map, currentCity);
-    if (nodeRef.current) map.removeLayer(nodeRef.current);
-    nodeRef.current = buildNodeOverlay(L, map, currentCity);
-  }, [currentCity]);
-
-  // cinematic fly transition between cities (original)
-  const flyToCity = async (city: City) => {
-    const map = mapRef.current;
-    if (!map || transitioning) return;
-    setTransitioning(true);
-    setSelectorOpen(false);
-    map.setMaxBounds(undefined);
-    map.setMinZoom(1);
-    const startZoom = map.getZoom();
-
-    await sleep(900);
-    map.flyTo(map.getCenter(), Math.max(startZoom - 2, 10), { duration: 0.6, easeLinearity: 0.15 });
-    setEffectLevel(0.3); await sleep(620); setEffectLevel(0.35); await sleep(250);
-    map.flyTo(map.getCenter(), Math.max(startZoom - 5, 7), { duration: 0.55, easeLinearity: 0.15 });
-    setEffectLevel(0.6); await sleep(570); setEffectLevel(0.65); await sleep(250);
-    map.flyTo(map.getCenter(), 4, { duration: 0.5, easeLinearity: 0.15 });
-    setEffectLevel(0.9); await sleep(520); await sleep(200); setEffectLevel(1.0);
-
-    const arrivalStartZoom = Math.max(city.zoom - 5, 4);
-    map.setView(city.center, arrivalStartZoom, { animate: false });
-    await sleep(250);
-    map.flyTo(city.center, city.zoom - 2, { duration: 0.6, easeLinearity: 0.15 });
-    setEffectLevel(0.85); await sleep(620); setEffectLevel(0.8); await sleep(250);
-    map.flyTo(city.center, city.zoom - 0.5, { duration: 0.55, easeLinearity: 0.15 });
-    setEffectLevel(0.5); await sleep(570); setEffectLevel(0.45); await sleep(250);
-    map.flyTo(city.center, city.zoom, { duration: 0.5, easeLinearity: 0.2 });
-    setEffectLevel(0.15); await sleep(400); setEffectLevel(0); await sleep(150);
-
-    map.setMaxBounds(city.bounds);
-    map.setMinZoom(11);
-    setCurrentCity(city);
-    setTransitioning(false);
-  };
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (selectorRef.current && !selectorRef.current.contains(e.target as Node)) setSelectorOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   return (
-    <div className="relative w-full overflow-hidden bg-[#0b0e13]" style={{ height: "calc(100vh - 60px)" }}>
-      <style>{`
-        .leaflet-container { background:#0b0e13 !important; }
-        .leaflet-pane, .leaflet-overlay-pane svg { z-index:0; }
-      `}</style>
-      <div ref={containerRef} className="absolute inset-0" />
-
-      {/* City Selector */}
-      <div ref={selectorRef} className="absolute top-4 left-4 z-[1000]">
-        <button
-          onClick={() => setSelectorOpen(!selectorOpen)}
-          className="flex items-center gap-2.5 rounded-xl border border-[#1a1d22] bg-[#0a0b0e]/90 backdrop-blur-md px-4 py-2.5 text-[0.76rem] font-medium text-[#c3c9d3] hover:text-white hover:border-[#2a2f38] transition-all duration-300 shadow-lg"
-          style={{ fontFamily: "var(--font-sans)" }}
-        >
-          <MapPin size={14} className="text-[#565d68]" />
-          <span className="flex items-center gap-1.5">
-            <span className="text-base leading-none">{currentCity.flag}</span>
-            {currentCity.name}
-          </span>
-          <ChevronDown size={13} className={`text-[#565d68] transition-transform duration-300 ${selectorOpen ? "rotate-180" : ""}`} />
-        </button>
-
-        {selectorOpen && (
-          <div className="absolute top-full left-0 mt-2 w-[280px] max-h-[500px] overflow-y-auto scroll-thin rounded-xl border border-[#1a1d22] bg-[#0a0b0e]/95 backdrop-blur-xl py-2 shadow-2xl">
-            {COUNTRIES.map(country => (
-              <div key={country}>
-                <div className="px-3.5 py-1.5 text-[0.54rem] font-bold uppercase tracking-[0.14em] text-[#2e333c] flex items-center gap-1.5" style={{ fontFamily: "var(--font-mono)" }}>
-                  <span className="text-sm">{CITIES.find(c => c.country === country)?.flag}</span>
-                  {country}
-                </div>
-                {CITIES.filter(c => c.country === country).map(city => (
-                  <button
-                    key={city.id}
-                    onClick={() => flyToCity(city)}
-                    disabled={transitioning || city.id === currentCity.id}
-                    className={`flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[0.74rem] transition-colors duration-200
-                      ${city.id === currentCity.id ? "text-white bg-white/[0.06]" : "text-[#6b7383] hover:text-[#c3c9d3] hover:bg-white/[0.03]"}
-                      disabled:opacity-30 disabled:cursor-not-allowed`}
-                  >
-                    <MapPin size={11} className="shrink-0 text-[#3a4049]" />
-                    {city.name}
-                  </button>
-                ))}
-              </div>
-            ))}
+    <div className="relative w-full overflow-hidden" style={{ height: "calc(100vh - 66px)", background: "radial-gradient(ellipse 80% 80% at 50% 50%, #0a1420 0%, #05080d 55%, #020304 100%)" }}>
+      {/* header */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-5">
+        <div>
+          <div className="text-[0.5rem] uppercase tracking-[0.3em] text-[#5d6675]" style={{ fontFamily: "var(--font-mono)" }}>
+            {ar ? "مركز القيادة العالمي" : "Global Command Globe"}
           </div>
-        )}
+          <div className="mt-1 text-[0.8rem] tracking-[0.12em] text-[#eaeef5]" style={{ fontFamily: "var(--font-luxury)" }}>
+            {ar ? "الشبكة العالمية" : "Global Network"}
+          </div>
+        </div>
+
+        {/* City selector */}
+        <div className="pointer-events-auto relative">
+          <button
+            onClick={() => { setSelectorOpen(!selectorOpen); play("click"); }}
+            className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-[#05080d]/80 px-4 py-2.5 text-[0.76rem] text-[#c3c9d3] backdrop-blur-md transition hover:border-white/25 hover:text-white"
+          >
+            <MapPin size={14} className="text-[#5d6675]" />
+            <span>{ar ? "أحد المحاور" : "Select a hub"}</span>
+            <ChevronDown size={13} className={`text-[#5d6675] transition-transform ${selectorOpen ? "rotate-180" : ""}`} />
+          </button>
+          {selectorOpen && (
+            <div className="absolute right-0 top-full mt-2 w-[220px] overflow-hidden rounded-xl border border-white/10 bg-[#05080d]/95 py-1.5 backdrop-blur-xl shadow-2xl">
+              {CITIES.map((c) => (
+                <div key={c.id} className="flex items-center gap-2.5 px-4 py-2 text-[0.74rem] text-[#7f8896]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#c3c9d3]" style={{ boxShadow: "0 0 6px #c3c9d3" }} />
+                  {ar ? c.nameAr : c.name}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Cinematic transition effect */}
-      <div
-        className="pointer-events-none absolute inset-0 z-[500]"
-        style={{
-          opacity: effectLevel > 0 ? 1 : 0,
-          transition: "opacity 0.35s ease, backdrop-filter 0.45s ease, background 0.5s ease",
-          backdropFilter: `blur(${effectLevel * 10}px)`,
-          WebkitBackdropFilter: `blur(${effectLevel * 10}px)`,
-          background: effectLevel >= 0.98
-            ? "#050608"
-            : `radial-gradient(ellipse at center, transparent ${Math.max(5, 25 - effectLevel * 25)}%, rgba(5,6,8,${effectLevel * 0.8}) 100%)`,
-        }}
-      />
+      {/* the 3D globe — dominates the whole screen */}
+      <div className="absolute inset-0 z-0">
+        <Globe3D />
+      </div>
 
-      {transitioning && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2.5 rounded-xl border border-[#1a1d22] bg-[#0a0b0e]/90 backdrop-blur-md px-4 py-2.5 shadow-lg" style={{ marginBottom: effectLevel * 30 }}>
-          <div className="h-3.5 w-3.5 rounded-full border-2 border-[#2a2f38] border-t-[#565d68] animate-spin" />
-          <span className="text-[0.66rem] tracking-[0.12em] text-[#565d68]" style={{ fontFamily: "var(--font-mono)" }}>NAVIGATING</span>
-        </div>
-      )}
+      {/* interaction hints */}
+      <div className="pointer-events-none absolute bottom-5 left-1/2 z-10 -translate-x-1/2 flex items-center gap-5 text-[0.48rem] uppercase tracking-[0.2em] text-[#4a515e]" style={{ fontFamily: "var(--font-mono)" }}>
+        <span className="flex items-center gap-1.5"><RotateCw size={11} /> {ar ? "اسحب للدوران" : "Drag to spin"}</span>
+        <span className="flex items-center gap-1.5"><ZoomIn size={11} /> {ar ? "عجلة للتكبير" : "Scroll to zoom"}</span>
+      </div>
     </div>
   );
 }
