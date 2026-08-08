@@ -141,10 +141,9 @@ export default function LoginScreen({
     if (verifying) return;
     setVerifying(true);
     play("vault");
-    setTimeout(() => {
-      play("granted");
-      onAuthenticated();
-    }, 1900);
+    // Go straight to the app — no artificial delay, no loading screen.
+    play("granted");
+    onAuthenticated();
   };
 
   return (

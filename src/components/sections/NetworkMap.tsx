@@ -5,18 +5,19 @@ import type { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 /* ==================================================================
-   NetworkMap — interactive New York City map (MapLibre GL JS), NIGHT.
-   • Base layer: NASA GIBS "Black Marble" / Earth at Night (Suomi NPP
-     VIIRS) — REAL nighttime satellite imagery showing actual city
-     lights, dark oceans and dark land. No daytime colours.
-   • 3D View: tilted oblique perspective + real-height buildings from
-     OpenFreeMap vector tiles (free, no key, streams by camera position).
-   • No globe, no Cesium, no huge data, no endless loading.
+   NetworkMap — interactive New York City map (MapLibre GL JS).
+   Google-Maps-like controls: drag to pan, scroll / buttons to zoom,
+   Ctrl/right-drag to rotate, two-finger / pitch to tilt.
+     • Satellite base — Esri World Imagery (free, no key).
+     • 3D Buildings — OpenFreeMap vector tiles (free, no key), real
+       OSM heights, streamed by camera position.
+     • Terrain — free public terrarium DEM tiles (no key).
+   No globe, no Cesium, no huge data, no endless loading.
    Exposes: zoomIn / zoomOut / set3D(bool).
    ================================================================== */
 
 const CENTER: [number, number] = [-74.006, 40.7128];
-const ZOOM = 11;
+const ZOOM = 14;
 
 export default function NetworkMap({ className = "" }: { className?: string }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -26,24 +27,32 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
     if (!el) return;
     let map: MapLibreMap | null = null;
 
-    // NASA Earth at Night (Black Marble) — real nighttime satellite imagery.
-    // Tile matrix "GoogleMapsCompatible_Level8" tops out at native zoom 8.
     const style: any = {
       version: 8,
       sources: {
-        night: {
+        satellite: {
           type: "raster",
           tiles: [
-            "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png",
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
           ],
           tileSize: 256,
           minzoom: 0,
-          maxzoom: 8,
+          maxzoom: 19,
           attribution:
-            "Imagery &copy; NASA GIBS / Black Marble (Suomi NPP VIIRS)",
+            "Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+        },
+        terrain: {
+          type: "raster-dem",
+          tiles: [
+            "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
+          ],
+          encoding: "terrarium",
+          tileSize: 256,
+          maxzoom: 15,
+          attribution: "Terrain &copy; Tilezen / Mapzen elevation tiles",
         },
       },
-      layers: [{ id: "night", type: "raster", source: "night" }],
+      layers: [{ id: "satellite", type: "raster", source: "satellite" }],
     };
 
     map = new maplibregl.Map({
@@ -53,16 +62,23 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
       zoom: ZOOM,
       pitch: 0,
       bearing: 0,
-      maxPitch: 60,
+      maxPitch: 65,
       dragRotate: true,
       pitchWithRotate: true,
       attributionControl: false,
       canvasContextAttributes: { antialias: true },
     });
 
-    // Add real 3D buildings (OpenFreeMap) when the map loads.
     const mapReady = map;
-    mapReady?.on("load", () => {
+    mapReady.on("load", () => {
+      // Terrain (3D relief) — best-effort; map still works if it fails.
+      try {
+        mapReady.setTerrain({ source: "terrain", exaggeration: 1.2 });
+      } catch (e) {
+        // terrain optional
+      }
+
+      // Real 3D buildings (OpenFreeMap) — best-effort.
       try {
         mapReady.addSource("openfreemap", {
           type: "vector",
@@ -79,9 +95,9 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
           paint: {
             "fill-extrusion-color": [
               "interpolate", ["linear"], ["get", "render_height"],
-              0, "#8a8578", 90, "#6e695e", 200, "#57534b", 350, "#3f3c37",
+              0, "#c9c4b8", 90, "#9e998e", 200, "#8b867b", 350, "#7d7870",
             ],
-            "fill-extrusion-opacity": 0.92,
+            "fill-extrusion-opacity": 0.9,
             "fill-extrusion-height": [
               "interpolate", ["linear"], ["zoom"], 15, 0, 16, ["get", "render_height"],
             ],
@@ -91,7 +107,7 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
           },
         });
       } catch (e) {
-        // buildings optional — night map still works
+        // buildings optional — satellite + terrain still work
       }
     });
 
@@ -101,8 +117,8 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
       set3D: (on: boolean) => {
         if (!map) return;
         if (on) {
-          const z = Math.max(map.getZoom(), 15.5);
-          map.easeTo({ pitch: 52, bearing: -28, zoom: z, duration: 900 });
+          const z = Math.max(map.getZoom(), 16);
+          map.easeTo({ pitch: 55, bearing: -30, zoom: z, duration: 900 });
           if (map.getLayer("3d-buildings")) {
             map.setLayoutProperty("3d-buildings", "visibility", "visible");
           }
