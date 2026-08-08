@@ -68,10 +68,26 @@ export default function NetworkSection() {
         <Globe3D />
       </div>
 
+      {/* zoom controls */}
+      <div className="absolute right-4 bottom-6 z-20 flex flex-col gap-1.5">
+        <button
+          onClick={() => { const el = document.querySelector('[data-globe]'); (el as any)?.__globeApi?.zoomIn(); play("click"); }}
+          className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#05080d]/80 text-[#c3c9d3] backdrop-blur-md transition hover:border-white/30 hover:text-white"
+        >
+          <ZoomIn size={15} />
+        </button>
+        <button
+          onClick={() => { const el = document.querySelector('[data-globe]'); (el as any)?.__globeApi?.zoomOut(); play("click"); }}
+          className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#05080d]/80 text-[#c3c9d3] backdrop-blur-md transition hover:border-white/30 hover:text-white"
+        >
+          <ZoomOut size={15} />
+        </button>
+      </div>
+
       {/* interaction hints */}
       <div className="pointer-events-none absolute bottom-5 left-1/2 z-10 -translate-x-1/2 flex items-center gap-5 text-[0.48rem] uppercase tracking-[0.2em] text-[#4a515e]" style={{ fontFamily: "var(--font-mono)" }}>
         <span className="flex items-center gap-1.5"><RotateCw size={11} /> {ar ? "اسحب للدوران" : "Drag to spin"}</span>
-        <span className="flex items-center gap-1.5"><ZoomIn size={11} /> {ar ? "عجلة للتكبير" : "Scroll to zoom"}</span>
+        <span className="flex items-center gap-1.5"><ZoomIn size={11} /> {ar ? "عجلة أو أزرار للتكبير" : "Scroll / buttons to zoom"}</span>
       </div>
     </div>
   );

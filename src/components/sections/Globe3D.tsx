@@ -12,7 +12,7 @@ import { OPERATIONAL_CITIES } from "@/lib/earth-data";
    Slow auto-rotation, drag to spin, wheel to zoom.
    ================================================================== */
 
-const R = 5;
+const R = 6.5; // large radius so the globe fills the whole screen
 
 /* Resolve the correct public path for the Earth texture, accounting for
    the gh-pages base path (/legacy-keepers) vs local dev (/). */
@@ -38,7 +38,8 @@ export default function Globe3D({ className = "" }: { className?: string }) {
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
-    camera.position.set(0, 0, 14);
+    // camera very close so the huge globe dominates the full screen
+    camera.position.set(0, 0, 9);
     camera.lookAt(0, 0, 0);
 
     const globe = new THREE.Group();
@@ -109,7 +110,8 @@ export default function Globe3D({ className = "" }: { className?: string }) {
     dir.position.set(8, 6, 8);
     scene.add(dir);
 
-    let dragging = false, px = 0, py = 0, targetRotY = 0, targetRotX = 0, zoom = 14;
+    let dragging = false, px = 0, py = 0, targetRotY = 0, targetRotX = 0, zoom = 9;
+    const MIN_Z = 6.2, MAX_Z = 14;
     const onDown = (e: PointerEvent) => { dragging = true; px = e.clientX; py = e.clientY; };
     const onMove = (e: PointerEvent) => {
       if (!dragging) return;
@@ -118,7 +120,13 @@ export default function Globe3D({ className = "" }: { className?: string }) {
       px = e.clientX; py = e.clientY;
     };
     const onUp = () => { dragging = false; };
-    const onWheel = (e: WheelEvent) => { e.preventDefault(); zoom = Math.max(8, Math.min(22, zoom + e.deltaY * 0.01)); };
+    const onWheel = (e: WheelEvent) => { e.preventDefault(); zoom = Math.max(MIN_Z, Math.min(MAX_Z, zoom + e.deltaY * 0.01)); };
+    // exposed zoom controls (buttons in the page can call these)
+    const api = {
+      zoomIn: () => { zoom = Math.max(MIN_Z, Math.min(MAX_Z, zoom - 0.8)); },
+      zoomOut: () => { zoom = Math.max(MIN_Z, Math.min(MAX_Z, zoom + 0.8)); },
+    };
+    (mount as any).__globeApi = api;
     const el = renderer.domElement;
     el.addEventListener("pointerdown", onDown);
     window.addEventListener("pointermove", onMove);
@@ -159,7 +167,7 @@ export default function Globe3D({ className = "" }: { className?: string }) {
     };
   }, []);
 
-  return <div ref={mountRef} className={className} style={{ width: "100%", height: "100%" }} />;
+  return <div ref={mountRef} data-globe className={className} style={{ width: "100%", height: "100%" }} />;
 }
 
 /* Simple procedural fallback world texture (used only if the bundled
