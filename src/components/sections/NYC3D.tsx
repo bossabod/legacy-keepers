@@ -3,12 +3,11 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 /* ==================================================================
-   NYC3D — a detailed procedural 3D model of New York City.
-   A dense, full-city reconstruction: Manhattan grid streets, five
-   borough areas with differing densities, Central Park green space,
-   the Hudson & East rivers, bridges, and a rich skyline with iconic
-   landmark towers. Monochrome premium aesthetic, slow auto-orbit,
-   drag to rotate, scroll / buttons to zoom.
+   NYC3D — a detailed procedural 3D model of New York City styled like
+   an Apple Maps "map view": soft beige landmass, blue water, green
+   parks, light-gray towers, white street grid. The city is STATIONARY
+   (no auto-orbit) — the user can drag to look around and scroll / use
+   the buttons to zoom.
    ================================================================== */
 
 interface Tower {
@@ -44,7 +43,19 @@ export default function NYC3D({ className = "" }: { className?: string }) {
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x05070c, 0.010);
+
+    /* ---- Apple Maps light palette ---- */
+    const BG = 0xd9e6ee;        // soft sky / water surround
+    const WATER = 0xa7cfe6;     // light blue water
+    const LAND = 0xece8da;      // warm beige landmass
+    const PARK = 0xb9e0a5;      // fresh green park
+    const STREET = 0xffffff;    // white streets
+    const BLDG_DARK = 0xc6bfae;
+    const BLDG_MID = 0xd1cbbd;
+    const BLDG_LIGHT = 0xddd7ca;
+
+    scene.background = new THREE.Color(BG);
+    scene.fog = new THREE.FogExp2(BG, 0.004);
 
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 300);
     camera.position.set(0, 26, 62);
@@ -57,68 +68,98 @@ export default function NYC3D({ className = "" }: { className?: string }) {
     const towers: Tower[] = [];
 
     /* ---------------- GEOMETRY PLAN ----------------
-       Manhattan runs along the X axis (west-east across screen width),
-       centered at origin. Hudson river on -X side, East river on +X.
-       Z = north-south (Central Park around z=+18).
+       Manhattan runs along the X axis (west-east across the screen),
+       centered near the origin. Hudson river on the -X side, East river
+       on the +X side. Z = north-south (Central Park around z=+18).
     */
 
-    // ---- base terrain (dark) ----
-    const groundMat = new THREE.MeshPhongMaterial({ color: 0x0b0e13 });
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(140, 90), groundMat);
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.05;
-    city.add(ground);
+    // ---- surrounding water (everything below / around the land) ----
+    const waterMat = new THREE.MeshPhongMaterial({
+      color: WATER, shininess: 60, specular: 0xffffff,
+    });
+    const ocean = new THREE.Mesh(new THREE.PlaneGeometry(140, 90), waterMat);
+    ocean.rotation.x = -Math.PI / 2;
+    ocean.position.y = -0.08;
+    city.add(ocean);
 
-    // ---- rivers (Hudson left, East right) ----
-    const riverMat = new THREE.MeshPhongMaterial({ color: 0x0e1c2c, shininess: 30, specular: 0x203040 });
-    const hudson = new THREE.Mesh(new THREE.PlaneGeometry(10, 90), riverMat);
+    // ---- landmass (warm beige island + boroughs) ----
+    const landMat = new THREE.MeshPhongMaterial({ color: LAND, shininess: 4 });
+    const land = new THREE.Mesh(new THREE.PlaneGeometry(100, 70), landMat);
+    land.rotation.x = -Math.PI / 2;
+    land.position.set(4, -0.04, 0);
+    city.add(land);
+
+    // ---- rivers (blue strips cutting through the land) ----
+    const riverMat = new THREE.MeshPhongMaterial({
+      color: WATER, shininess: 80, specular: 0xffffff,
+    });
+    const hudson = new THREE.Mesh(new THREE.PlaneGeometry(9, 70), riverMat);
     hudson.rotation.x = -Math.PI / 2;
-    hudson.position.set(-40, 0.01, 0);
+    hudson.position.set(-36, 0.0, 0);
     city.add(hudson);
-    const east = new THREE.Mesh(new THREE.PlaneGeometry(12, 90), riverMat);
+    const east = new THREE.Mesh(new THREE.PlaneGeometry(9, 70), riverMat);
     east.rotation.x = -Math.PI / 2;
-    east.position.set(46, 0.01, 0);
+    east.position.set(42, 0.0, 0);
     city.add(east);
 
-    // ---- Central Park (green island within Manhattan) ----
-    const parkMat = new THREE.MeshPhongMaterial({ color: 0x152c1c, shininess: 8 });
-    const park = new THREE.Mesh(new THREE.BoxGeometry(6, 0.2, 22), parkMat);
-    park.position.set(-6, 0.1, 18);
+    // ---- Central Park (green space within Manhattan) ----
+    const parkMat = new THREE.MeshPhongMaterial({ color: PARK, shininess: 6 });
+    const park = new THREE.Mesh(new THREE.BoxGeometry(6, 0.25, 22), parkMat);
+    park.position.set(-6, 0.12, 18);
     city.add(park);
 
-    // ---- street grid (dense, Manhattan blocks) ----
-    const streetMat = new THREE.LineBasicMaterial({ color: 0x151b22, transparent: true, opacity: 0.7 });
+    // smaller green spaces (square / parklets)
+    const pocketMat = new THREE.MeshPhongMaterial({ color: PARK, shininess: 6 });
+    const pockets: [number, number, number, number][] = [
+      [-4, 8, 2.4, 2.4], [2, 10, 1.8, 1.8], [-12, 4, 1.6, 1.6],
+      [10, 6, 1.4, 1.4], [-20, -6, 2, 1.6], [16, -2, 1.5, 1.5],
+      [-2, -16, 2.2, 2.2], [6, -14, 1.4, 1.4],
+    ];
+    for (const [px, pz, pw, pd] of pockets) {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(pw, 0.14, pd), pocketMat);
+      p.position.set(px, 0.08, pz);
+      city.add(p);
+    }
+
+    // ---- street grid (dense Manhattan blocks) ----
+    const streetMat = new THREE.LineBasicMaterial({ color: STREET, transparent: true, opacity: 0.85 });
     // Avenues (vertical, along Z) every ~2 units
-    for (let x = -30; x <= 30; x += 2) {
-      const pts = [new THREE.Vector3(x, 0.02, -30), new THREE.Vector3(x, 0.02, 32)];
+    for (let x = -32; x <= 34; x += 2) {
+      const pts = [new THREE.Vector3(x, 0.02, -33), new THREE.Vector3(x, 0.02, 33)];
       const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), streetMat);
       city.add(l);
     }
     // Streets (horizontal, along X) every ~2 units
-    for (let z = -30; z <= 32; z += 2) {
-      const pts = [new THREE.Vector3(-34, 0.02, z), new THREE.Vector3(34, 0.02, z)];
+    for (let z = -32; z <= 32; z += 2) {
+      const pts = [new THREE.Vector3(-40, 0.02, z), new THREE.Vector3(46, 0.02, z)];
       const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), streetMat);
+      city.add(l);
+    }
+    // Major avenues (wider, slightly warm tint)
+    const avenueMat = new THREE.LineBasicMaterial({ color: 0xf4e9cd, transparent: true, opacity: 0.6 });
+    for (const x of [-30, -22, -14, -6, 2, 10, 18, 26]) {
+      const pts = [new THREE.Vector3(x, 0.03, -33), new THREE.Vector3(x, 0.03, 33)];
+      const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), avenueMat);
       city.add(l);
     }
 
     /* ---------------- BOROUGHS & BUILDINGS ---------------- */
-    // Define several density zones across the city
-    // (x, z, radius, heightBase, density, towerScale)
+    // Several density zones across the city
+    // (x, z, radiusX, radiusZ, heightBase, density)
     const zones = [
-      { x: 0, z: 0, rx: 16, rz: 14, hBase: 16, dens: 1.0, label: "Midtown / Downtown" },   // Manhattan core
-      { x: -14, z: -10, rx: 10, rz: 10, hBase: 8, dens: 0.7, label: "West side / Chelsea" },
-      { x: 14, z: -8, rx: 10, rz: 10, hBase: 9, dens: 0.7, label: "East village" },
-      { x: -2, z: 26, rx: 10, rz: 9, hBase: 5, dens: 0.5, label: "Harlem" },               // north
-      { x: -20, z: 18, rx: 8, rz: 8, hBase: 6, dens: 0.5, label: "Upper west" },
-      { x: 20, z: 16, rx: 8, rz: 8, hBase: 6, dens: 0.5, label: "Upper east" },
-      { x: -28, z: -20, rx: 12, rz: 12, hBase: 5, dens: 0.45, label: "Jersey side (west)" },
-      { x: 30, z: -20, rx: 12, rz: 12, hBase: 5, dens: 0.45, label: "Brooklyn (east)" },
-      { x: 0, z: -28, rx: 14, rz: 10, hBase: 6, dens: 0.5, label: "Financial / south" },
+      { x: 0, z: 0, rx: 16, rz: 14, hBase: 16, dens: 1.0 },   // Midtown / Downtown
+      { x: -14, z: -10, rx: 10, rz: 10, hBase: 8, dens: 0.7 }, // Chelsea / West
+      { x: 14, z: -8, rx: 10, rz: 10, hBase: 9, dens: 0.7 },   // East Village
+      { x: -2, z: 26, rx: 10, rz: 9, hBase: 5, dens: 0.5 },    // Harlem (north)
+      { x: -20, z: 18, rx: 8, rz: 8, hBase: 6, dens: 0.5 },    // Upper West
+      { x: 20, z: 16, rx: 8, rz: 8, hBase: 6, dens: 0.5 },     // Upper East
+      { x: -28, z: -20, rx: 12, rz: 12, hBase: 5, dens: 0.45 },// Jersey side (west)
+      { x: 30, z: -20, rx: 12, rz: 12, hBase: 5, dens: 0.45 }, // Brooklyn (east)
+      { x: 0, z: -28, rx: 14, rz: 10, hBase: 6, dens: 0.5 },   // Financial / south
     ];
 
-    const totalTowers = 1100;
+    const totalTowers = 1300;
     for (let i = 0; i < totalTowers; i++) {
-      // pick a zone weighted by density
       let zz = zones[0];
       let pick = rnd();
       let acc = 0;
@@ -127,7 +168,6 @@ export default function NYC3D({ className = "" }: { className?: string }) {
         acc += z.dens / totalDens;
         if (pick <= acc) { zz = z; break; }
       }
-      // gaussian-ish offset within zone
       const gx = (rnd() + rnd() - 1) * zz.rx;
       const gz = (rnd() + rnd() - 1) * zz.rz;
       const x = zz.x + gx;
@@ -151,14 +191,13 @@ export default function NYC3D({ className = "" }: { className?: string }) {
     ];
     towers.push(...landmarks);
 
-    // materials
-    const bodyDark = new THREE.MeshPhongMaterial({ color: 0x20262e, shininess: 20, specular: 0x1c2025 });
-    const bodyMid = new THREE.MeshPhongMaterial({ color: 0x29313b, shininess: 22, specular: 0x262c34 });
-    const bodyLight = new THREE.MeshPhongMaterial({ color: 0x36404c, shininess: 24, specular: 0x303844 });
-    const spireMat = new THREE.MeshPhongMaterial({ color: 0x9aa5b3, shininess: 40 });
+    // materials — Apple-Maps light gray towers
+    const bodyDark = new THREE.MeshPhongMaterial({ color: BLDG_DARK, shininess: 20, specular: 0xffffff });
+    const bodyMid = new THREE.MeshPhongMaterial({ color: BLDG_MID, shininess: 24, specular: 0xffffff });
+    const bodyLight = new THREE.MeshPhongMaterial({ color: BLDG_LIGHT, shininess: 28, specular: 0xffffff });
+    const spireMat = new THREE.MeshPhongMaterial({ color: 0x8f8a80, shininess: 40 });
 
     // batch building via InstancedMesh for performance
-    // group towers into instanced meshes by material tier
     function buildGroup(meshTowers: Tower[], mat: THREE.Material) {
       const geo = new THREE.BoxGeometry(1, 1, 1);
       const inst = new THREE.InstancedMesh(geo, mat, meshTowers.length);
@@ -186,7 +225,7 @@ export default function NYC3D({ className = "" }: { className?: string }) {
     city.add(buildGroup(mid, bodyMid));
     city.add(buildGroup(light, bodyLight));
 
-    // landmark towers individually (with tiers + spires + glow)
+    // landmark towers individually (with tiers + spires)
     for (const t of landmarkArr) {
       const g = new THREE.Group();
       const body = new THREE.Mesh(new THREE.BoxGeometry(t.w, t.h, t.d), bodyLight);
@@ -199,13 +238,9 @@ export default function NYC3D({ className = "" }: { className?: string }) {
         tier.position.y = t.h - 2.2 * (k - 0.5);
         g.add(tier);
       }
-      const glowMat = new THREE.MeshBasicMaterial({ color: 0xdfe8f2, transparent: true, opacity: 0.07 });
-      const band = new THREE.Mesh(new THREE.BoxGeometry(t.w * 1.02, t.h * 0.5, t.d * 1.02), glowMat);
-      band.position.y = t.h * 0.35;
-      g.add(band);
       if (t.spire) {
-        const spire = new THREE.Mesh(new THREE.ConeGeometry(0.2, 2.6, 8), spireMat);
-        spire.position.y = t.h + 1.3;
+        const spire = new THREE.Mesh(new THREE.ConeGeometry(0.22, 2.8, 8), spireMat);
+        spire.position.y = t.h + 1.4;
         g.add(spire);
       }
       g.position.set(t.x, 0, t.z);
@@ -213,7 +248,7 @@ export default function NYC3D({ className = "" }: { className?: string }) {
     }
 
     /* ---------------- BRIDGES ---------------- */
-    const bridgeMat = new THREE.MeshPhongMaterial({ color: 0x2a313b, shininess: 16 });
+    const bridgeMat = new THREE.MeshPhongMaterial({ color: 0xbfb9aa, shininess: 16 });
     function addBridge(x1: number, z1: number, x2: number, z2: number, width = 1.2) {
       const dx = x2 - x1, dz = z2 - z1;
       const len = Math.hypot(dx, dz);
@@ -224,7 +259,7 @@ export default function NYC3D({ className = "" }: { className?: string }) {
       bridge.rotation.y = -angle;
       city.add(bridge);
       // suspension cables
-      const cableMat = new THREE.LineBasicMaterial({ color: 0x9aa5b3, transparent: true, opacity: 0.5 });
+      const cableMat = new THREE.LineBasicMaterial({ color: 0x8f8a80, transparent: true, opacity: 0.5 });
       const cablePts: THREE.Vector3[] = [];
       const steps = 30;
       for (let i = 0; i <= steps; i++) {
@@ -235,23 +270,18 @@ export default function NYC3D({ className = "" }: { className?: string }) {
       const cable = new THREE.Line(new THREE.BufferGeometry().setFromPoints(cablePts), cableMat);
       city.add(cable);
     }
-    // Brooklyn Bridge (downtown to Brooklyn)
-    addBridge(14, -6, 32, -20);
-    // Manhattan Bridge
-    addBridge(12, -10, 30, -26);
-    // Williamsburg
-    addBridge(16, -2, 32, -14);
-    // Queensboro (upper east to queens)
-    addBridge(20, 12, 40, 22);
-    // George Washington Bridge (far west to Jersey)
-    addBridge(-16, 28, -40, 30);
+    addBridge(14, -6, 32, -20);   // Brooklyn Bridge
+    addBridge(12, -10, 30, -26);  // Manhattan Bridge
+    addBridge(16, -2, 32, -14);   // Williamsburg
+    addBridge(20, 12, 40, 22);    // Queensboro (upper east)
+    addBridge(-16, 28, -40, 30);  // George Washington Bridge (west)
 
-    /* ---------------- window glow points ---------------- */
-    const dotMat = new THREE.PointsMaterial({ color: 0xdfe8f2, size: 0.07, transparent: true, opacity: 0.5 });
-    const dotPos = new Float32Array(900 * 3);
-    for (let i = 0; i < 900; i++) {
+    /* ---------------- window dots (subtle, warm light) ---------------- */
+    const dotMat = new THREE.PointsMaterial({ color: 0xfdf7e0, size: 0.08, transparent: true, opacity: 0.35 });
+    const dotPos = new Float32Array(1200 * 3);
+    for (let i = 0; i < 1200; i++) {
       dotPos[i * 3] = (rnd() - 0.5) * 70;
-      dotPos[i * 3 + 1] = rnd() * 36;
+      dotPos[i * 3 + 1] = rnd() * 38;
       dotPos[i * 3 + 2] = (rnd() - 0.5) * 60;
     }
     const dotGeo = new THREE.BufferGeometry();
@@ -259,19 +289,17 @@ export default function NYC3D({ className = "" }: { className?: string }) {
     const dots = new THREE.Points(dotGeo, dotMat);
     city.add(dots);
 
-    // ---- lights ----
-    scene.add(new THREE.AmbientLight(0x445, 1.1));
-    const dir = new THREE.DirectionalLight(0xffffff, 1.3);
-    dir.position.set(30, 45, 20);
-    scene.add(dir);
-    const rim = new THREE.DirectionalLight(0x8fa0b8, 0.6);
-    rim.position.set(-25, 10, -30);
-    scene.add(rim);
-    const low = new THREE.PointLight(0xdfe8f2, 0.5, 100);
-    low.position.set(0, 2, 0);
-    scene.add(low);
+    // ---- lights (bright, soft — daylight look) ----
+    scene.add(new THREE.AmbientLight(0xffffff, 0.95));
+    const sun = new THREE.DirectionalLight(0xfff7e8, 1.35);
+    sun.position.set(35, 55, 25);
+    scene.add(sun);
+    const fill = new THREE.DirectionalLight(0xe8f1f7, 0.55);
+    fill.position.set(-30, 12, -25);
+    scene.add(fill);
+    scene.add(new THREE.PointLight(0xffffff, 0.35, 120));
 
-    // ---- interaction ----
+    // ---- interaction (drag to look around, scroll / buttons to zoom) ----
     let dragging = false, px = 0, py = 0;
     let targetRotY = 0.5, targetRotX = 0.35;
     let zoom = 62;
@@ -297,15 +325,15 @@ export default function NYC3D({ className = "" }: { className?: string }) {
 
     let raf = 0;
     const tick = () => {
-      if (!dragging) targetRotY += 0.0005;
-      city.rotation.y += (targetRotY - city.rotation.y) * 0.05;
-      city.rotation.x += (targetRotX - city.rotation.x) * 0.05;
+      // STATIONARY: the city does NOT auto-rotate. It only eases to the
+      // last drag position (or the initial framing) and holds still.
+      city.rotation.y += (targetRotY - city.rotation.y) * 0.06;
+      city.rotation.x += (targetRotX - city.rotation.x) * 0.06;
       const target = new THREE.Vector3(0, 8, 0);
       const dir2 = camera.position.clone().sub(target).normalize();
       const curDist = camera.position.distanceTo(target);
       camera.position.copy(target).addScaledVector(dir2, curDist + (zoom - curDist) * 0.06);
       camera.lookAt(target);
-      dots.rotation.y += 0.0003;
       renderer.render(scene, camera);
       raf = requestAnimationFrame(tick);
     };
