@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { MapPin, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
+import { MapPin, RotateCw, ZoomIn, ZoomOut, Satellite, Map as MapIcon } from "lucide-react";
+import type { MapStyle } from "@/components/sections/NetworkMap";
 import { useApp } from "@/lib/store";
 import { play } from "@/lib/sound";
 
@@ -20,6 +21,12 @@ const NetworkMap = dynamic(() => import("@/components/sections/NetworkMap"), {
 export default function NetworkSection() {
   const { lang } = useApp();
   const ar = lang === "ar";
+  const [mapStyle, setMapStyle] = useState<MapStyle>("standard");
+  const setStyle = (s: MapStyle) => {
+    setMapStyle(s);
+    const el = document.querySelector('[data-globe]');
+    (el as any)?.__globeApi?.setStyle?.(s);
+  };
 
   return (
     <div className="relative w-full overflow-hidden" style={{ height: "calc(100vh - 66px)", background: "#0b0e12" }}>
@@ -37,13 +44,35 @@ export default function NetworkSection() {
         {/* status chip */}
         <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-white/10 bg-[#05080d]/80 px-4 py-2.5 backdrop-blur-md">
           <MapPin size={14} className="text-[#5d96b8]" />
-          <span className="text-[0.74rem] text-[#c3c9d3]">{ar ? "خريطة حية · OpenStreetMap" : "Live Map · OpenStreetMap"}</span>
+          <span className="text-[0.74rem] text-[#c3c9d3]">
+            {mapStyle === "satellite"
+              ? (ar ? "عرض الأقمار الصناعية · Esri" : "Satellite View · Esri")
+              : (ar ? "خريطة حية · OpenStreetMap" : "Live Map · OpenStreetMap")}
+          </span>
         </div>
       </div>
 
       {/* the flat 2D map */}
       <div className="absolute inset-0 z-0">
         <NetworkMap />
+      </div>
+
+      {/* style toggle — Standard ↔ Satellite */}
+      <div className="pointer-events-auto absolute left-4 top-4 z-20 flex items-center gap-1 rounded-xl border border-white/10 bg-[#05080d]/85 p-1 backdrop-blur-md shadow-sm">
+        <button
+          onClick={() => setStyle("standard")}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[0.68rem] transition ${mapStyle === "standard" ? "bg-white/15 text-white" : "text-[#8a95a3] hover:text-white"}`}
+        >
+          <MapIcon size={13} />
+          {ar ? "قياسي" : "Standard"}
+        </button>
+        <button
+          onClick={() => setStyle("satellite")}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[0.68rem] transition ${mapStyle === "satellite" ? "bg-white/15 text-white" : "text-[#8a95a3] hover:text-white"}`}
+        >
+          <Satellite size={13} />
+          {ar ? "قمر صناعي" : "Satellite"}
+        </button>
       </div>
 
       {/* zoom controls */}
@@ -71,6 +100,7 @@ export default function NetworkSection() {
       {/* leaflet tiles dark filter for visual consistency */}
       <style>{`
         .leaflet-tile { filter: brightness(0.85) contrast(1.05) saturate(0.6); }
+        [data-globe].is-satellite .leaflet-tile { filter: none; }
         .leaflet-container { background: #0b0e12; font: inherit; }
         .leaflet-control-zoom a {
           background: #0a0d12; color: #c3c9d3; border: 1px solid #1f2831;
