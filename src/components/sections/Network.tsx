@@ -12,9 +12,9 @@ const NetworkMap = dynamic(() => import("@/components/sections/NetworkMap"), {
 });
 
 /* ==================================================================
-   Network — New York City interactive map (MapLibre GL).
-   Satellite (Esri) is the base mode. "3D View" toggles to a tilted
-   oblique 3D perspective with real-height buildings.
+   Network — New York City interactive dark monochrome vector map.
+   "3D View" toggles to a tilted oblique 3D perspective with
+   real-height dark buildings + terrain.
    ================================================================== */
 
 export default function NetworkSection() {
@@ -29,7 +29,7 @@ export default function NetworkSection() {
   };
 
   return (
-    <div className="relative w-full overflow-hidden" style={{ height: "calc(100vh - 66px)", background: "#0b0e12" }}>
+    <div className="relative w-full overflow-hidden" style={{ height: "calc(100vh - 66px)", background: "#050505" }}>
       {/* header */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between p-5">
         <div>
@@ -37,26 +37,24 @@ export default function NetworkSection() {
             {ar ? "محور العمليات · نيويورك" : "Operations Hub · New York"}
           </div>
           <div className="mt-1 text-[0.8rem] tracking-[0.12em] text-[#eaeef5]" style={{ fontFamily: "var(--font-luxury)" }}>
-            {ar ? "خريطة الأقمار الصناعية · مدينة نيويورك" : "Satellite Map · New York City"}
+            {ar ? "خريطة ليلية أحادية اللون" : "Monochrome Night Map"}
           </div>
         </div>
 
         {/* status chip */}
         <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-white/10 bg-[#05080d]/80 px-4 py-2.5 backdrop-blur-md">
-          <MapPin size={14} className="text-[#5d96b8]" />
+          <MapPin size={14} className="text-[#9aa3af]" />
           <span className="text-[0.74rem] text-[#c3c9d3]">
             {mode3D
               ? (ar ? "3D · مبانٍ وتضاريس" : "3D · Buildings + Terrain")
-              : (ar ? "قمر صناعي · Esri" : "Satellite · Esri")}
+              : (ar ? "ليلي · متجهي أحادي" : "Night · Dark Vector")}
           </span>
         </div>
       </div>
 
-      {/* the interactive map (grayscale + darkened via CSS only — data/source unchanged) */}
+      {/* the interactive dark vector map */}
       <div className="absolute inset-0 z-0">
-        <div className="h-full w-full night-map-filter">
-          <NetworkMap />
-        </div>
+        <NetworkMap />
       </div>
 
       {/* 3D View toggle */}
@@ -65,11 +63,11 @@ export default function NetworkSection() {
           onClick={() => set3D(!mode3D)}
           className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-[0.72rem] backdrop-blur-md shadow-sm transition ${
             mode3D
-              ? "border-sky-300/60 bg-sky-400/20 text-sky-100"
+              ? "border-white/40 bg-white/15 text-white"
               : "border-white/10 bg-[#05080d]/85 text-[#c3c9d3] hover:border-white/30 hover:text-white"
           }`}
         >
-          <Box size={15} className={mode3D ? "text-sky-200" : "text-[#8a95a3]"} />
+          <Box size={15} className={mode3D ? "text-white" : "text-[#8a95a3]"} />
           {mode3D ? (ar ? "إيقاف 3D" : "Exit 3D") : (ar ? "عرض ثلاثي الأبعاد" : "3D View")}
         </button>
       </div>
@@ -95,17 +93,6 @@ export default function NetworkSection() {
         <span className="flex items-center gap-1.5"><RotateCw size={11} /> {ar ? "اسحب للتحريك · Ctrl+سحب للتدوير" : "Drag to pan · Ctrl+drag to rotate"}</span>
         <span className="flex items-center gap-1.5"><ZoomIn size={11} /> {ar ? "عجلة أو أزرار للتكبير" : "Scroll / buttons to zoom"}</span>
       </div>
-
-      {/* CSS-only night darkening — does NOT change the map source/library */}
-      <style>{`
-        .night-map-filter {
-          filter: grayscale(0.95) brightness(0.55) contrast(1.12) saturate(0.6);
-        }
-        .night-map-filter .maplibregl-canvas,
-        .night-map-filter canvas {
-          background: #06070a;
-        }
-      `}</style>
     </div>
   );
 }
