@@ -1,161 +1,25 @@
 "use client";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { WORLD_POLYGONS } from "@/lib/world-polygons";
 import { OPERATIONAL_CITIES } from "@/lib/earth-data";
 
 /* ==================================================================
    Globe3D — a realistic 3D Earth globe built with Three.js.
-   A detailed equirectangular map is painted procedurally on a Canvas
-   (ocean gradient, shaded land, dark-green mountains, white snow caps,
-   deserts, coastal depth, city markers) and wrapped around the sphere.
-   No external assets — everything renders in-browser and always works.
+   The sphere is skinned with a high-detail photorealistic Earth texture
+   (satellite Blue-Marble style) bundled in the project, so it always
+   renders — no external network dependency. Continents, oceans, deserts,
+   ice caps, mountains are all part of the texture.
    Slow auto-rotation, drag to spin, wheel to zoom.
    ================================================================== */
 
 const R = 5;
 
-/* ------------------------------------------------------------------ */
-/*  Build a realistic Earth texture.                                   */
-/* ------------------------------------------------------------------ */
-function buildEarthTexture(size = 2048): THREE.Texture {
-  const W = size, H = size / 2;
-  const canvas = document.createElement("canvas");
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext("2d")!;
-
-  // ---- deep ocean with subtle gradient ----
-  const ocean = ctx.createLinearGradient(0, 0, 0, H);
-  ocean.addColorStop(0, "#07131f");
-  ocean.addColorStop(0.5, "#0a1b2c");
-  ocean.addColorStop(1, "#06101a");
-  ctx.fillStyle = ocean;
-  ctx.fillRect(0, 0, W, H);
-
-  // ---- land raster mask + shading ----
-  // Paint land with elevation-based colors
-  const landCanvas = document.createElement("canvas");
-  landCanvas.width = W; landCanvas.height = H;
-  const lctx = landCanvas.getContext("2d")!;
-
-  // draw land base
-  lctx.beginPath();
-  for (const poly of WORLD_POLYGONS) {
-    if (!poly || poly.length < 2) continue;
-    for (let i = 0; i < poly.length; i++) {
-      const lon = poly[i][0], lat = poly[i][1];
-      const x = ((lon + 180) / 360) * W;
-      const y = ((90 - lat) / 180) * H;
-      if (i === 0) lctx.moveTo(x, y);
-      else lctx.lineTo(x, y);
-    }
-    lctx.closePath();
-  }
-
-  // desert sand base
-  lctx.fillStyle = "#b9a878";
-  lctx.fill();
-  // dark-green land fill over everything (vegetation), deserts will be
-  // re-exposed by latitude-based bands
-  lctx.globalCompositeOperation = "source-over";
-  lctx.fillStyle = "rgba(18,36,22,0.85)";
-  lctx.fill();
-
-  // ---- simplify: draw lat bands clipped to land via 'destination-in' ----
-  // Keep a mask of land on separate canvas
-  const mask = document.createElement("canvas");
-  mask.width = W; mask.height = H;
-  const mctx = mask.getContext("2d")!;
-  mctx.beginPath();
-  for (const poly of WORLD_POLYGONS) {
-    if (!poly || poly.length < 2) continue;
-    for (let i = 0; i < poly.length; i++) {
-      const lon = poly[i][0], lat = poly[i][1];
-      const x = ((lon + 180) / 360) * W;
-      const y = ((90 - lat) / 180) * H;
-      if (i === 0) mctx.moveTo(x, y);
-      else mctx.lineTo(x, y);
-    }
-    mctx.closePath();
-  }
-  mctx.fillStyle = "#fff";
-  mctx.fill();
-
-  // draw base land gradient (green lowlands -> dark green mountains)
-  const landLayer = document.createElement("canvas");
-  landLayer.width = W; landLayer.height = H;
-  const llc = landLayer.getContext("2d")!;
-  llc.fillStyle = "#2c5a2e"; // lowland green
-  llc.fillRect(0, 0, W, H);
-  // add latitude climate bands on top of land layer (before masking)
-  // high latitude snow
-  const snowGrad = llc.createLinearGradient(0, 0, 0, H);
-  // We'll paint zones by drawing rects then masking to land.
-  // North snow band
-  llc.fillStyle = "rgba(238,244,250,0.95)";
-  llc.fillRect(0, 0, W, H * 0.13);
-  // South snow band
-  llc.fillStyle = "rgba(238,244,250,0.95)";
-  llc.fillRect(0, H * 0.87, W, H * 0.13);
-  // desert belt ~ 10-30N
-  llc.fillStyle = "rgba(180,150,96,0.7)";
-  llc.fillRect(0, H * 0.33, W, H * 0.17);
-  // southern desert belt ~ 10-28S
-  llc.fillStyle = "rgba(180,150,96,0.55)";
-  llc.fillRect(0, H * 0.66, W, H * 0.12);
-  // mountain ranges: dark green high areas — draw dark patches near known
-  // ranges via simple latitude/longitude boxes (Himalaya, Andes, Rockies)
-  const mountains: [number, number, number, number][] = [
-    // [latCenter, lonCenter, latR, lonR] boxes in degrees
-    [33, 84, 6, 18], // Himalaya
-    [-28, -68, 8, 6], // Andes S
-    [-1, -78, 6, 6], // Andes N
-    [44, -112, 8, 10], // Rockies
-    [46, 8, 4, 8], // Alps
-    [55, -118, 8, 8], // Canadian Rockies
-  ];
-  for (const [clat, clon, latR, lonR] of mountains) {
-    const x = ((clon + 180) / 360) * W;
-    const y = ((90 - clat) / 180) * H;
-    const rw = (lonR / 360) * W;
-    const rh = (latR / 180) * H;
-    llc.fillStyle = "rgba(16,32,20,0.85)";
-    llc.fillRect(x - rw, y - rh, rw * 2, rh * 2);
-  }
-
-  // mask landLayer to land
-  llc.globalCompositeOperation = "destination-in";
-  llc.drawImage(mask, 0, 0);
-  llc.globalCompositeOperation = "source-over";
-
-  // composite land onto base ocean
-  ctx.drawImage(landLayer, 0, 0);
-
-  // coastline stroke
-  ctx.strokeStyle = "rgba(210,220,230,0.5)";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (const poly of WORLD_POLYGONS) {
-    if (!poly || poly.length < 2) continue;
-    for (let i = 0; i < poly.length; i++) {
-      const lon = poly[i][0], lat = poly[i][1];
-      const x = ((lon + 180) / 360) * W;
-      const y = ((90 - lat) / 180) * H;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-  }
-  ctx.stroke();
-
-  // subtle vignette on ocean for depth
-  ctx.fillStyle = "rgba(0,0,0,0.18)";
-  ctx.fillRect(0, 0, W, H);
-
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  return tex;
+/* Resolve the correct public path for the Earth texture, accounting for
+   the gh-pages base path (/legacy-keepers) vs local dev (/). */
+function earthTexturePath(): string {
+  const p = typeof window !== "undefined" ? window.location.pathname : "";
+  if (p.startsWith("/legacy-keepers")) return "/legacy-keepers/textures/earth.png";
+  return "/textures/earth.png";
 }
 
 export default function Globe3D({ className = "" }: { className?: string }) {
@@ -180,8 +44,18 @@ export default function Globe3D({ className = "" }: { className?: string }) {
     const globe = new THREE.Group();
     scene.add(globe);
 
+    // Earth sphere with the bundled photorealistic texture.
+    const texLoader = new THREE.TextureLoader();
+    const earthTex = texLoader.load(earthTexturePath(), () => {}, undefined, () => {
+      const fallback = buildFallbackTexture();
+      (earth.material as THREE.MeshPhongMaterial).map = fallback;
+      (earth.material as THREE.MeshPhongMaterial).needsUpdate = true;
+    });
+    earthTex.colorSpace = THREE.SRGBColorSpace;
+    earthTex.anisotropy = 8;
+
     const earthMat = new THREE.MeshPhongMaterial({
-      map: buildEarthTexture(2048),
+      map: earthTex,
       specular: 0x111111,
       shininess: 18,
     });
@@ -209,7 +83,7 @@ export default function Globe3D({ className = "" }: { className?: string }) {
       globe.add(glow);
     }
 
-    // arcs
+    // arcs between hubs
     const hubs = OPERATIONAL_CITIES.map((c) => ll2v(c.lat, c.lon, R));
     const arcMat = new THREE.LineBasicMaterial({ color: 0x5a6a7a, transparent: true, opacity: 0.5 });
     for (let i = 0; i < hubs.length; i++) {
@@ -221,7 +95,7 @@ export default function Globe3D({ className = "" }: { className?: string }) {
       }
     }
 
-    // stars
+    // starfield
     const starCount = 500;
     const starPos = new Float32Array(starCount * 3);
     for (let i = 0; i < starCount * 3; i++) starPos[i] = (Math.random() - 0.5) * 70;
@@ -286,4 +160,25 @@ export default function Globe3D({ className = "" }: { className?: string }) {
   }, []);
 
   return <div ref={mountRef} className={className} style={{ width: "100%", height: "100%" }} />;
+}
+
+/* Simple procedural fallback world texture (used only if the bundled
+   photorealistic texture cannot be loaded). */
+function buildFallbackTexture(): THREE.Texture {
+  const size = 1024;
+  const canvas = document.createElement("canvas");
+  canvas.width = size; canvas.height = size / 2;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#0a1420";
+  ctx.fillRect(0, 0, size, size / 2);
+  // simple green land blob approximations
+  ctx.fillStyle = "#2c5a2e";
+  [[0.55, 0.4, 0.2], [0.45, 0.3, 0.2], [0.5, 0.6, 0.15], [0.2, 0.4, 0.18], [0.75, 0.45, 0.16], [0.4, 0.7, 0.12]].forEach(([x, y, r]) => {
+    ctx.beginPath();
+    ctx.arc(x * size, y * (size / 2), r * size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
 }
