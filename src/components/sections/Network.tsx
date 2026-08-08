@@ -37,7 +37,7 @@ export default function NetworkSection() {
             {ar ? "محور العمليات · نيويورك" : "Operations Hub · New York"}
           </div>
           <div className="mt-1 text-[0.8rem] tracking-[0.12em] text-[#eaeef5]" style={{ fontFamily: "var(--font-luxury)" }}>
-            {ar ? "خريطة الأقمار الصناعية · مدينة نيويورك" : "Satellite Map · New York City"}
+            {ar ? "خريطة ليلية · أضواء المدينة" : "Night Map · City Lights"}
           </div>
         </div>
 
@@ -47,7 +47,7 @@ export default function NetworkSection() {
           <span className="text-[0.74rem] text-[#c3c9d3]">
             {mode3D
               ? (ar ? "3D · مبانٍ وتضاريس" : "3D · Buildings + Terrain")
-              : (ar ? "قمر صناعي · Esri" : "Satellite · Esri")}
+              : (ar ? "أضواء ليلية · OpenFreeMap" : "Night Lights · OpenFreeMap")}
           </span>
         </div>
       </div>
