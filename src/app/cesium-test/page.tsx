@@ -33,6 +33,23 @@ export default function CesiumTestPage() {
       : "/cesium/";
     (window as any).CESIUM_BASE_URL = baseUrl;
     log("1) CESIUM_BASE_URL = " + baseUrl);
+    log("location = " + window.location.href);
+
+    // ---- network probe: does this browser have external internet? ----
+    const probe = async (url: string, label: string) => {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 8000);
+        const res = await fetch(url, { method: "GET", signal: ctrl.signal, mode: "cors" });
+        clearTimeout(t);
+        log("NET " + label + " -> " + res.status + " " + res.statusText);
+      } catch (e: any) {
+        log("NET " + label + " -> FAILED " + (e?.message || e) + (e?.name ? " (" + e.name + ")" : ""));
+      }
+    };
+    probe("https://tile.openstreetmap.org/0/0/0.png", "openstreetmap-tile");
+    probe("https://a.basemaps.cartocdn.com/light_all/0/0/0.png", "carto-light-tile");
+    probe("https://assets.ion.cesium.com/", "cesium-ion-assets");
 
     (async () => {
       try {
