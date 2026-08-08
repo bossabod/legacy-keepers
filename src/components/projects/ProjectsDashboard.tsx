@@ -301,10 +301,12 @@ function ModuleHead({ label, id, right }: { label: string; id: string; right?: s
   );
 }
 
-/* Large self-drawing performance graph. */
+/* Large self-drawing performance graph with axes, grid, data points,
+   hover tooltip, and high/low markers. */
 function PerformanceGraph({ series, run }: { series: Point[]; run: boolean }) {
-  const W = 640, H = 220, PL = 8, PR = 8, PT = 16, PB = 24;
+  const W = 640, H = 230, PL = 30, PR = 12, PT = 18, PB = 26;
   const pathRef = useRef<SVGPathElement>(null);
+  const [hover, setHover] = useState<number | null>(null);
 
   const geo = useMemo(() => {
     if (!series.length) return null;
@@ -325,7 +327,10 @@ function PerformanceGraph({ series, run }: { series: Point[]; run: boolean }) {
       const mx = (x0 + x1) / 2;
       d += ` C ${mx.toFixed(1)} ${y0.toFixed(1)}, ${mx.toFixed(1)} ${y1.toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`;
     }
-    return { d, pts, lo, hi };
+    // nearest index for high/low markers
+    let hiI = 0, loI = 0;
+    vs.forEach((v, i) => { if (v > vs[hiI]) hiI = i; if (v < vs[loI]) loI = i; });
+    return { d, pts, lo, hi, hiI, loI, vs };
   }, [series]);
 
   useEffect(() => {
@@ -341,18 +346,30 @@ function PerformanceGraph({ series, run }: { series: Point[]; run: boolean }) {
   const draw = run && inView;
 
   const last = series.length ? series[series.length - 1].v : 0;
+  const first = series.length ? series[0].v : 0;
+  const pct = first ? ((last - first) / first) * 100 : 0;
+  const hiP = geo && series[geo.hiI] ? series[geo.hiI].v : 0;
+  const loP = geo && series[geo.loI] ? series[geo.loI].v : 0;
+
+  const onMove = (e: React.MouseEvent) => {
+    if (!geo || !series.length) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    const idx = Math.round(ratio * (series.length - 1));
+    setHover(idx);
+  };
+
+  const hoverPt = hover !== null && geo ? geo.pts[hover] : null;
 
   return (
     <div ref={ref} className="relative overflow-hidden border border-white/[0.06]" style={{ background: "#07080a" }}>
       {/* faint horizontal gridlines */}
-      {[0.2, 0.4, 0.6, 0.8].map((f) => (
-        <span
-          key={f}
-          className="pointer-events-none absolute inset-x-0 h-px"
-          style={{ top: `${PT + f * (H - PT - PB)}px`, background: "rgba(255,255,255,0.045)" }}
-        />
+      {[0.25, 0.5, 0.75].map((f) => (
+        <span key={f} className="pointer-events-none absolute inset-x-0 h-px"
+          style={{ top: `${PT + f * (H - PT - PB)}px`, background: "rgba(255,255,255,0.05)" }} />
       ))}
-      <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" preserveAspectRatio="none" aria-hidden="true">
+      <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" preserveAspectRatio="none" aria-hidden="true"
+        onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
         <defs>
           <linearGradient id="pgrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#dfe8f2" stopOpacity="0.22" />
@@ -361,22 +378,51 @@ function PerformanceGraph({ series, run }: { series: Point[]; run: boolean }) {
         </defs>
         {geo && (
           <>
+            {/* axis lines */}
+            <line x1={PL} x2={W - PR} y1={H - PB} y2={H - PB} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+            <line x1={PL} x2={PL} y1={PT} y2={H - PB} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
             <path d={`${geo.d} L ${geo.pts[geo.pts.length - 1][0].toFixed(1)} ${H - PB} L ${geo.pts[0][0].toFixed(1)} ${H - PB} Z`} fill="url(#pgrad)" opacity="0.5" />
-            <path
-              ref={pathRef}
-              d={geo.d}
-              fill="none"
-              stroke="#dfe8f2"
-              strokeWidth="1.3"
-              strokeLinecap="round"
+            <path ref={pathRef} d={geo.d} fill="none" stroke="#dfe8f2" strokeWidth="1.4" strokeLinecap="round"
               className="transition-[stroke-dashoffset] duration-[2200ms] ease-out"
-              style={{ strokeDashoffset: draw ? "0" : undefined, transitionDuration: draw ? "2200ms" : "0ms" }}
-            />
+              style={{ strokeDashoffset: draw ? "0" : undefined, transitionDuration: draw ? "2200ms" : "0ms" }} />
+            {/* data points */}
+            {geo.pts.map(([x, y], i) => (
+              <circle key={i} cx={x} cy={y} r={hover === i ? 3.4 : 2}
+                fill={hover === i ? "#ffffff" : "#dfe8f2"}
+                opacity={draw ? 1 : 0} style={{ transition: "r 0.2s, fill 0.2s" }} />
+            ))}
+            {/* high marker */}
+            <circle cx={geo.pts[geo.hiI][0]} cy={geo.pts[geo.hiI][1]} r="4" fill="none" stroke="#9aa5b3" strokeWidth="1" opacity="0.8" />
+            <text x={geo.pts[geo.hiI][0] + 6} y={geo.pts[geo.hiI][1] - 4} fill="#9aa5b3" fontSize="8" style={{ fontFamily: "var(--font-mono)" }}>▲ {fmt(hiP)}%</text>
+            {/* low marker */}
+            <circle cx={geo.pts[geo.loI][0]} cy={geo.pts[geo.loI][1]} r="4" fill="none" stroke="#7f8896" strokeWidth="1" opacity="0.8" />
+            <text x={geo.pts[geo.loI][0] + 6} y={geo.pts[geo.loI][1] + 12} fill="#7f8896" fontSize="8" style={{ fontFamily: "var(--font-mono)" }}>▼ {fmt(loP)}%</text>
+            {/* x labels (month-ish ticks) */}
+            {[0, 0.25, 0.5, 0.75, 1].map((f, i) => (
+              <text key={i} x={PL + f * (W - PL - PR)} y={H - 8} textAnchor={f === 0 ? "start" : f === 1 ? "end" : "middle"}
+                fill="rgba(150,160,175,0.5)" fontSize="7.5" style={{ fontFamily: "var(--font-mono)" }}>{Math.round(f * 12)}m</text>
+            ))}
+            {/* y labels */}
+            {[0, 0.5, 1].map((f, i) => (
+              <text key={i} x={PL - 6} y={PT + f * (H - PT - PB) + 3} textAnchor="end" fill="rgba(150,160,175,0.45)" fontSize="7.5" style={{ fontFamily: "var(--font-mono)" }}>
+                {Math.round(geo.lo + f * (geo.hi - geo.lo))}%
+              </text>
+            ))}
           </>
         )}
       </svg>
-      <div className="pointer-events-none absolute bottom-1 right-3 text-[0.52rem] tracking-[0.12em] text-[#6d7685]" style={{ fontFamily: MONO }}>
-        YTD · {fmt(last)}%
+
+      {/* hover tooltip */}
+      {hoverPt && hover !== null && (
+        <div className="pointer-events-none absolute z-10 -translate-x-1/2 rounded border border-white/15 bg-[#0a0c10] px-2.5 py-1.5 text-[0.6rem] text-[#eaeef5] shadow-xl" style={{ fontFamily: "var(--font-mono)", left: hoverPt[0], top: hoverPt[1] - 34 }}>
+          {series[hover] ? series[hover].v.toFixed(1) : "0"}%
+        </div>
+      )}
+
+      {/* footer summary */}
+      <div className="pointer-events-none absolute bottom-1 right-3 flex items-center gap-3 text-[0.5rem] tracking-[0.12em] text-[#6d7685]" style={{ fontFamily: MONO }}>
+        <span>YTD {fmt(last)}%</span>
+        <span className={pct >= 0 ? "text-[#7a9a7a]" : "text-[#9a6a6a]"}>{pct >= 0 ? "+" : ""}{pct.toFixed(1)}%</span>
       </div>
     </div>
   );
@@ -406,20 +452,28 @@ function IndexGauge({ value, run }: { value: number; run: boolean }) {
   const r = 40, c = 2 * Math.PI * r;
   return (
     <div className="flex items-center gap-4 p-3" style={{ background: "#07080a" }}>
-      <svg viewBox="0 0 100 100" className="h-[92px] w-[92px] shrink-0" aria-hidden="true">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="4" />
-        <motion.circle
-          cx="50" cy="50" r={r} fill="none" stroke="#dfe8f2" strokeWidth="4" strokeLinecap="round"
-          strokeDasharray={c}
-          initial={{ strokeDashoffset: c }}
-          animate={run ? { strokeDashoffset: c - (c * Math.min(value, 100)) / 100 } : {}}
-          transition={{ duration: 1.6, ease: "easeOut" }}
-          transform="rotate(-90 50 50)"
-        />
-      </svg>
+      <div className="relative h-[92px] w-[92px] shrink-0">
+        <svg viewBox="0 0 100 100" className="h-full w-full" aria-hidden="true">
+          <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="4" />
+          <motion.circle
+            cx="50" cy="50" r={r} fill="none" stroke="#dfe8f2" strokeWidth="4" strokeLinecap="round"
+            strokeDasharray={c}
+            initial={{ strokeDashoffset: c }}
+            animate={run ? { strokeDashoffset: c - (c * Math.min(value, 100)) / 100 } : {}}
+            transition={{ duration: 1.6, ease: "easeOut" }}
+            transform="rotate(-90 50 50)"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-[1.15rem] text-[#eef2f7]" style={{ fontFamily: MONO }}>{Math.round(value)}<span className="text-[0.6rem] text-[#7b8494]">%</span></span>
+        </div>
+      </div>
       <div>
-        <div className="text-[1.5rem] text-[#eef2f7]" style={{ fontFamily: MONO }}>{Math.round(value)}<span className="text-[0.7rem] text-[#7b8494]">%</span></div>
-        <div className="mt-1 text-[0.45rem] tracking-[0.1em] text-[#4a515e]" style={{ fontFamily: MONO }}>CORE / 0–100</div>
+        <div className="text-[0.5rem] tracking-[0.14em] text-[#4a515e]" style={{ fontFamily: MONO }}>CORE INDEX / 0–100</div>
+        <div className="mt-1.5 space-y-1 text-[0.5rem] text-[#565d68]" style={{ fontFamily: MONO }}>
+          <div className="flex justify-between gap-3"><span>TARGET</span><span className="text-[#8b95a5]">100</span></div>
+          <div className="flex justify-between gap-3"><span>CURRENT</span><span className="text-[#eef2f7]">{Math.round(value)}</span></div>
+        </div>
       </div>
     </div>
   );

@@ -8,14 +8,15 @@ import { play } from "@/lib/sound";
 import type { AppData, Investment } from "@/lib/types";
 
 export default function InvestmentsSection({ data }: { data: AppData }) {
-  const { currency } = useApp();
+  const { lang, currency } = useApp();
+  const ar = lang === "ar";
   const [scope, setScope] = useState<"personal" | "club">("personal");
-  const [filter, setFilter] = useState<string>("الكل");
+  const [filter, setFilter] = useState<string>("all");
   const [selected, setSelected] = useState<Investment | null>(null);
 
   const scoped = data.investments.filter((x) => x.scope === scope);
-  const types = ["الكل", ...Array.from(new Set(scoped.map((x) => x.type)))];
-  const list = filter === "الكل" ? scoped : scoped.filter((x) => x.type === filter);
+  const types = ["all", ...Array.from(new Set(scoped.map((x) => x.type)))];
+  const list = filter === "all" ? scoped : scoped.filter((x) => x.type === filter);
 
   const current = scoped.reduce((s, x) => s + x.valueChf, 0);
   const avgChange = scoped.length
@@ -23,11 +24,11 @@ export default function InvestmentsSection({ data }: { data: AppData }) {
     : 0;
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-6xl" dir={ar ? "rtl" : "ltr"}>
       <SectionHeading
-        eyebrow="الأعمال · الاستثمارات"
-        title="المحفظة"
-        desc="أصولك الشخصية وأصول النادي. القيم محسوبة بالفرنك وقابلة للتحويل الفوري."
+        eyebrow={ar ? "الأعمال · الاستثمارات" : "Business · Investments"}
+        title={ar ? "المحفظة" : "Portfolio"}
+        desc={ar ? "أصولك الشخصية وأصول النادي. القيم محسوبة بالفرنك وقابلة للتحويل الفوري." : "Your personal and club assets. Values are in Swiss francs and instantly convertible."}
       />
 
       {/* تبديل النطاق + ملخّص */}
@@ -36,21 +37,21 @@ export default function InvestmentsSection({ data }: { data: AppData }) {
           {(["personal", "club"] as const).map((s) => (
             <button
               key={s}
-              onClick={() => { setScope(s); setFilter("الكل"); play("click"); }}
+              onClick={() => { setScope(s); setFilter("all"); play("click"); }}
               className={`rounded-lg px-4 py-2 text-[0.78rem] transition ${
                 scope === s ? "bg-white/10 text-[#eaeef5]" : "text-[#565d68]"
               }`}
             >
-              {s === "personal" ? "شخصية" : "النادي"}
+              {s === "personal" ? (ar ? "شخصية" : "Personal") : (ar ? "النادي" : "Club")}
             </button>
           ))}
         </Panel>
 
         <div className="grid grid-cols-3 gap-3">
-          <Summary label="القيمة الحالية" value={formatMoney(current, currency)} />
-          <Summary label="عدد الأصول" value={`${scoped.length}`} />
+          <Summary label={ar ? "القيمة الحالية" : "Current Value"} value={formatMoney(current, currency)} />
+          <Summary label={ar ? "عدد الأصول" : "Assets"} value={`${scoped.length}`} />
           <Summary
-            label="متوسط التغيّر"
+            label={ar ? "متوسط التغيّر" : "Avg. Change"}
             value={`${avgChange > 0 ? "+" : ""}${avgChange.toFixed(1)}%`}
             up={avgChange >= 0}
           />
@@ -69,7 +70,7 @@ export default function InvestmentsSection({ data }: { data: AppData }) {
                 : "border-white/10 text-[#7f8896] hover:text-[#aeb6c2]"
             }`}
           >
-            {t}
+            {t === "all" ? (ar ? "الكل" : "All") : t}
           </button>
         ))}
       </div>
@@ -104,7 +105,7 @@ export default function InvestmentsSection({ data }: { data: AppData }) {
         })}
       </div>
 
-      <Modal open={!!selected} onClose={() => setSelected(null)} title="تفاصيل الأصل">
+      <Modal open={!!selected} onClose={() => setSelected(null)} title={ar ? "تفاصيل الأصل" : "Asset Details"}>
         {selected && (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -116,11 +117,11 @@ export default function InvestmentsSection({ data }: { data: AppData }) {
               <span className="text-lg font-semibold text-[#eaeef5]">{selected.title}</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Summary label="القيمة الحالية" value={formatMoney(selected.valueChf, currency)} />
-              <Summary label="التغيّر" value={`${selected.change > 0 ? "+" : ""}${selected.change}%`} up={selected.change >= 0} />
+              <Summary label={ar ? "القيمة الحالية" : "Current Value"} value={formatMoney(selected.valueChf, currency)} />
+              <Summary label={ar ? "التغيّر" : "Change"} value={`${selected.change > 0 ? "+" : ""}${selected.change}%`} up={selected.change >= 0} />
             </div>
             <div className="rounded-lg border border-white/5 bg-black/20 p-3 text-[0.78rem] text-[#aeb6c2]">
-              النوع: {selected.type} — الحالة: {selected.status} — النطاق: {selected.scope === "personal" ? "شخصي" : "النادي"}
+              {ar ? "النوع" : "Type"}: {selected.type} — {ar ? "الحالة" : "Status"}: {selected.status} — {ar ? "النطاق" : "Scope"}: {selected.scope === "personal" ? (ar ? "شخصي" : "Personal") : (ar ? "النادي" : "Club")}
             </div>
           </div>
         )}

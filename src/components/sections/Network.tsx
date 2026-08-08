@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MapPin, ChevronDown } from "lucide-react";
 import { generateStreets } from "@/lib/street-map";
+import { generateCityNodes, linkNodes } from "@/lib/city-nodes";
 
 /* ==================================================================
    Network — clean city-limited Leaflet map (original style).
@@ -66,8 +67,9 @@ function buildLocalBase(L: any, map: any, city: City) {
   const latSpan = neLat - swLat, lonSpan = neLon - swLon;
   const g = L.layerGroup();
 
-  // dark ground
-  L.rectangle([[swLat, swLon], [neLat, neLon]], {
+  // wide dark ground — covers a much larger area than the city bounds so
+  // no light/grey Leaflet background ever shows anywhere on the map
+  L.rectangle([[swLat - latSpan * 4, swLon - lonSpan * 4], [neLat + latSpan * 4, neLon + lonSpan * 4]], {
     color: "#0b0e13", weight: 0, fillColor: "#0b0e13", fillOpacity: 1, interactive: false,
   }).addTo(g);
 
@@ -111,11 +113,43 @@ function buildLocalBase(L: any, map: any, city: City) {
   return g;
 }
 
+/** White intelligence node overlay — georeferenced GIS markers.
+    Semi-transparent radial gradient (map stays visible underneath),
+    logical distribution, thin local connection mesh, and 1–2 hub nodes
+    (occasionally soft red). Anchored to lat/lon; scales with the map. */
+function buildNodeOverlay(L: any, map: any, city: City) {
+  const g = L.layerGroup();
+  const nodes = generateCityNodes({ id: city.id, center: city.center, bounds: city.bounds });
+
+  // connection mesh (thin lines under nodes)
+  for (const [a, b] of linkNodes(nodes)) {
+    L.polyline([[nodes[a].lat, nodes[a].lon], [nodes[b].lat, nodes[b].lon]], {
+      color: "#ffffff", weight: 0.7, opacity: 0.16, interactive: false,
+    }).addTo(g);
+  }
+
+  for (const n of nodes) {
+    const base = n.isHub ? 22 : 6 + n.weight * 3;
+    const color = n.hubRed ? "#b32020" : "#ffffff";
+    const icon = L.divIcon({
+      className: "", interactive: false,
+      html: `<div style="width:${base * 2}px;height:${base * 2}px;border-radius:50%;background:radial-gradient(circle, ${color}4d 0%, ${color}1f 42%, ${color}08 68%, ${color}00 82%);"></div>`,
+      iconSize: [base * 2, base * 2],
+      iconAnchor: [base, base],
+    });
+    L.marker([n.lat, n.lon], { icon, interactive: false }).addTo(g);
+  }
+
+  g.addTo(map);
+  return g;
+}
+
 export default function NetworkSection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const leafletRef = useRef<any>(null);
   const baseRef = useRef<any>(null);
+  const nodeRef = useRef<any>(null);
   const [currentCity, setCurrentCity] = useState<City>(CITIES[0]);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
@@ -146,12 +180,13 @@ export default function NetworkSection() {
         zoomDelta: 0.5,
         wheelPxPerZoomLevel: 120,
       });
-      // local in-browser base (guaranteed to render — map never blank)
+      // ensure full render after mount (fixes half-drawn map)
+      setTimeout(() => { map.invalidateSize(); }, 300);
+      // local in-browser base (fully self-contained — renders completely
+      // in every environment, no external tile dependency)
       baseRef.current = buildLocalBase(L, map, currentCity);
-      // real tiles on top when available (original look on the live site)
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
-        subdomains: "abcd", maxZoom: 20, crossOrigin: true,
-      }).addTo(map);
+      // white intelligence node overlay (GIS)
+      nodeRef.current = buildNodeOverlay(L, map, currentCity);
       L.control.zoom({ position: "bottomright" }).addTo(map);
       if (disposed) { map.remove(); return; }
       mapRef.current = map;
@@ -160,13 +195,15 @@ export default function NetworkSection() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // rebuild the local base when the city changes
+  // rebuild the local base + node overlay when the city changes
   useEffect(() => {
     const map = mapRef.current;
     const L = leafletRef.current;
     if (!map || !L) return;
     if (baseRef.current) map.removeLayer(baseRef.current);
     baseRef.current = buildLocalBase(L, map, currentCity);
+    if (nodeRef.current) map.removeLayer(nodeRef.current);
+    nodeRef.current = buildNodeOverlay(L, map, currentCity);
   }, [currentCity]);
 
   // cinematic fly transition between cities (original)
@@ -212,7 +249,11 @@ export default function NetworkSection() {
   }, []);
 
   return (
-    <div className="relative w-full overflow-hidden bg-[#0a0a0d]" style={{ height: "calc(100vh - 60px)" }}>
+    <div className="relative w-full overflow-hidden bg-[#0b0e13]" style={{ height: "calc(100vh - 60px)" }}>
+      <style>{`
+        .leaflet-container { background:#0b0e13 !important; }
+        .leaflet-pane, .leaflet-overlay-pane svg { z-index:0; }
+      `}</style>
       <div ref={containerRef} className="absolute inset-0" />
 
       {/* City Selector */}

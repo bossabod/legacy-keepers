@@ -103,10 +103,10 @@ export default function ProjectsSection({
             {tab === "digital" || tab === "physical" ? (
               <motion.div
                 key={tab}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, y: 14, filter: "brightness(0.6)" }}
+                animate={{ opacity: 1, y: 0, filter: "brightness(1)" }}
+                exit={{ opacity: 0, y: -10, filter: "brightness(0.4)" }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               >
                 <TrackBrowser
                   track={tab}
@@ -117,20 +117,20 @@ export default function ProjectsSection({
             ) : tab === "submit" ? (
               <motion.div
                 key="submit"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, y: 14, filter: "brightness(0.6)" }}
+                animate={{ opacity: 1, y: 0, filter: "brightness(1)" }}
+                exit={{ opacity: 0, y: -10, filter: "brightness(0.4)" }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               >
                 <SubmitProject />
               </motion.div>
             ) : (
               <motion.div
                 key="overview"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, y: 14, filter: "brightness(0.6)" }}
+                animate={{ opacity: 1, y: 0, filter: "brightness(1)" }}
+                exit={{ opacity: 0, y: -10, filter: "brightness(0.4)" }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               >
                 <ProjectsDashboard
                   data={_data}

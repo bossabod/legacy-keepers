@@ -120,3 +120,20 @@ export function generateCityNodes(city: CitySpec): IntelNode[] {
 
   return result;
 }
+
+/** Pair each node with ONE nearby node → small local communication mesh. */
+export function linkNodes(nodes: IntelNode[]): [number, number][] {
+  const links: [number, number][] = [];
+  const used = new Set<number>();
+  for (let i = 0; i < nodes.length; i++) {
+    if (used.has(i)) continue;
+    let best = -1, bestD = Infinity;
+    for (let j = 0; j < nodes.length; j++) {
+      if (j === i || used.has(j)) continue;
+      const d = Math.hypot(nodes[i].lat - nodes[j].lat, nodes[i].lon - nodes[j].lon);
+      if (d < bestD) { bestD = d; best = j; }
+    }
+    if (best >= 0) { links.push([i, best]); used.add(i); used.add(best); }
+  }
+  return links;
+}
