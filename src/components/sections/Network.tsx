@@ -1,9 +1,15 @@
 "use client";
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { MapPin, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
-import NetworkMap from "@/components/sections/NetworkMap";
 import { useApp } from "@/lib/store";
 import { play } from "@/lib/sound";
+
+// Leaflet touches `window` and must only load in the browser (not SSR).
+const NetworkMap = dynamic(() => import("@/components/sections/NetworkMap"), {
+  ssr: false,
+  loading: () => null,
+});
 
 /* ==================================================================
    Network — a flat 2D map of New York City (Leaflet + OSM tiles).
