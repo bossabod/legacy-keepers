@@ -37,7 +37,7 @@ export default function NetworkSection() {
             {ar ? "محور العمليات · نيويورك" : "Operations Hub · New York"}
           </div>
           <div className="mt-1 text-[0.8rem] tracking-[0.12em] text-[#eaeef5]" style={{ fontFamily: "var(--font-luxury)" }}>
-            {ar ? "خريطة ليلية · أضواء المدينة" : "Night Map · City Lights"}
+            {ar ? "خريطة الأقمار الصناعية · مدينة نيويورك" : "Satellite Map · New York City"}
           </div>
         </div>
 
@@ -47,14 +47,16 @@ export default function NetworkSection() {
           <span className="text-[0.74rem] text-[#c3c9d3]">
             {mode3D
               ? (ar ? "3D · مبانٍ وتضاريس" : "3D · Buildings + Terrain")
-              : (ar ? "أضواء ليلية · OpenFreeMap" : "Night Lights · OpenFreeMap")}
+              : (ar ? "قمر صناعي · Esri" : "Satellite · Esri")}
           </span>
         </div>
       </div>
 
-      {/* the interactive map */}
+      {/* the interactive map (grayscale + darkened via CSS only — data/source unchanged) */}
       <div className="absolute inset-0 z-0">
-        <NetworkMap />
+        <div className="h-full w-full night-map-filter">
+          <NetworkMap />
+        </div>
       </div>
 
       {/* 3D View toggle */}
@@ -93,6 +95,17 @@ export default function NetworkSection() {
         <span className="flex items-center gap-1.5"><RotateCw size={11} /> {ar ? "اسحب للتحريك · Ctrl+سحب للتدوير" : "Drag to pan · Ctrl+drag to rotate"}</span>
         <span className="flex items-center gap-1.5"><ZoomIn size={11} /> {ar ? "عجلة أو أزرار للتكبير" : "Scroll / buttons to zoom"}</span>
       </div>
+
+      {/* CSS-only night darkening — does NOT change the map source/library */}
+      <style>{`
+        .night-map-filter {
+          filter: grayscale(0.95) brightness(0.55) contrast(1.12) saturate(0.6);
+        }
+        .night-map-filter .maplibregl-canvas,
+        .night-map-filter canvas {
+          background: #06070a;
+        }
+      `}</style>
     </div>
   );
 }
