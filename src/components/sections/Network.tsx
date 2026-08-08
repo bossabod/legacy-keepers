@@ -1,25 +1,18 @@
 "use client";
 import { useState } from "react";
-import dynamic from "next/dynamic";
 import { MapPin, ChevronDown, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
+import CesiumNYC from "@/components/sections/CesiumNYC";
 import NYC3D from "@/components/sections/NYC3D";
 import { useApp } from "@/lib/store";
 import { play } from "@/lib/sound";
-
-// Cesium is loaded only in the browser (never during SSR) so its ESM
-// static assets don't break server-side rendering/static export.
-const CesiumNYC = dynamic(() => import("@/components/sections/CesiumNYC"), {
-  ssr: false,
-  loading: () => null,
-});
 
 /* ==================================================================
    Network — the REAL New York City as an interactive 3D map.
    Uses the official Cesium OSM Buildings layer (real 3D buildings that
    stream in as you zoom) over a light Apple-Maps-style base map.
    Drag to look around, scroll / buttons to zoom.
-   If Cesium fails (offline / blocked), it falls back to the local
-   base map — the page never hangs on a loading screen.
+   If Cesium cannot start rendering (offline / blocked / no WebGL), it
+   falls back to the local base map — the page never stays white.
    ================================================================== */
 
 export default function NetworkSection() {
@@ -77,5 +70,3 @@ export default function NetworkSection() {
     </div>
   );
 }
-
-
