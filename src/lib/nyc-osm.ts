@@ -146,8 +146,7 @@ async function fetchRoads(): Promise<RoadSeg[]> {
   return roads;
 }
 
-/* ---------- BUILDINGS (real footprints + real heights) ---------- */
-function parseHeight(tags: any): number | null {
+/* ---------- BUILDINGS (real footprints + real heights) ---------- */function parseHeight(tags: any): number | null {
   if (!tags) return null;
   const h = tags.height;
   if (typeof h === "string") {
@@ -219,8 +218,43 @@ async function fetchBuildings(): Promise<Building[]> {
   return out;
 }
 
-/* ---------- WATER ---------- */
-async function fetchWater(): Promise<WaterPoly[]> {
+/* ---------- TILED BUILDING LOADER (time-boxed, per-borough tiles) ---------- */
+/**
+ * Fetch real building footprints per borough ("tiles") with a hard
+ * overall deadline and a short per-request timeout. Stops early once the
+ * deadline is reached, so the base map is never blocked for long.
+ * Returns whatever was collected (possibly a subset or nothing).
+ */
+export async function fetchNycBuildingsTiled(
+  opts: { deadlineMs?: number; perTileMs?: number; onChunk?: (count: number) => void } = {}
+): Promise<Building[]> {
+  const deadline = Date.now() + (opts.deadlineMs ?? 9000);
+  const perTile = opts.perTileMs ?? 5000;
+  const seen = new Set<number>();
+  const out: Building[] = [];
+  for (const [, bbox] of BOROUGHS) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    const q = `[out:json][timeout:${Math.min(60, Math.ceil(perTile / 1000))}];(` +
+      `way["building"]["building:levels"](bbox:${bbox});` +
+      `way["building"]["height"](bbox:${bbox});` +
+      `);out geom;`;
+    const els = await fetchOverpass(q, Math.min(perTile, remaining));
+    for (const el of els) {
+      if (el.type !== "way" || seen.has(el.id)) continue;
+      const h = parseHeight(el.tags);
+      if (!h) continue;
+      seen.add(el.id);
+      const box = obb(geomsToLocal(el));
+      if (!box || box.w < 1 || box.d < 1) continue;
+      out.push({ x: box.x, z: box.z, w: box.w, d: box.d, rot: box.rot, h });
+    }
+    opts.onChunk?.(out.length);
+  }
+  return out;
+}
+
+/* ---------- WATER ---------- */async function fetchWater(): Promise<WaterPoly[]> {
   const q = `[out:json][timeout:60];` +
     `(way["natural"="water"](bbox:${NYC_BBOX});` +
     `way["waterway"="riverbank"](bbox:${NYC_BBOX});` +
