@@ -1,20 +1,32 @@
 "use client";
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { MapPin, ChevronDown, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
 import NYC3D from "@/components/sections/NYC3D";
 import { useApp } from "@/lib/store";
 import { play } from "@/lib/sound";
 
+// Cesium is loaded only in the browser (never during SSR) so its ESM
+// static assets don't break server-side rendering/static export.
+const CesiumNYC = dynamic(() => import("@/components/sections/CesiumNYC"), {
+  ssr: false,
+  loading: () => null,
+});
+
 /* ==================================================================
-   Network — an Apple-Maps-styled 3D model of New York City.
-   Dense procedural towers + iconic landmarks, drag to look around,
-   scroll / buttons to zoom. The city is STATIONARY (no auto-orbit).
+   Network — the REAL New York City as an interactive 3D map.
+   Uses the official Cesium OSM Buildings layer (real 3D buildings that
+   stream in as you zoom) over a light Apple-Maps-style base map.
+   Drag to look around, scroll / buttons to zoom.
+   If Cesium fails (offline / blocked), it falls back to the local
+   base map — the page never hangs on a loading screen.
    ================================================================== */
 
 export default function NetworkSection() {
   const { lang } = useApp();
   const ar = lang === "ar";
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [cesiumFailed, setCesiumFailed] = useState(false);
 
   return (
     <div className="relative w-full overflow-hidden" style={{ height: "calc(100vh - 66px)", background: "radial-gradient(ellipse 80% 80% at 50% 50%, #e6eef4 0%, #d4e3ec 55%, #c2d8e6 100%)" }}>
@@ -36,9 +48,9 @@ export default function NetworkSection() {
         </div>
       </div>
 
-      {/* the 3D city — dominates the whole screen */}
+      {/* the real 3D city — Cesium OSM Buildings, with local fallback */}
       <div className="absolute inset-0 z-0">
-        <NYC3D />
+        {cesiumFailed ? <NYC3D /> : <CesiumNYC onFail={() => setCesiumFailed(true)} />}
       </div>
 
       {/* zoom controls */}
@@ -60,9 +72,10 @@ export default function NetworkSection() {
       {/* interaction hints */}
       <div className="pointer-events-none absolute bottom-5 left-1/2 z-10 -translate-x-1/2 flex items-center gap-5 text-[0.48rem] uppercase tracking-[0.2em] text-[#5c7184]" style={{ fontFamily: "var(--font-mono)" }}>
         <span className="flex items-center gap-1.5"><RotateCw size={11} /> {ar ? "اسحب للتحريك (لا تدور تلقائيًا)" : "Drag to look around · no auto-spin"}</span>
-        <span className="flex items-center gap-1.5"><ZoomIn size={11} /> {ar ? "عجلة أو أزرار للتكبير" : "Scroll / buttons to zoom"}</span>
+        <span className="flex items-center gap-1.5"><ZoomIn size={11} /> {ar ? "اقترب لرؤية المباني ثلاثية الأبعاد" : "Zoom in to see 3D buildings"}</span>
       </div>
     </div>
   );
 }
+
 
