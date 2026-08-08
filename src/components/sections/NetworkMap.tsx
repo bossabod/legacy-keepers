@@ -5,8 +5,10 @@ import type { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 /* ==================================================================
-   NetworkMap — interactive New York City map (MapLibre GL JS).
-   • Satellite base: Esri World Imagery (free raster, no key).
+   NetworkMap — interactive New York City map (MapLibre GL JS), NIGHT.
+   • Base layer: NASA GIBS "Black Marble" / Earth at Night (Suomi NPP
+     VIIRS) — REAL nighttime satellite imagery showing actual city
+     lights, dark oceans and dark land. No daytime colours.
    • 3D View: tilted oblique perspective + real-height buildings from
      OpenFreeMap vector tiles (free, no key, streams by camera position).
    • No globe, no Cesium, no huge data, no endless loading.
@@ -14,7 +16,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
    ================================================================== */
 
 const CENTER: [number, number] = [-74.006, 40.7128];
-const ZOOM = 12;
+const ZOOM = 11;
 
 export default function NetworkMap({ className = "" }: { className?: string }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -24,22 +26,24 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
     if (!el) return;
     let map: MapLibreMap | null = null;
 
-    // Minimal style: Esri satellite imagery as the base raster layer.
+    // NASA Earth at Night (Black Marble) — real nighttime satellite imagery.
+    // Tile matrix "GoogleMapsCompatible_Level8" tops out at native zoom 8.
     const style: any = {
       version: 8,
       sources: {
-        satellite: {
+        night: {
           type: "raster",
           tiles: [
-            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png",
           ],
           tileSize: 256,
-          maxzoom: 19,
+          minzoom: 0,
+          maxzoom: 8,
           attribution:
-            "Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+            "Imagery &copy; NASA GIBS / Black Marble (Suomi NPP VIIRS)",
         },
       },
-      layers: [{ id: "satellite", type: "raster", source: "satellite" }],
+      layers: [{ id: "night", type: "raster", source: "night" }],
     };
 
     map = new maplibregl.Map({
@@ -75,9 +79,9 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
           paint: {
             "fill-extrusion-color": [
               "interpolate", ["linear"], ["get", "render_height"],
-              0, "#c9c4b8", 90, "#9e998e", 200, "#8b867b", 350, "#7d7870",
+              0, "#8a8578", 90, "#6e695e", 200, "#57534b", 350, "#3f3c37",
             ],
-            "fill-extrusion-opacity": 0.9,
+            "fill-extrusion-opacity": 0.92,
             "fill-extrusion-height": [
               "interpolate", ["linear"], ["zoom"], 15, 0, 16, ["get", "render_height"],
             ],
@@ -87,7 +91,7 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
           },
         });
       } catch (e) {
-        // buildings optional — satellite map still works
+        // buildings optional — night map still works
       }
     });
 
