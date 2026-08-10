@@ -154,24 +154,37 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
         // buildings optional — satellite + terrain still work
       }
 
-      // ---- United Arab Emirates border — highlighted RED ----
+      // ---- United Arab Emirates — highlighted RED (guaranteed GeoJSON) ----
       try {
+        mapReady.addSource("uae", {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "Polygon",
+              coordinates: [[
+                [51.5, 25.3], [51.2, 24.5], [51.8, 23.5], [53.2, 22.6],
+                [54.8, 22.5], [55.7, 22.7], [56.0, 23.5], [56.4, 24.2],
+                [56.3, 25.2], [56.0, 25.9], [55.3, 26.0], [54.2, 25.9],
+                [53.4, 25.7], [52.6, 25.6], [51.8, 25.5], [51.5, 25.3],
+              ]],
+            },
+          },
+        });
+        // red border
         mapReady.addLayer({
           id: "uae-border",
-          source: "openfreemap",
-          "source-layer": "boundary",
+          source: "uae",
           type: "line",
-          filter: [
-            "all",
-            ["==", ["get", "admin_level"], "2"],
-            [
-              "any",
-              ["==", ["get", "name"], "United Arab Emirates"],
-              ["==", ["get", "name:en"], "United Arab Emirates"],
-              ["==", ["get", "name_en"], "United Arab Emirates"],
-            ],
-          ],
           paint: { "line-color": "#ff1414", "line-width": 3, "line-opacity": 0.95 },
+        });
+        // faint red fill over the UAE region so it stands out
+        mapReady.addLayer({
+          id: "uae-fill",
+          source: "uae",
+          type: "fill",
+          paint: { "fill-color": "#ff1414", "fill-opacity": 0.15 },
         });
       } catch (e) {
         // UAE highlight optional — map still works
