@@ -8,7 +8,7 @@ import { Pulse } from "@/components/ui";
 import { play } from "@/lib/sound";
 
 /* ===== QR Code حقيقي يتولّد برمجياً من القيمة المتغيرة ===== */
-function LiveQRCode({ value, size = 180 }: { value: string; size?: number }) {
+function LiveQRCode({ value, size = 176 }: { value: string; size?: number }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -16,30 +16,24 @@ function LiveQRCode({ value, size = 180 }: { value: string; size?: number }) {
     let cancelled = false;
     QRCode.toCanvas(canvasRef.current, value, {
       width: size * 2,
-      margin: 2,
+      margin: 3,
       errorCorrectionLevel: "M",
       color: { dark: "#080a0f", light: "#f0f3f8" },
     })
-      .then(() => {
-        if (!cancelled && canvasRef.current) {
-          const c = canvasRef.current;
-          const out = c.getContext("2d");
-          // draw scaled nicely
-        }
-      })
+      .then(() => {})
       .catch(() => {});
     return () => { cancelled = true; };
   }, [value, size]);
 
   return (
     <div
-      className="rounded-xl bg-[#f0f3f8] shadow-[0_4px_15px_rgba(0,0,0,0.6)]"
+      className="flex items-center justify-center overflow-hidden rounded-xl bg-[#f0f3f8] shadow-[0_4px_15px_rgba(0,0,0,0.6)]"
       style={{ width: size, height: size }}
     >
       <canvas
         ref={canvasRef}
-        style={{ width: size, height: size }}
-        className="rounded-xl"
+        className="block rounded-xl"
+        style={{ width: "100%", height: "100%", display: "block" }}
       />
     </div>
   );
