@@ -54,7 +54,9 @@ export default function NetworkSection() {
 
       {/* the interactive map (original natural satellite) */}
       <div className="absolute inset-0 z-0">
-        <NetworkMap />
+        <div className="h-full w-full map-gray">
+          <NetworkMap />
+        </div>
       </div>
 
       {/* 3D View toggle */}
@@ -93,6 +95,17 @@ export default function NetworkSection() {
         <span className="flex items-center gap-1.5"><RotateCw size={11} /> {ar ? "اسحب للتحريك · Ctrl+سحب للتدوير" : "Drag to pan · Ctrl+drag to rotate"}</span>
         <span className="flex items-center gap-1.5"><ZoomIn size={11} /> {ar ? "عجلة أو أزرار للتكبير" : "Scroll / buttons to zoom"}</span>
       </div>
+
+      {/* CSS-only dark-gray monochrome filter — keeps all map detail, only colors change */}
+      <style>{`
+        .map-gray {
+          filter: grayscale(1) brightness(0.62) contrast(1.1) saturate(0.4);
+        }
+        .map-gray .maplibregl-canvas,
+        .map-gray canvas {
+          background: #0a0a0a;
+        }
+      `}</style>
     </div>
   );
 }
