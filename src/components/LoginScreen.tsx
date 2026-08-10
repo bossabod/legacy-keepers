@@ -283,13 +283,13 @@ export default function LoginScreen({
 
             {/* Realistic QR Code Only - No Horizontal Barcode */}
             <div className="flex flex-col items-center justify-center my-6">
-              <div className="relative p-3.5 sm:p-4 rounded-2xl bg-gradient-to-b from-[#1e232d] to-[#0a0c10] border border-[#c3c9d3]/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_15px_35px_rgba(0,0,0,0.6),0_0_25px_rgba(195,201,211,0.08)] group/qr transition-all duration-500 hover:border-[#c3c9d3]/50">
+              <div className="relative p-6 sm:p-7 rounded-2xl bg-gradient-to-b from-[#1e232d] to-[#0a0c10] border border-[#c3c9d3]/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_15px_35px_rgba(0,0,0,0.6),0_0_25px_rgba(195,201,211,0.08)] group/qr transition-all duration-500 hover:border-[#c3c9d3]/50">
                 <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-[#c3c9d3]/70 rounded-tl" />
                 <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-[#c3c9d3]/70 rounded-tr" />
                 <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-[#c3c9d3]/70 rounded-bl" />
                 <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-[#c3c9d3]/70 rounded-br" />
 
-                <LiveQRCode value={code} size={180} />
+                <LiveQRCode value={code} size={152} />
               </div>
 
               <div className="mt-4 flex items-center justify-between w-full max-w-[208px] font-mono text-[0.65rem] text-[#8b95a5]">
