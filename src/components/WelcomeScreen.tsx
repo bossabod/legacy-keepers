@@ -21,16 +21,16 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
     if (hasPlayedIntroThisSession) return;
     hasPlayedIntroThisSession = true;
 
-    // Stage 1: At t=0, the screen is black and only the warrior emblem fades in over 1.8s.
-    // At t=2.3s (after 1.8s fade + 0.5s brief pause), start Stage 2 (crossfade website in).
+    // Stage 1: At t=0, the screen is black and only the face image is visible.
+    // After ~1.2s the face fades out and the full plate image crossfades in.
     const timer1 = setTimeout(() => {
       setIntroStage("intro-fade");
-    }, 2300);
+    }, 1200);
 
-    // Stage 3: At t=3.8s (after 1.5s crossfade/blend), the intro sequence is complete.
+    // Stage 3: At ~2.6s (after 1.4s crossfade/blend), the intro sequence is complete.
     const timer2 = setTimeout(() => {
       setIntroStage("done");
-    }, 3800);
+    }, 2600);
 
     return () => {
       clearTimeout(timer1);
@@ -101,13 +101,13 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
     >
       <Cursor />
 
-      {/* ====== طبقة الشعار المحاذاة سينمائيًا (موجودة دائمًا لضمان تزامن حركة القياس 100%) ====== */}
+      {/* ====== طبقة الوجه — صورة الوجه فقط (خلفية سوداء + وجه فضي في المنتصف) ====== */}
       <motion.div
         className={`absolute inset-0 z-50 bg-black bg-cover bg-center ${
           introStage !== "done" || exitStage !== "idle" ? "pointer-events-auto" : "pointer-events-none"
         }`}
         style={{
-          backgroundImage: "url(/images/emblem-intro-aligned.png)",
+          backgroundImage: "url(/images/BD60D113-2836-48F0-A78C-CD8269081B2A.png)",
         }}
         initial={{ opacity: 0, scale: 1 }}
         animate={{
@@ -140,10 +140,10 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
           ease: "easeInOut",
         }}
       >
-        {/* صورة الخلفية — لم تُمسس */}
+        {/* صورة اللوحة الفضية الكاملة (الخلفية) */}
         <motion.div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url(/images/login.jpg)" }}
+          style={{ backgroundImage: "url(/images/bilinmeyen.jpg)" }}
           initial={{ scale: 1 }}
           animate={{ scale: 1.03 }}
           transition={{ duration: 30, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
