@@ -122,6 +122,14 @@ export default function LoginScreen({
   const [contactOpen, setContactOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // ===== كلمة السر الصحيحة + عداد المحاولات الفاشلة =====
+  const CORRECT_PASS = "OWNERS2012"; // غيّرها حسب ما تريد
+  const [attempts, setAttempts] = useState(0);
+  const [authMsg, setAuthMsg] = useState<string | null>(null);
+  const [authType, setAuthType] = useState<"warn" | "error" | "block">("warn");
+  const [blocked, setBlocked] = useState(false);
+  const [failedLog, setFailedLog] = useState<string[]>([]);
+
   useEffect(() => {
     const t = setInterval(() => {
       setCount((c) => {
@@ -138,12 +146,38 @@ export default function LoginScreen({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (verifying) return;
+    if (verifying || blocked) return;
     setVerifying(true);
     play("vault");
-    // Go straight to the app — no artificial delay, no loading screen.
-    play("granted");
-    onAuthenticated();
+
+    // ---- التحقق من كلمة السر ----
+    if (pass === CORRECT_PASS) {
+      // دخول ناجح — بدون شاشة تحميل
+      setAuthMsg(null);
+      play("granted");
+      onAuthenticated();
+      return;
+    }
+
+    // ---- محاولة فاشلة ----
+    const next = attempts + 1;
+    setAttempts(next);
+    const stamp = new Date().toLocaleTimeString("en-GB");
+    setFailedLog((l) => [...l, `[${stamp}] محاولة فاشلة ${next}`]);
+
+    if (next === 1) {
+      setAuthType("warn");
+      setAuthMsg("المحاولة فاشلة. كلمة السر غير صحيحة.");
+    } else if (next === 2) {
+      setAuthType("warn");
+      setAuthMsg("إنذار: كل محاولة فاشلة يتم تدوينها في السجل.");
+    } else {
+      setAuthType("block");
+      setAuthMsg("الدخول غير مصرح لغير المدعوين.");
+      setBlocked(true);
+    }
+    play("reject");
+    setVerifying(false);
   };
 
   return (
@@ -306,11 +340,40 @@ export default function LoginScreen({
                 </div>
               </div>
 
+              {/* رسالة المحاولات الفاشلة */}
+              {authMsg && (
+                <div
+                  className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-[0.72rem] leading-snug ${
+                    authType === "block"
+                      ? "border-red-500/50 bg-red-500/10 text-red-300"
+                      : "border-amber-500/40 bg-amber-500/10 text-amber-200"
+                  }`}
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
+                  <ShieldCheck size={14} className="shrink-0" />
+                  <span>{authMsg}</span>
+                </div>
+              )}
+
+              {/* سجل المحاولات الفاشلة */}
+              {failedLog.length > 0 && (
+                <div className="space-y-1 rounded-lg border border-white/[0.06] bg-[#050609]/80 p-2.5">
+                  <div className="text-[0.55rem] uppercase tracking-[0.2em] text-[#565d68]" style={{ fontFamily: "var(--font-mono)" }}>
+                    سجل المحاولات الفاشلة
+                  </div>
+                  {failedLog.map((l, i) => (
+                    <div key={i} className="text-[0.6rem] text-[#8b95a5]" style={{ fontFamily: "var(--font-mono)" }}>
+                      {l}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Submit Button */}
               <div className="pt-3">
                 <button
                   type="submit"
-                  disabled={verifying}
+                  disabled={verifying || blocked}
                   onMouseEnter={() => play("hover")}
                   className="group relative w-full overflow-hidden rounded-xl py-4 px-6 font-luxury text-sm font-semibold tracking-[0.2em] uppercase text-[#eaeef5] transition-all duration-500 disabled:opacity-50"
                   style={{
