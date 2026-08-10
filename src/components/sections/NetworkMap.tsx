@@ -154,6 +154,29 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
         // buildings optional — satellite + terrain still work
       }
 
+      // ---- United Arab Emirates border — highlighted RED ----
+      try {
+        mapReady.addLayer({
+          id: "uae-border",
+          source: "openfreemap",
+          "source-layer": "boundary",
+          type: "line",
+          filter: [
+            "all",
+            ["==", ["get", "admin_level"], "2"],
+            [
+              "any",
+              ["==", ["get", "name"], "United Arab Emirates"],
+              ["==", ["get", "name:en"], "United Arab Emirates"],
+              ["==", ["get", "name_en"], "United Arab Emirates"],
+            ],
+          ],
+          paint: { "line-color": "#ff1414", "line-width": 3, "line-opacity": 0.95 },
+        });
+      } catch (e) {
+        // UAE highlight optional — map still works
+      }
+
       // ---- subtle red target-region highlights (faint, elegant) ----
       try {
         mapReady.addSource("targets", { type: "geojson", data: TARGET_FEATURES as any });
