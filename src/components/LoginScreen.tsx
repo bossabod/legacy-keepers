@@ -1,101 +1,46 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RefreshCw, Loader2, Lock, ArrowLeft, X, Mail, Check, ShieldCheck } from "lucide-react";
+import QRCode from "qrcode";
 import { Cursor, Logo } from "@/components/brand";
 import { Pulse } from "@/components/ui";
 import { play } from "@/lib/sound";
 
-/* ===== Realistic 25x25 QR Code Generator ===== */
-function RealisticQRCode({ seed, size = 180 }: { seed: number; size?: number }) {
-  const grid = useMemo(() => {
-    const N = 25;
-    const cells: boolean[][] = Array.from({ length: N }, () => Array(N).fill(false));
-    const reserved: boolean[][] = Array.from({ length: N }, () => Array(N).fill(false));
+/* ===== QR Code حقيقي يتولّد برمجياً من القيمة المتغيرة ===== */
+function LiveQRCode({ value, size = 180 }: { value: string; size?: number }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-    const setCell = (r: number, c: number, val: boolean) => {
-      if (r >= 0 && r < N && c >= 0 && c < N) {
-        cells[r][c] = val;
-        reserved[r][c] = true;
-      }
-    };
-
-    // Draw 7x7 finder pattern with separator
-    const drawFinder = (startR: number, startC: number) => {
-      for (let r = -1; r <= 7; r++) {
-        for (let c = -1; c <= 7; c++) {
-          const rr = startR + r;
-          const cc = startC + c;
-          if (rr >= 0 && rr < N && cc >= 0 && cc < N) {
-            if (r === -1 || r === 7 || c === -1 || c === 7) {
-              setCell(rr, cc, false); // separator
-            } else if (r === 0 || r === 6 || c === 0 || c === 6) {
-              setCell(rr, cc, true); // outer ring
-            } else if (r >= 2 && r <= 4 && c >= 2 && c <= 4) {
-              setCell(rr, cc, true); // inner core
-            } else {
-              setCell(rr, cc, false); // inner white ring
-            }
-          }
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    let cancelled = false;
+    QRCode.toCanvas(canvasRef.current, value, {
+      width: size * 2,
+      margin: 2,
+      errorCorrectionLevel: "M",
+      color: { dark: "#080a0f", light: "#f0f3f8" },
+    })
+      .then(() => {
+        if (!cancelled && canvasRef.current) {
+          const c = canvasRef.current;
+          const out = c.getContext("2d");
+          // draw scaled nicely
         }
-      }
-    };
-
-    drawFinder(0, 0); // Top-left
-    drawFinder(0, N - 7); // Top-right
-    drawFinder(N - 7, 0); // Bottom-left
-
-    // Draw 5x5 alignment pattern centered at (18, 18)
-    const alignR = 18;
-    const alignC = 18;
-    for (let r = -2; r <= 2; r++) {
-      for (let c = -2; c <= 2; c++) {
-        const rr = alignR + r;
-        const cc = alignC + c;
-        if (r === -2 || r === 2 || c === -2 || c === 2 || (r === 0 && c === 0)) {
-          setCell(rr, cc, true);
-        } else {
-          setCell(rr, cc, false);
-        }
-      }
-    }
-
-    // Timing patterns at row 6 and col 6
-    for (let i = 8; i < N - 8; i++) {
-      setCell(6, i, i % 2 === 0);
-      setCell(i, 6, i % 2 === 0);
-    }
-
-    // Fill remaining unreserved cells deterministically using seed
-    let s = seed || 123456789;
-    for (let r = 0; r < N; r++) {
-      for (let c = 0; c < N; c++) {
-        if (!reserved[r][c]) {
-          s = (s * 1103515245 + 12345) & 0x7fffffff;
-          cells[r][c] = (s >> 10) % 2 === 0;
-        }
-      }
-    }
-
-    return cells;
-  }, [seed]);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [value, size]);
 
   return (
     <div
-      className="grid grid-cols-25 gap-[1.5px] p-3 sm:p-3.5 rounded-xl bg-[#f0f3f8] shadow-[0_4px_15px_rgba(0,0,0,0.6)]"
+      className="rounded-xl bg-[#f0f3f8] shadow-[0_4px_15px_rgba(0,0,0,0.6)]"
       style={{ width: size, height: size }}
     >
-      {grid.map((row, rIdx) =>
-        row.map((on, cIdx) => (
-          <div
-            key={`${rIdx}-${cIdx}`}
-            style={{
-              background: on ? "#080a0f" : "transparent",
-              borderRadius: "1px",
-            }}
-          />
-        ))
-      )}
+      <canvas
+        ref={canvasRef}
+        style={{ width: size, height: size }}
+        className="rounded-xl"
+      />
     </div>
   );
 }
@@ -118,7 +63,6 @@ export default function LoginScreen({
   const [verifying, setVerifying] = useState(false);
   const [count, setCount] = useState(15);
   const [code, setCode] = useState(() => randHex(16));
-  const [seed, setSeed] = useState(() => Date.now());
   const [contactOpen, setContactOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -127,7 +71,6 @@ export default function LoginScreen({
       setCount((c) => {
         if (c <= 1) {
           setCode(randHex(16));
-          setSeed(Date.now());
           return 15;
         }
         return c - 1;
@@ -222,33 +165,7 @@ export default function LoginScreen({
       </header>
 
       {/* ====== Main Two-Column Gateway Panels ====== */}
-      <main className="relative z-20 flex-1 flex flex-col items-center justify-center py-10 px-4 sm:px-8">
-        {/* Central emblem — main visual element */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, delay: 0.3, ease: [0.2, 0.7, 0.2, 1] }}
-          className="mb-8 flex flex-col items-center"
-        >
-          <div className="relative">
-            {/* soft halo behind emblem */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -inset-6 rounded-full"
-              style={{ background: "radial-gradient(50% 50% at 50% 50%, rgba(195,201,211,0.14), transparent 70%)", filter: "blur(6px)" }}
-            />
-            {/* the uploaded emblem — original proportions, no distortion */}
-            <img
-              src="/images/BD60D113-2836-48F0-A78C-CD8269081B2A.png"
-              alt="Emblem"
-              style={{ width: "min(30vw, 320px)", height: "auto", aspectRatio: "1575 / 999" }}
-              className="relative select-none object-contain"
-              draggable={false}
-            />
-          </div>
-          <div className="mt-5 h-px w-40 bg-gradient-to-r from-transparent via-[#c3c9d3]/40 to-transparent" />
-        </motion.div>
-
+      <main className="relative z-20 flex-1 flex items-center justify-center py-10 px-4 sm:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 w-full max-w-5xl items-center justify-items-center">
           
           {/* ===== Left Panel: Member Login ===== */}
@@ -378,7 +295,7 @@ export default function LoginScreen({
                 <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-[#c3c9d3]/70 rounded-bl" />
                 <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-[#c3c9d3]/70 rounded-br" />
 
-                <RealisticQRCode seed={seed} size={180} />
+                <LiveQRCode value={code} size={180} />
               </div>
 
               <div className="mt-4 flex items-center justify-between w-full max-w-[208px] font-mono text-[0.65rem] text-[#8b95a5]">
@@ -403,7 +320,6 @@ export default function LoginScreen({
               type="button"
               onClick={() => {
                 setCode(randHex(16));
-                setSeed(Date.now());
                 setCount(15);
                 play("select");
               }}
