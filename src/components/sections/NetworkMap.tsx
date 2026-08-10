@@ -3,66 +3,28 @@ import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { NETWORK_TARGETS, type NetworkTarget } from "@/lib/network-targets";
 import { buildNodesGeoJSON, buildLinksGeoJSON } from "@/lib/network-links";
 
 /* ==================================================================
-   NetworkMap — interactive satellite map (MapLibre GL) with subtle red
-   target-region highlights.
+   NetworkMap — New York City satellite map (MapLibre GL), NYC only.
+   The camera is centered on New York City and locked to its metro
+   bounds: you cannot pan out of NYC to other cities/countries.
      • Satellite base — Esri World Imagery (free, no key).
      • 3D Buildings — OpenFreeMap vector tiles.
      • Terrain — free public terrarium DEM tiles.
-     • Red highlights — a faint elegant red region circle around each
-       target city (visible from far when zoomed out). Only the target
-       cities' surrounding regions are highlighted, not whole countries.
-   Map source / colors / functions are unchanged; this only ADDS the
-   highlight layer.
-   Exposes: zoomIn / zoomOut / set3D(bool).
+     • Network overlay — glowing white nodes + luminous blue links
+       (relations / connections layer, togglable).
+   Map source / colors / functions are unchanged.
+   Exposes: zoomIn / zoomOut / set3D(bool) / setNetwork(bool).
    ================================================================== */
 
-const kmToDeg = (km: number) => km / 111;
-
-/* Build a GeoJSON polygon (approx circle) around a city center. */
-function circleFeature(t: NetworkTarget): any {
-  const [lon, lat] = t.center;
-  const rLat = kmToDeg(t.radiusKm);
-  const rLon = kmToDeg(t.radiusKm) / Math.max(0.4, Math.cos((lat * Math.PI) / 180));
-  const coords: [number, number][] = [];
-  const steps = 48;
-  for (let i = 0; i < steps; i++) {
-    const a = (i / steps) * Math.PI * 2;
-    coords.push([lon + Math.cos(a) * rLon, lat + Math.sin(a) * rLat]);
-  }
-  return {
-    type: "Feature",
-    properties: { name: t.name, country: t.country },
-    geometry: { type: "Polygon", coordinates: [[...coords, coords[0]]] },
-  };
-}
-
-const TARGET_FEATURES = {
-  type: "FeatureCollection",
-  features: NETWORK_TARGETS.map(circleFeature),
-};
-
-/* Fit the map to show all target regions. */
-function fitTargets(map: MapLibreMap) {
-  const pts: [number, number][] = NETWORK_TARGETS.map((t) => t.center);
-  try {
-    map.fitBounds(
-      [
-        [Math.min(...pts.map((p) => p[0])) - 3, Math.min(...pts.map((p) => p[1])) - 3],
-        [Math.max(...pts.map((p) => p[0])) + 3, Math.max(...pts.map((p) => p[1])) + 3],
-      ],
-      { padding: 60, duration: 0 }
-    );
-  } catch (e) {
-    /* keep default view */
-  }
-}
-
+// New York City metro bounds (SW lon/lat, NE lon/lat)
+const NYC_BOUNDS: [[number, number], [number, number]] = [
+  [-74.3, 40.48],
+  [-73.7, 40.93],
+];
 const CENTER: [number, number] = [-74.006, 40.7128];
-const ZOOM = 14;
+const ZOOM = 11.5;
 
 export default function NetworkMap({ className = "" }: { className?: string }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -108,6 +70,7 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
       pitch: 0,
       bearing: 0,
       maxPitch: 65,
+      maxBounds: NYC_BOUNDS, // lock to New York City
       dragRotate: true,
       pitchWithRotate: true,
       attributionControl: false,
@@ -155,76 +118,11 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
         // buildings optional — satellite + terrain still work
       }
 
-      // ---- United Arab Emirates — highlighted RED (guaranteed GeoJSON) ----
-      try {
-        mapReady.addSource("uae", {
-          type: "geojson",
-          data: {
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "Polygon",
-              coordinates: [[
-                [51.5, 25.3], [51.2, 24.5], [51.8, 23.5], [53.2, 22.6],
-                [54.8, 22.5], [55.7, 22.7], [56.0, 23.5], [56.4, 24.2],
-                [56.3, 25.2], [56.0, 25.9], [55.3, 26.0], [54.2, 25.9],
-                [53.4, 25.7], [52.6, 25.6], [51.8, 25.5], [51.5, 25.3],
-              ]],
-            },
-          },
-        });
-        // red border
-        mapReady.addLayer({
-          id: "uae-border",
-          source: "uae",
-          type: "line",
-          paint: { "line-color": "#ff1414", "line-width": 3, "line-opacity": 0.95 },
-        });
-        // faint red fill over the UAE region so it stands out
-        mapReady.addLayer({
-          id: "uae-fill",
-          source: "uae",
-          type: "fill",
-          paint: { "fill-color": "#ff1414", "fill-opacity": 0.15 },
-        });
-      } catch (e) {
-        // UAE highlight optional — map still works
-      }
-
-      // ---- subtle red target-region highlights (faint, elegant) ----
-      try {
-        mapReady.addSource("targets", { type: "geojson", data: TARGET_FEATURES as any });
-        // soft red fill inside each region
-        mapReady.addLayer({
-          id: "target-fill",
-          source: "targets",
-          type: "fill",
-          paint: { "fill-color": "#e02424", "fill-opacity": 0.16 },
-        });
-        // elegant red outline — visible from a distance
-        mapReady.addLayer({
-          id: "target-outline",
-          source: "targets",
-          type: "line",
-          paint: { "line-color": "#ff4d4d", "line-width": 1.4, "line-opacity": 0.5 },
-        });
-      } catch (e) {
-        // highlights optional — map still works
-      }
-
-      // fit initial view to show all target regions
-      try {
-        fitTargets(mapReady);
-      } catch (e) {
-        /* keep default */
-      }
-
-      // ---- worldwide relations network overlay (nodes + links) ----
+      // ---- network overlay (nodes + links) — kept as-is ----
       try {
         mapReady.addSource("net-nodes", { type: "geojson", data: buildNodesGeoJSON() as any });
         mapReady.addSource("net-links", { type: "geojson", data: buildLinksGeoJSON() as any });
 
-        // links: thin luminous dark-blue lines
         mapReady.addLayer({
           id: "net-link-glow",
           source: "net-links",
@@ -240,7 +138,6 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
           paint: { "line-color": "#3d8bff", "line-width": 1, "line-opacity": 0.7 },
         });
 
-        // nodes: small glowing white points
         mapReady.addLayer({
           id: "net-node-halo",
           source: "net-nodes",
