@@ -3,29 +3,36 @@ import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { NETWORK_CITIES, getCity, DEFAULT_CITY, type NetworkCity } from "@/lib/network-cities";
 
 /* ==================================================================
-   NetworkMap — interactive New York City map (MapLibre GL JS).
-   Google-Maps-like controls: drag to pan, scroll / buttons to zoom,
-   Ctrl/right-drag to rotate, two-finger / pitch to tilt.
+   NetworkMap — interactive city-restricted satellite map (MapLibre GL).
+   The map is confined to the currently selected city's bounding box:
+   the user can pan / zoom / rotate / tilt within a large area around
+   the city, but cannot drag outside it or roam the world. Cities are
+   switched via jumpToCity().
      • Satellite base — Esri World Imagery (free, no key).
-     • 3D Buildings — OpenFreeMap vector tiles (free, no key), real
-       OSM heights, streamed by camera position.
+     • 3D Buildings — OpenFreeMap vector tiles (free, no key).
      • Terrain — free public terrarium DEM tiles (no key).
-   No globe, no Cesium, no huge data, no endless loading.
-   Exposes: zoomIn / zoomOut / set3D(bool).
+   Map source / colors / functions are unchanged.
+   Exposes: zoomIn / zoomOut / set3D(bool) / jumpToCity(id).
    ================================================================== */
 
-const CENTER: [number, number] = [-74.006, 40.7128];
-const ZOOM = 14;
-
-export default function NetworkMap({ className = "" }: { className?: string }) {
+export default function NetworkMap({
+  className = "",
+  initialCity = DEFAULT_CITY,
+}: {
+  className?: string;
+  initialCity?: string;
+}) {
   const mountRef = useRef<HTMLDivElement | null>(null);
+  const cityRef = useRef<NetworkCity>(getCity(initialCity) || getCity(DEFAULT_CITY)!);
 
   useEffect(() => {
     const el = mountRef.current;
     if (!el) return;
     let map: MapLibreMap | null = null;
+    const city = cityRef.current;
 
     const style: any = {
       version: 8,
@@ -58,11 +65,12 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
     map = new maplibregl.Map({
       container: el,
       style,
-      center: CENTER,
-      zoom: ZOOM,
+      center: city.center,
+      zoom: city.zoom,
       pitch: 0,
       bearing: 0,
       maxPitch: 65,
+      maxBounds: city.bounds, // keep the map inside this city's area
       dragRotate: true,
       pitchWithRotate: true,
       attributionControl: false,
@@ -128,6 +136,13 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
             map.setLayoutProperty("3d-buildings", "visibility", "none");
           }
         }
+      },
+      jumpToCity: (id: string) => {
+        const c = getCity(id);
+        if (!c || !map) return;
+        cityRef.current = c;
+        map.easeTo({ center: c.center, zoom: c.zoom, duration: 900 });
+        map.setMaxBounds(c.bounds);
       },
     };
 
