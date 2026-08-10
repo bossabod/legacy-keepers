@@ -12,6 +12,51 @@ import type { AppData } from "@/lib/types";
 type Tab = "digital" | "physical" | "submit" | null;
 
 /* ===== بطاقة بوابة فاخرة (مربع كبير بإطار + توهج + Hover) ===== */
+type CardVariant = "digital" | "physical" | "submit";
+
+const CARD_STYLE: Record<
+  CardVariant,
+  {
+    idles: string;
+    ring: string;
+    glow: string;
+    chip: string;
+    accent: string;
+    inner: string;
+  }
+> = {
+  // أسود غامق + لمسة رمادية
+  digital: {
+    idles:
+      "border-[#1a1f2a]/90 bg-gradient-to-b from-[#0a0c11] via-[#05060a] to-[#020204] hover:border-slate-400/40",
+    ring: "bg-slate-400/20",
+    glow: "radial-gradient(70% 80% at 50% 0%, rgba(148,163,184,0.14), transparent 70%)",
+    chip: "#94a3b8",
+    accent: "from-[#0a0c11] via-[#1e2633] to-[#020204]",
+    inner: "shadow-[0_22px_60px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.05)]",
+  },
+  // رمادي داكن معدني مع لمسة فضية
+  physical: {
+    idles:
+      "border-[#232936]/90 bg-gradient-to-b from-[#10141b] via-[#080b10] to-[#030406] hover:border-slate-300/40",
+    ring: "bg-slate-300/25",
+    glow: "radial-gradient(70% 80% at 50% 0%, rgba(226,232,240,0.16), transparent 70%)",
+    chip: "#cbd5e1",
+    accent: "from-[#10141b] via-[#2a313d] to-[#030406]",
+    inner: "shadow-[0_26px_70px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.08)]",
+  },
+  // أزرق داكن بلمسة ملكية
+  submit: {
+    idles:
+      "border-[#0f2233]/90 bg-gradient-to-b from-[#071018] via-[#04090e] to-[#010304] hover:border-sky-400/40",
+    ring: "bg-sky-400/20",
+    glow: "radial-gradient(70% 80% at 50% 0%, rgba(56,189,248,0.16), transparent 70%)",
+    chip: "#38bdf8",
+    accent: "from-[#071018] via-[#0f2a3f] to-[#010304]",
+    inner: "shadow-[0_24px_65px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(56,189,248,0.10)]",
+  },
+};
+
 function CardStagger({
   title,
   desc,
@@ -20,6 +65,7 @@ function CardStagger({
   onClick,
   offset = "",
   dir,
+  variant = "digital",
 }: {
   title: string;
   desc: string;
@@ -28,7 +74,9 @@ function CardStagger({
   onClick: () => void;
   offset?: string;
   dir: "rtl" | "ltr";
+  variant?: CardVariant;
 }) {
+  const v = CARD_STYLE[variant];
   return (
     <motion.button
       type="button"
@@ -37,57 +85,59 @@ function CardStagger({
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -6, scale: 1.02 }}
+      whileHover={{ y: -7, scale: 1.025 }}
       whileTap={{ scale: 0.98 }}
       className={[
-        "group relative w-full overflow-hidden rounded-2xl px-6 py-8 text-left transition-colors duration-500 sm:min-h-[15rem]",
+        "group relative w-full overflow-hidden rounded-2xl px-6 py-8 text-left transition-all duration-500 sm:min-h-[15rem]",
         offset,
-        active
-          ? "border-white/40 bg-white/[0.07]"
-          : "border-white/10 bg-gradient-to-b from-[#13161d]/95 via-[#0b0d12]/95 to-[#07080b]/95 hover:border-white/30",
+        active ? `${v.ring} ring-1 ring-white/20` : v.idles,
+        v.inner,
       ].join(" ")}
-      style={{
-        boxShadow: active
-          ? "0 0 40px rgba(195,201,211,0.18), inset 0 1px 0 rgba(255,255,255,0.10)"
-          : "0 18px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)",
-      }}
     >
+      {/* تدرّج عمق داخلي */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-70"
+        style={{ background: `linear-gradient(180deg, ${v.accent.split(" via ")[0]}, transparent 45%)` }}
+      />
+
       {/* حافة علوية لامعة */}
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-60" />
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent opacity-70" />
 
       {/* توهج عند التحويم */}
       <span
         aria-hidden="true"
         className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-        style={{
-          background:
-            "radial-gradient(70% 80% at 50% 0%, rgba(255,255,255,0.10), transparent 70%)",
-        }}
+        style={{ background: v.glow }}
+      />
+
+      {/* إطار داخلي أنيق */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-2 rounded-xl border border-white/[0.04]"
       />
 
       {/* رقم */}
       <div className="relative flex items-start justify-between">
-        <span
-          className="font-mono text-[0.6rem] tracking-[0.3em] text-[#5d6675]"
-        >
+        <span className="font-mono text-[0.6rem] tracking-[0.3em] text-[#5d6675]">
           {glyph}
         </span>
         <span
-          className="h-1.5 w-1.5 rounded-full bg-[#c3c9d3] shadow-[0_0_8px_#c3c9d3] transition-opacity duration-300"
-          style={{ opacity: active ? 1 : 0.35 }}
+          className={`h-1.5 w-1.5 rounded-full ${v.chip} shadow-[0_0_8px_currentColor] transition-opacity duration-300`}
+          style={{ opacity: active ? 1 : 0.35, background: v.chip, boxShadow: `0 0 10px ${v.chip}` }}
         />
       </div>
 
       {/* العنوان */}
       <h3
-        className="relative mt-6 text-[clamp(1.15rem,2.4vw,1.5rem)] font-semibold uppercase tracking-[0.12em] text-[#eaeef5]"
-        style={{ fontFamily: "var(--font-luxury)" }}
+        className="relative mt-6 text-[clamp(1.15rem,2.4vw,1.5rem)] font-semibold uppercase tracking-[0.12em] text-[#f2f4f8]"
+        style={{ fontFamily: "var(--font-luxury)", textShadow: `0 0 22px ${v.chip}55` }}
       >
         {title}
       </h3>
 
       {/* الوصف */}
-      <p className="relative mt-3 text-[0.8rem] leading-relaxed text-[#8b95a5]">
+      <p className="relative mt-3 text-[0.8rem] leading-relaxed text-[#9aa4b2]">
         {desc}
       </p>
 
@@ -164,6 +214,7 @@ export default function ProjectsSection({
                 active={tab === "digital"}
                 onClick={() => setTab(tab === "digital" ? null : "digital")}
                 offset="sm:-mt-6"
+                variant="digital"
               />
               {/* بطاقة وسط أعلى: المشاريع الواقعية */}
               <CardStagger
@@ -178,6 +229,7 @@ export default function ProjectsSection({
                 active={tab === "physical"}
                 onClick={() => setTab(tab === "physical" ? null : "physical")}
                 offset="sm:-mt-14"
+                variant="physical"
               />
               {/* بطاقة يمين: تقديم مشروع */}
               <CardStagger
@@ -192,6 +244,7 @@ export default function ProjectsSection({
                 active={tab === "submit"}
                 onClick={() => setTab(tab === "submit" ? null : "submit")}
                 offset="sm:-mt-6"
+                variant="submit"
               />
             </div>
           </div>
