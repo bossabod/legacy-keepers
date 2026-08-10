@@ -222,7 +222,33 @@ export default function LoginScreen({
       </header>
 
       {/* ====== Main Two-Column Gateway Panels ====== */}
-      <main className="relative z-20 flex-1 flex items-center justify-center py-10 px-4 sm:px-8">
+      <main className="relative z-20 flex-1 flex flex-col items-center justify-center py-10 px-4 sm:px-8">
+        {/* Central emblem — main visual element */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, delay: 0.3, ease: [0.2, 0.7, 0.2, 1] }}
+          className="mb-8 flex flex-col items-center"
+        >
+          <div className="relative">
+            {/* soft halo behind emblem */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -inset-6 rounded-full"
+              style={{ background: "radial-gradient(50% 50% at 50% 50%, rgba(195,201,211,0.14), transparent 70%)", filter: "blur(6px)" }}
+            />
+            {/* the uploaded emblem — original proportions, no distortion */}
+            <img
+              src="/images/BD60D113-2836-48F0-A78C-CD8269081B2A.png"
+              alt="Emblem"
+              style={{ width: "min(30vw, 320px)", height: "auto", aspectRatio: "1575 / 999" }}
+              className="relative select-none object-contain"
+              draggable={false}
+            />
+          </div>
+          <div className="mt-5 h-px w-40 bg-gradient-to-r from-transparent via-[#c3c9d3]/40 to-transparent" />
+        </motion.div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 w-full max-w-5xl items-center justify-items-center">
           
           {/* ===== Left Panel: Member Login ===== */}
