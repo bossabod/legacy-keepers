@@ -4,6 +4,7 @@ import * as maplibregl from "maplibre-gl";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { NETWORK_TARGETS, type NetworkTarget } from "@/lib/network-targets";
+import { buildNodesGeoJSON, buildLinksGeoJSON } from "@/lib/network-links";
 
 /* ==================================================================
    NetworkMap — interactive satellite map (MapLibre GL) with subtle red
@@ -217,11 +218,67 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
       } catch (e) {
         /* keep default */
       }
+
+      // ---- worldwide relations network overlay (nodes + links) ----
+      try {
+        mapReady.addSource("net-nodes", { type: "geojson", data: buildNodesGeoJSON() as any });
+        mapReady.addSource("net-links", { type: "geojson", data: buildLinksGeoJSON() as any });
+
+        // links: thin luminous dark-blue lines
+        mapReady.addLayer({
+          id: "net-link-glow",
+          source: "net-links",
+          type: "line",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#2a7fff", "line-width": 2.2, "line-opacity": 0.18 },
+        });
+        mapReady.addLayer({
+          id: "net-link",
+          source: "net-links",
+          type: "line",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#3d8bff", "line-width": 1, "line-opacity": 0.7 },
+        });
+
+        // nodes: small glowing white points
+        mapReady.addLayer({
+          id: "net-node-halo",
+          source: "net-nodes",
+          type: "circle",
+          paint: {
+            "circle-radius": ["case", ["get", "hub"], 7, 5],
+            "circle-color": "#ffffff",
+            "circle-opacity": 0.25,
+            "circle-blur": 0.9,
+          },
+        });
+        mapReady.addLayer({
+          id: "net-node",
+          source: "net-nodes",
+          type: "circle",
+          paint: {
+            "circle-radius": ["case", ["get", "hub"], 3.2, 2.4],
+            "circle-color": "#ffffff",
+            "circle-opacity": 0.95,
+            "circle-stroke-color": "#9cc4ff",
+            "circle-stroke-width": 0.8,
+          },
+        });
+      } catch (e) {
+        // network overlay optional — map still works
+      }
     });
 
     (el as any).__globeApi = {
       zoomIn: () => map?.zoomIn(),
       zoomOut: () => map?.zoomOut(),
+      setNetwork: (on: boolean) => {
+        if (!map) return;
+        const ids = ["net-link-glow", "net-link", "net-node-halo", "net-node"];
+        for (const id of ids) {
+          if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
+        }
+      },
       set3D: (on: boolean) => {
         if (!map) return;
         if (on) {
