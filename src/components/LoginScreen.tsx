@@ -7,7 +7,7 @@ import { Pulse } from "@/components/ui";
 import { play } from "@/lib/sound";
 
 /* ===== Realistic 25x25 QR Code Generator ===== */
-function RealisticQRCode({ seed, size = 180 }: { seed: number; size?: number }) {
+function RealisticQRCode({ seed, size = 204 }: { seed: number; size?: number }) {
   const grid = useMemo(() => {
     const N = 25;
     const cells: boolean[][] = Array.from({ length: N }, () => Array(N).fill(false));
@@ -82,8 +82,14 @@ function RealisticQRCode({ seed, size = 180 }: { seed: number; size?: number }) 
 
   return (
     <div
-      className="grid grid-cols-25 gap-[1.5px] p-3 sm:p-3.5 rounded-xl bg-[#f0f3f8] shadow-[0_4px_15px_rgba(0,0,0,0.6)]"
-      style={{ width: size, height: size }}
+      className="grid rounded-[10px] bg-[#f0f3f8] shadow-[0_2px_10px_rgba(0,0,0,0.45)] p-2 gap-px"
+      style={{
+        width: size,
+        height: size,
+        gridTemplateColumns: "repeat(25, minmax(0, 1fr))",
+        gridTemplateRows: "repeat(25, minmax(0, 1fr))",
+        aspectRatio: "1 / 1",
+      }}
     >
       {grid.map((row, rIdx) =>
         row.map((on, cIdx) => (
@@ -92,6 +98,8 @@ function RealisticQRCode({ seed, size = 180 }: { seed: number; size?: number }) 
             style={{
               background: on ? "#080a0f" : "transparent",
               borderRadius: "1px",
+              width: "100%",
+              height: "100%",
             }}
           />
         ))
@@ -222,35 +230,35 @@ export default function LoginScreen({
         </div>
       </header>
 
-      {/* ====== Main Two-Column Gateway Panels ====== */}
-      <main className="relative z-20 flex-1 flex items-center justify-center py-10 px-4 sm:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 w-full max-w-5xl items-center justify-items-center">
+      {/* ====== Main Two-Column Gateway Panels — PERFECTLY BALANCED ====== */}
+      <main className="relative z-20 flex-1 flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-6 w-full max-w-[920px] items-stretch justify-items-center mx-auto">
           
-          {/* ===== Left Panel: Member Login ===== */}
+          {/* ===== Left Panel: Member Login — EQUAL SIZE CARD ===== */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1, ease: [0.2, 0.7, 0.2, 1] }}
-            className="relative w-full max-w-md rounded-2xl p-8 sm:p-10 backdrop-blur-2xl bg-gradient-to-b from-[#0e1118]/90 via-[#080a0e]/92 to-[#040507]/95 border border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden"
+            className="relative flex w-full max-w-[440px] h-full min-h-[560px] lg:min-h-[580px] flex-col rounded-2xl p-7 sm:p-8 backdrop-blur-2xl bg-gradient-to-b from-[#0e1118]/90 via-[#080a0e]/92 to-[#040507]/95 border border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden"
           >
             {/* Subtle top metallic shine */}
             <span className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-50" />
 
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between">
               <span className="font-mono text-[0.65rem] tracking-[0.3em] uppercase text-[#8b95a5]">
                 MEMBER ACCESS
               </span>
               <span className="h-1.5 w-1.5 rounded-full bg-[#c3c9d3] shadow-[0_0_8px_#c3c9d3]" />
             </div>
 
-            <h2 className="font-luxury text-2xl sm:text-3xl font-semibold tracking-[0.08em] text-[#eaeef5] uppercase mb-2">
+            <h2 className="font-luxury text-2xl sm:text-[1.7rem] font-semibold tracking-[0.08em] text-[#eaeef5] uppercase mt-4">
               Member Login
             </h2>
-            <p className="font-sans text-xs sm:text-sm text-[#7f8896] leading-relaxed mb-7">
+            <p className="font-sans text-[0.8rem] sm:text-sm text-[#7f8896] leading-relaxed mt-2">
               Enter your verified credentials to decrypt the inner circle channel.
             </p>
 
-            <form onSubmit={submit} className="space-y-5">
+            <form onSubmit={submit} className="space-y-4 mt-6 flex-1 flex flex-col">
               {/* Membership ID Field (No Placeholder) */}
               <div className="space-y-2 text-left">
                 <label className="block font-mono text-[0.68rem] uppercase tracking-[0.22em] text-[#aeb6c2]">
@@ -282,7 +290,7 @@ export default function LoginScreen({
               </div>
 
               {/* Submit Button */}
-              <div className="pt-3">
+              <div className="pt-2">
                 <button
                   type="submit"
                   disabled={verifying}
@@ -309,6 +317,8 @@ export default function LoginScreen({
                   )}
                 </button>
               </div>
+              {/* spacer to push footer down and keep vertical rhythm balanced */}
+              <div className="flex-1" />
             </form>
 
             <div className="mt-6 pt-5 border-t border-white/[0.06] flex items-center justify-between text-[0.68rem] font-mono text-[#565d68]">
@@ -320,16 +330,16 @@ export default function LoginScreen({
             </div>
           </motion.div>
 
-          {/* ===== Right Panel: QR Access Gate ===== */}
+          {/* ===== Right Panel: QR Access Gate — EQUAL SIZE CARD ===== */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.2, ease: [0.2, 0.7, 0.2, 1] }}
-            className="relative w-full max-w-md rounded-2xl p-8 sm:p-10 backdrop-blur-2xl bg-gradient-to-b from-[#11141c]/90 via-[#0a0d13]/92 to-[#06070a]/95 border border-[#c3c9d3]/25 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.1)] overflow-hidden"
+            className="relative flex w-full max-w-[440px] h-full min-h-[560px] lg:min-h-[580px] flex-col rounded-2xl p-7 sm:p-8 backdrop-blur-2xl bg-gradient-to-b from-[#11141c]/90 via-[#0a0d13]/92 to-[#06070a]/95 border border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden"
           >
             <span className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-50" />
 
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between">
               <span className="font-mono text-[0.65rem] tracking-[0.3em] uppercase text-[#8b95a5]">
                 VISUAL AUTHENTICATION
               </span>
@@ -338,33 +348,31 @@ export default function LoginScreen({
               </span>
             </div>
 
-            <h2 className="font-luxury text-2xl sm:text-3xl font-semibold tracking-[0.08em] text-[#eaeef5] uppercase mb-2">
+            <h2 className="font-luxury text-2xl sm:text-[1.7rem] font-semibold tracking-[0.08em] text-[#eaeef5] uppercase mt-4">
               QR Access Gate
             </h2>
-            <p className="font-sans text-xs sm:text-sm text-[#7f8896] leading-relaxed mb-6">
+            <p className="font-sans text-[0.8rem] sm:text-sm text-[#7f8896] leading-relaxed mt-2">
               Scan the dynamic security token with your verified mobile terminal. Regenerates automatically.
             </p>
 
-            {/* Realistic QR Code Only - No Horizontal Barcode */}
-            <div className="flex flex-col items-center justify-center my-6">
-              <div className="relative p-3.5 sm:p-4 rounded-2xl bg-gradient-to-b from-[#1e232d] to-[#0a0c10] border border-[#c3c9d3]/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_15px_35px_rgba(0,0,0,0.6),0_0_25px_rgba(195,201,211,0.08)] group/qr transition-all duration-500 hover:border-[#c3c9d3]/50">
+            {/* QR Block — tight to description, large, centered, proportionate */}
+            <div className="flex flex-col items-center mt-4 gap-3">
+              <div className="relative p-[10px] rounded-2xl bg-gradient-to-b from-[#1e232d] to-[#0a0c10] border border-[#c3c9d3]/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_15px_35px_rgba(0,0,0,0.6),0_0_25px_rgba(195,201,211,0.06)] group/qr transition-all duration-500 hover:border-[#c3c9d3]/50">
                 <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-[#c3c9d3]/70 rounded-tl" />
                 <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-[#c3c9d3]/70 rounded-tr" />
                 <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-[#c3c9d3]/70 rounded-bl" />
                 <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-[#c3c9d3]/70 rounded-br" />
 
-                <RealisticQRCode seed={seed} size={180} />
+                <RealisticQRCode seed={seed} size={204} />
               </div>
 
-              <div className="mt-4 flex items-center justify-between w-full max-w-[208px] font-mono text-[0.65rem] text-[#8b95a5]">
+              <div className="flex items-center justify-between w-full max-w-[224px] font-mono text-[0.65rem] text-[#8b95a5] px-1">
                 <span>TOKEN: {code.slice(0, 8)}</span>
-                <span className="text-[#c3c9d3]">{count}s</span>
+                <span className="text-[#c3c9d3] tabular-nums">{count}s</span>
               </div>
-            </div>
 
-            {/* Countdown Progress Bar */}
-            <div className="space-y-2 mb-6">
-              <div className="h-1 w-full overflow-hidden rounded-full bg-[#050609] border border-white/[0.06] p-[1px]">
+              {/* Countdown Progress Bar — tightly under TOKEN */}
+              <div className="h-1 w-full max-w-[224px] overflow-hidden rounded-full bg-[#050609] border border-white/[0.06] p-[1px]">
                 <motion.div
                   className="h-full rounded-full bg-gradient-to-r from-[#565d68] via-[#aeb6c2] to-[#eaeef5]"
                   animate={{ width: `${(count / 15) * 100}%` }}
@@ -383,13 +391,13 @@ export default function LoginScreen({
                 play("select");
               }}
               onMouseEnter={() => play("hover")}
-              className="group relative w-full overflow-hidden rounded-xl py-3.5 px-6 font-mono text-xs tracking-[0.25em] uppercase text-[#c3c9d3] transition-all duration-300 hover:text-white border border-[#383f4d]/80 bg-[#07090e]/80 hover:border-[#c3c9d3]/40 hover:bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.5)] flex items-center justify-center gap-2.5"
+              className="group relative w-full overflow-hidden rounded-xl py-3.5 px-6 font-mono text-xs tracking-[0.25em] uppercase text-[#c3c9d3] transition-all duration-300 hover:text-white border border-[#383f4d]/80 bg-[#07090e]/80 hover:border-[#c3c9d3]/40 hover:bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.5)] flex items-center justify-center gap-2.5 mt-4"
             >
               <RefreshCw size={14} className="transition-transform duration-500 group-hover:rotate-180" />
               <span>Refresh</span>
             </button>
 
-            <div className="mt-6 pt-5 border-t border-white/[0.06] text-center font-mono text-[0.65rem] text-[#565d68]">
+            <div className="mt-auto pt-5 border-t border-white/[0.06] text-center font-mono text-[0.65rem] text-[#565d68]">
               SESSION HASH: <span className="text-[#8b95a5] select-all">{code}</span>
             </div>
           </motion.div>
