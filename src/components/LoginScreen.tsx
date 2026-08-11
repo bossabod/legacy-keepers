@@ -82,13 +82,16 @@ function RealisticQRCode({ seed, size = 220 }: { seed: number; size?: number }) 
 
   return (
     <div
-      className="grid rounded-[10px] bg-[#f0f3f8] shadow-[0_2px_10px_rgba(0,0,0,0.45)] p-2 gap-px"
+      className="grid shrink-0 rounded-[10px] bg-[#f0f3f8] shadow-[0_2px_10px_rgba(0,0,0,0.45)] p-2 gap-px"
       style={{
         width: size,
         height: size,
+        minWidth: size,
+        minHeight: size,
         gridTemplateColumns: "repeat(25, minmax(0, 1fr))",
         gridTemplateRows: "repeat(25, minmax(0, 1fr))",
         aspectRatio: "1 / 1",
+        flexShrink: 0,
       }}
     >
       {grid.map((row, rIdx) =>
@@ -355,9 +358,9 @@ export default function LoginScreen({
               Scan the dynamic security token with your verified mobile terminal. Regenerates automatically.
             </p>
 
-            {/* QR Block — tight to description, large, centered, proportionate */}
+            {/* QR Block — tight to description, large, centered, proportionate — locked size no shrink */}
             <div className="flex flex-col items-center mt-4 gap-3">
-              <div className="relative p-[10px] rounded-2xl bg-gradient-to-b from-[#1e232d] to-[#0a0c10] border border-[#c3c9d3]/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_15px_35px_rgba(0,0,0,0.6),0_0_25px_rgba(195,201,211,0.06)] group/qr transition-all duration-500 hover:border-[#c3c9d3]/50">
+              <div className="relative p-[10px] rounded-2xl bg-gradient-to-b from-[#1e232d] to-[#0a0c10] border border-[#c3c9d3]/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_15px_35px_rgba(0,0,0,0.6),0_0_25px_rgba(195,201,211,0.06)] group/qr transition-all duration-500 hover:border-[#c3c9d3]/50 w-[242px] h-[242px] flex items-center justify-center shrink-0 box-border">
                 <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-[#c3c9d3]/70 rounded-tl" />
                 <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-[#c3c9d3]/70 rounded-tr" />
                 <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-[#c3c9d3]/70 rounded-bl" />
@@ -366,13 +369,13 @@ export default function LoginScreen({
                 <RealisticQRCode seed={seed} size={220} />
               </div>
 
-              <div className="flex items-center justify-between w-full max-w-[240px] font-mono text-[0.65rem] text-[#8b95a5] px-1">
+              <div className="flex items-center justify-between w-full max-w-[242px] font-mono text-[0.65rem] text-[#8b95a5] px-1">
                 <span>TOKEN: {code.slice(0, 8)}</span>
                 <span className="text-[#c3c9d3] tabular-nums">{count}s</span>
               </div>
 
               {/* Countdown Progress Bar — tightly under TOKEN */}
-              <div className="h-1 w-full max-w-[240px] overflow-hidden rounded-full bg-[#050609] border border-white/[0.06] p-[1px]">
+              <div className="h-1 w-full max-w-[242px] overflow-hidden rounded-full bg-[#050609] border border-white/[0.06] p-[1px]">
                 <motion.div
                   className="h-full rounded-full bg-gradient-to-r from-[#565d68] via-[#aeb6c2] to-[#eaeef5]"
                   animate={{ width: `${(count / 15) * 100}%` }}
