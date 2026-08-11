@@ -65,7 +65,7 @@ export default function LoginScreen({
         <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-16 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
       </div>
 
-      {/* ====== Top Navigation — clean, no Contact the Club ====== */}
+      {/* ====== Top Navigation ====== */}
       <header className="relative z-30 flex items-center justify-between px-6 py-6 sm:px-12 lg:px-16 w-full">
         <div className="flex items-center">
           <button
