@@ -82,12 +82,14 @@ function RealisticQRCode({ seed, size = 224 }: { seed: number; size?: number }) 
 
   return (
     <div
-      className="grid shrink-0 rounded-[10px] bg-[#f0f3f8] shadow-[0_2px_10px_rgba(0,0,0,0.45)] p-[6px] gap-px"
+      className="grid shrink-0 rounded-[10px] bg-[#f0f3f8] shadow-[0_2px_10px_rgba(0,0,0,0.45)] p-[4px] gap-[1px]"
       style={{
         width: size,
         height: size,
         minWidth: size,
         minHeight: size,
+        maxWidth: size,
+        maxHeight: size,
         gridTemplateColumns: "repeat(25, minmax(0, 1fr))",
         gridTemplateRows: "repeat(25, minmax(0, 1fr))",
         aspectRatio: "1 / 1",
@@ -360,13 +362,13 @@ export default function LoginScreen({
 
             {/* QR Block — tight to description, large, centered, proportionate — locked size no shrink */}
             <div className="flex flex-col items-center mt-4 gap-3">
-              <div className="relative p-[8px] rounded-2xl bg-gradient-to-b from-[#1e232d] to-[#0a0c10] border border-[#c3c9d3]/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_15px_35px_rgba(0,0,0,0.6),0_0_25px_rgba(195,201,211,0.06)] group/qr transition-all duration-500 hover:border-[#c3c9d3]/50 w-[242px] h-[242px] flex items-center justify-center shrink-0 box-border">
+              <div className="relative p-[8px] rounded-2xl bg-gradient-to-b from-[#1e232d] to-[#0a0c10] border border-[#c3c9d3]/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_15px_35px_rgba(0,0,0,0.6),0_0_25px_rgba(195,201,211,0.06)] group/qr transition-colors duration-300 hover:border-[#c3c9d3]/50 w-[242px] h-[242px] flex items-center justify-center shrink-0 box-border">
                 <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-[#c3c9d3]/70 rounded-tl" />
                 <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-[#c3c9d3]/70 rounded-tr" />
                 <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-[#c3c9d3]/70 rounded-bl" />
                 <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-[#c3c9d3]/70 rounded-br" />
 
-                <RealisticQRCode seed={seed} size={224} />
+                <RealisticQRCode key={seed} seed={seed} size={224} />
               </div>
 
               <div className="flex items-center justify-between w-full max-w-[242px] font-mono text-[0.65rem] text-[#8b95a5] px-1">
