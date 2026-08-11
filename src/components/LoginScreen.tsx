@@ -7,14 +7,14 @@ import { Cursor, Logo } from "@/components/brand";
 import { Pulse } from "@/components/ui";
 import { play } from "@/lib/sound";
 
-/* ===== QR Code حقيقي يتولّد برمجياً من القيمة المتغيرة ===== */
+/* ===== QR Code حقيقي يتولّد برمجياً، يتناسب مع حاويته مربعاً 1:1 ===== */
 function LiveQRCode({ value, size = 168 }: { value: string; size?: number }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
 
+  // ارسم الـ QR بحجم ثابت عالي الدقة؛ ثم يُعرض canvas بملء الحاوية (مربع 1:1)
   useEffect(() => {
     if (!canvasRef.current) return;
-    let cancelled = false;
-    // ارسم بالبكسل العالي للوضوح، ثم تُثبَّت أبعاد العرض بالبكسل (مربع 1:1)
     QRCode.toCanvas(canvasRef.current, value, {
       width: size * 2,
       margin: 3,
@@ -23,23 +23,40 @@ function LiveQRCode({ value, size = 168 }: { value: string; size?: number }) {
     })
       .then(() => {})
       .catch(() => {});
-    return () => { cancelled = true; };
   }, [value, size]);
+
+  // قِس حاوية الـ QR واضبط ارتفاع canvas ليطابق عرضها (مربع 1:1 دائماً)
+  useEffect(() => {
+    const el = wrapRef.current;
+    const cv = canvasRef.current;
+    if (!el || !cv) return;
+    const sync = () => {
+      const w = el.clientWidth || 0;
+      if (w > 0) {
+        cv.style.width = `${w}px`;
+        cv.style.height = `${w}px`;
+      }
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   return (
     <div
-      className="flex items-center justify-center overflow-hidden rounded-xl bg-[#f0f3f8] shadow-[0_4px_15px_rgba(0,0,0,0.6)]"
-      style={{ width: size, height: size, flexShrink: 0 }}
+      ref={wrapRef}
+      className="flex items-center justify-center overflow-hidden rounded-xl bg-[#f0f3f8] shadow-[0_4px_15px_rgba(0,0,0,0.5)]"
+      style={{ width: "100%", aspectRatio: "1 / 1", flexShrink: 0 }}
     >
       <canvas
         ref={canvasRef}
         className="block"
         style={{
-          width: size,
-          height: size,
-          aspectRatio: "1 / 1",
           display: "block",
           imageRendering: "auto",
+          width: "100%",
+          aspectRatio: "1 / 1",
         }}
       />
     </div>
@@ -263,60 +280,81 @@ export default function LoginScreen({
             </div>
           </motion.div>
 
-          {/* ===== Right Panel: QR Access Gate ===== */}
+          {/* ===== Right Panel: QR Access Gate (أعيد بناؤه بالكامل) ===== */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.2, ease: [0.2, 0.7, 0.2, 1] }}
-            className="relative w-full max-w-md rounded-2xl p-8 sm:p-10 backdrop-blur-2xl bg-gradient-to-b from-[#11141c]/90 via-[#0a0d13]/92 to-[#06070a]/95 border border-[#c3c9d3]/25 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.1)] overflow-hidden"
+            className="relative w-full max-w-md rounded-2xl p-6 sm:p-8 backdrop-blur-2xl bg-gradient-to-b from-[#0f1522]/95 via-[#0a0e18]/96 to-[#05070d]/97 border border-[#3a5a86]/40 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(120,180,255,0.10)] overflow-hidden"
           >
-            <span className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-50" />
+            {/* توهّج علوي أزرق */}
+            <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7fb0ff]/60 to-transparent opacity-80" />
+            {/* توهّج جانبي خفيف */}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-20 left-1/2 h-40 w-72 -translate-x-1/2 rounded-full opacity-40"
+              style={{ background: "radial-gradient(50% 50% at 50% 50%, rgba(90,150,255,0.16), transparent 70%)", filter: "blur(6px)" }}
+            />
 
-            <div className="flex items-center justify-between mb-4">
-              <span className="font-mono text-[0.65rem] tracking-[0.3em] uppercase text-[#8b95a5]">
-                VISUAL AUTHENTICATION
+            {/* ===== 1) العنوان العلوي ===== */}
+            <div className="relative flex items-center justify-between mb-3">
+              <span className="font-mono text-[0.6rem] sm:text-[0.65rem] tracking-[0.3em] uppercase text-[#8b95a5]">
+                Visual Authentication
               </span>
-              <span className="font-mono text-[0.65rem] text-[#aeb6c2]">
+              <span className="font-mono text-[0.6rem] sm:text-[0.65rem] tracking-widest text-[#7fb0ff]/80">
                 TOKEN &middot; V2.4
               </span>
             </div>
 
-            <h2 className="font-luxury text-2xl sm:text-3xl font-semibold tracking-[0.08em] text-[#eaeef5] uppercase mb-2">
+            {/* ===== 2) العنوان الرئيسي والوصف ===== */}
+            <h2 className="relative font-luxury text-2xl sm:text-3xl font-semibold tracking-[0.12em] text-[#eaeef5] uppercase mb-2">
               QR Access Gate
             </h2>
-            <p className="font-sans text-xs sm:text-sm text-[#7f8896] leading-relaxed mb-6">
+            <p className="relative font-sans text-xs sm:text-sm text-[#8b95a5] leading-relaxed mb-6">
               Scan the dynamic security token with your verified mobile terminal. Regenerates automatically.
             </p>
 
-            {/* Realistic QR Code Only - No Horizontal Barcode */}
-            <div className="flex flex-col items-center justify-center my-6">
-              <div className="relative p-6 sm:p-7 rounded-2xl bg-gradient-to-b from-[#1e232d] to-[#0a0c10] border border-[#c3c9d3]/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_15px_35px_rgba(0,0,0,0.6),0_0_25px_rgba(195,201,211,0.08)] group/qr transition-all duration-500 hover:border-[#c3c9d3]/50">
-                <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-[#c3c9d3]/70 rounded-tl" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-[#c3c9d3]/70 rounded-tr" />
-                <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-[#c3c9d3]/70 rounded-bl" />
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-[#c3c9d3]/70 rounded-br" />
+            {/* ===== 3) منطقة QR — مربع 1:1 ثابت، متوسّط، بهامش متساوٍ ===== */}
+            <div className="relative flex flex-col items-center justify-center my-6">
+              {/* الإطار الخارجي — مربع ثابت الأبعاد */}
+              <div className="relative grid place-items-center rounded-2xl border border-[#3a5a86]/40 bg-gradient-to-b from-[#0c1220] to-[#060a12] shadow-[inset_0_2px_10px_rgba(0,0,0,0.8),0_12px_35px_rgba(0,0,0,0.6)] p-4"
+                style={{ width: "clamp(200px, 70vw, 264px)", height: "clamp(200px, 70vw, 264px)", aspectRatio: "1 / 1" }}
+              >
+                {/* زوايا تقنية */}
+                <span className="pointer-events-none absolute -top-0.5 -left-0.5 h-4 w-4 border-t-2 border-l-2 border-[#7fb0ff]/70 rounded-tl" />
+                <span className="pointer-events-none absolute -top-0.5 -right-0.5 h-4 w-4 border-t-2 border-r-2 border-[#7fb0ff]/70 rounded-tr" />
+                <span className="pointer-events-none absolute -bottom-0.5 -left-0.5 h-4 w-4 border-b-2 border-l-2 border-[#7fb0ff]/70 rounded-bl" />
+                <span className="pointer-events-none absolute -bottom-0.5 -right-0.5 h-4 w-4 border-b-2 border-r-2 border-[#7fb0ff]/70 rounded-br" />
 
-                <LiveQRCode value={code} size={168} />
+                {/* الـ QR — بحجم مضمون يتناسب مع الإطار وبدون قص */}
+                <div className="grid place-items-center" style={{ width: "82%", height: "82%" }}>
+                  <LiveQRCode value={code} size={1} />
+                </div>
               </div>
 
-              <div className="mt-4 flex items-center justify-between w-full max-w-[208px] font-mono text-[0.65rem] text-[#8b95a5]">
-                <span>TOKEN: {code.slice(0, 8)}</span>
-                <span className="text-[#c3c9d3]">{count}s</span>
+              {/* ===== 4) TOKEN + العداد ===== */}
+              <div className="relative mt-4 flex w-full items-center justify-between max-w-[240px] font-mono text-[0.65rem] sm:text-[0.7rem] text-[#8b95a5]">
+                <span>
+                  TOKEN: <span className="text-[#c3c9d3]">{code.slice(0, 8)}</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#7fb0ff] shadow-[0_0_8px_#7fb0ff]" />
+                  <span className="text-[#eaeef5]">{count}s</span>
+                </span>
               </div>
-            </div>
 
-            {/* Countdown Progress Bar */}
-            <div className="space-y-2 mb-6">
-              <div className="h-1 w-full overflow-hidden rounded-full bg-[#050609] border border-white/[0.06] p-[1px]">
+              {/* شريط العد التنازلي */}
+              <div className="relative mt-3 h-1 w-full max-w-[240px] overflow-hidden rounded-full bg-[#050609] border border-white/[0.06] p-[1px]">
                 <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-[#565d68] via-[#aeb6c2] to-[#eaeef5]"
+                  className="h-full rounded-full bg-gradient-to-r from-[#2a4a7a] via-[#7fb0ff] to-[#c3d9ff]"
                   animate={{ width: `${(count / 15) * 100}%` }}
                   transition={{ ease: "linear", duration: 1 }}
                 />
               </div>
             </div>
 
-            {/* Refresh Button */}
+            {/* ===== 5) خط فاصل + زر Refresh ===== */}
+            <div className="relative mb-5 mt-2 h-px w-full bg-gradient-to-r from-transparent via-[#3a5a86]/50 to-transparent" />
             <button
               type="button"
               onClick={() => {
@@ -325,13 +363,14 @@ export default function LoginScreen({
                 play("select");
               }}
               onMouseEnter={() => play("hover")}
-              className="group relative w-full overflow-hidden rounded-xl py-3.5 px-6 font-mono text-xs tracking-[0.25em] uppercase text-[#c3c9d3] transition-all duration-300 hover:text-white border border-[#383f4d]/80 bg-[#07090e]/80 hover:border-[#c3c9d3]/40 hover:bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.5)] flex items-center justify-center gap-2.5"
+              className="group relative w-full overflow-hidden rounded-xl py-3.5 px-6 font-mono text-xs tracking-[0.25em] uppercase text-[#c3c9d3] transition-all duration-300 hover:text-white border border-[#3a5a86]/50 bg-gradient-to-b from-[#0c1422]/80 to-[#060a12]/90 hover:border-[#7fb0ff]/60 hover:bg-white/[0.04] shadow-[inset_0_1px_0_rgba(127,176,255,0.10),0_4px_12px_rgba(0,0,0,0.5)] flex items-center justify-center gap-2.5"
             >
               <RefreshCw size={14} className="transition-transform duration-500 group-hover:rotate-180" />
               <span>Refresh</span>
             </button>
 
-            <div className="mt-6 pt-5 border-t border-white/[0.06] text-center font-mono text-[0.65rem] text-[#565d68]">
+            {/* ===== 6) Session Hash ===== */}
+            <div className="relative mt-5 pt-4 border-t border-white/[0.06] text-center font-mono text-[0.6rem] sm:text-[0.65rem] text-[#565d68]">
               SESSION HASH: <span className="text-[#8b95a5] select-all">{code}</span>
             </div>
           </motion.div>
