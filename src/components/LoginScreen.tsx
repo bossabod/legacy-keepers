@@ -1,10 +1,68 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
-import { Loader2, Lock, ArrowLeft, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { RefreshCw, Loader2, Lock, ArrowLeft, X } from "lucide-react";
 import { Cursor, Logo } from "@/components/brand";
 import { Pulse } from "@/components/ui";
 import { play } from "@/lib/sound";
+import QRCode from "qrcode";
+
+/* ===== Real QR that encodes fixed JOIN page URL — scannable on mobile ===== */
+function JoinQR({ size = 224 }: { size?: number }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [joinUrl, setJoinUrl] = useState("https://bossabod.github.io/legacy-keepers/join");
+
+  useEffect(() => {
+    // fixed link even after token refresh — use origin + /join on client
+    const url = typeof window !== "undefined" ? `${window.location.origin}/join` : "https://bossabod.github.io/legacy-keepers/join";
+    setJoinUrl(url);
+    QRCode.toDataURL(url, {
+      width: 512,
+      margin: 1,
+      color: { dark: "#080a0f", light: "#f0f3f8" },
+      errorCorrectionLevel: "M",
+    })
+      .then(setSrc)
+      .catch(() => setSrc(null));
+  }, []);
+
+  if (!src) {
+    return (
+      <div
+        className="shrink-0 rounded-[10px] bg-[#f0f3f8] animate-pulse"
+        style={{ width: size, height: size, minWidth: size, minHeight: size, maxWidth: size, maxHeight: size }}
+      />
+    );
+  }
+
+  return (
+    <a
+      href={joinUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Open Join Request page"
+      className="shrink-0 rounded-[10px] overflow-hidden bg-[#f0f3f8] shadow-[0_2px_10px_rgba(0,0,0,0.45)] p-[4px] flex items-center justify-center"
+      style={{ width: size, height: size, minWidth: size, minHeight: size, maxWidth: size, maxHeight: size, flexShrink: 0 }}
+      onClick={() => play("open")}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt="QR to Join Club"
+        width={size - 8}
+        height={size - 8}
+        className="w-full h-full object-contain rounded-[6px]"
+        style={{ aspectRatio: "1 / 1", imageRendering: "pixelated" as const }}
+      />
+    </a>
+  );
+}
+
+function randHex(n: number) {
+  let s = "";
+  for (let i = 0; i < n; i++) s += "0123456789ABCDEF"[Math.floor(Math.random() * 16)];
+  return s;
+}
 
 export default function LoginScreen({
   onAuthenticated,
@@ -16,8 +74,23 @@ export default function LoginScreen({
   const [membership, setMembership] = useState("");
   const [pass, setPass] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const [count, setCount] = useState(15);
+  const [code, setCode] = useState(() => randHex(16));
   const [contactOpen, setContactOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setCount((c) => {
+        if (c <= 1) {
+          setCode(randHex(16));
+          return 15;
+        }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,15 +178,16 @@ export default function LoginScreen({
         </div>
       </header>
 
-      {/* ====== Main Single Centered Card — MEMBER LOGIN only ====== */}
+      {/* ====== Main Two-Column Gateway Panels — PERFECTLY BALANCED ====== */}
       <main className="relative z-20 flex-1 flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8">
-        <div className="flex w-full justify-center">
-          {/* ===== Member Login — centered as main element ===== */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-6 w-full max-w-[920px] items-stretch justify-items-center mx-auto">
+          
+          {/* ===== Left Panel: Member Login — EQUAL SIZE CARD ===== */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1, ease: [0.2, 0.7, 0.2, 1] }}
-            className="relative flex w-full max-w-[440px] min-h-[560px] lg:min-h-[580px] flex-col rounded-2xl p-7 sm:p-8 backdrop-blur-2xl bg-gradient-to-b from-[#0e1118]/90 via-[#080a0e]/92 to-[#040507]/95 border border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden"
+            className="relative flex w-full max-w-[440px] h-full min-h-[560px] lg:min-h-[580px] flex-col rounded-2xl p-7 sm:p-8 backdrop-blur-2xl bg-gradient-to-b from-[#0e1118]/90 via-[#080a0e]/92 to-[#040507]/95 border border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden"
           >
             {/* Subtle top metallic shine */}
             <span className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-50" />
@@ -203,6 +277,78 @@ export default function LoginScreen({
               <span>256-BIT ENCRYPTION</span>
             </div>
           </motion.div>
+
+          {/* ===== Right Panel: QR Access Gate — EQUAL SIZE CARD ===== */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.2, ease: [0.2, 0.7, 0.2, 1] }}
+            className="relative flex w-full max-w-[440px] h-full min-h-[560px] lg:min-h-[580px] flex-col rounded-2xl p-7 sm:p-8 backdrop-blur-2xl bg-gradient-to-b from-[#11141c]/90 via-[#0a0d13]/92 to-[#06070a]/95 border border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden"
+          >
+            <span className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-50" />
+
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[0.65rem] tracking-[0.3em] uppercase text-[#8b95a5]">
+                VISUAL AUTHENTICATION
+              </span>
+              <span className="font-mono text-[0.65rem] text-[#aeb6c2]">
+                TOKEN &middot; V2.4
+              </span>
+            </div>
+
+            <h2 className="font-luxury text-2xl sm:text-[1.7rem] font-semibold tracking-[0.08em] text-[#eaeef5] uppercase mt-4">
+              QR Access Gate
+            </h2>
+            <p className="font-sans text-[0.8rem] sm:text-sm text-[#7f8896] leading-relaxed mt-2">
+              Scan the dynamic security token with your verified mobile terminal. Regenerates automatically.
+            </p>
+
+            {/* QR Block — real scannable QR fixed to /join, large, centered, proportionate — locked size no shrink */}
+            <div className="flex flex-col items-center mt-4 gap-3">
+              <div className="relative p-[8px] rounded-2xl bg-gradient-to-b from-[#1e232d] to-[#0a0c10] border border-[#c3c9d3]/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_15px_35px_rgba(0,0,0,0.6),0_0_25px_rgba(195,201,211,0.06)] group/qr transition-colors duration-300 hover:border-[#c3c9d3]/50 w-[242px] h-[242px] flex items-center justify-center shrink-0 box-border">
+                <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-[#c3c9d3]/70 rounded-tl" />
+                <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-[#c3c9d3]/70 rounded-tr" />
+                <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-[#c3c9d3]/70 rounded-bl" />
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-[#c3c9d3]/70 rounded-br" />
+
+                <JoinQR size={224} />
+              </div>
+
+              <div className="flex items-center justify-between w-full max-w-[242px] font-mono text-[0.65rem] text-[#8b95a5] px-1">
+                <span>TOKEN: {code.slice(0, 8)}</span>
+                <span className="text-[#c3c9d3] tabular-nums">{count}s</span>
+              </div>
+
+              {/* Countdown Progress Bar — tightly under TOKEN */}
+              <div className="h-1 w-full max-w-[242px] overflow-hidden rounded-full bg-[#050609] border border-white/[0.06] p-[1px]">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-[#565d68] via-[#aeb6c2] to-[#eaeef5]"
+                  animate={{ width: `${(count / 15) * 100}%` }}
+                  transition={{ ease: "linear", duration: 1 }}
+                />
+              </div>
+            </div>
+
+            {/* Refresh Button — token only, QR link stays fixed */}
+            <button
+              type="button"
+              onClick={() => {
+                setCode(randHex(16));
+                setCount(15);
+                play("select");
+              }}
+              onMouseEnter={() => play("hover")}
+              className="group relative w-full overflow-hidden rounded-xl py-3.5 px-6 font-mono text-xs tracking-[0.25em] uppercase text-[#c3c9d3] transition-all duration-300 hover:text-white border border-[#383f4d]/80 bg-[#07090e]/80 hover:border-[#c3c9d3]/40 hover:bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.5)] flex items-center justify-center gap-2.5 mt-4"
+            >
+              <RefreshCw size={14} className="transition-transform duration-500 group-hover:rotate-180" />
+              <span>Refresh</span>
+            </button>
+
+            <div className="mt-auto pt-5 border-t border-white/[0.06] text-center font-mono text-[0.65rem] text-[#565d68]">
+              SESSION HASH: <span className="text-[#8b95a5] select-all">{code}</span>
+            </div>
+          </motion.div>
+
         </div>
       </main>
 
