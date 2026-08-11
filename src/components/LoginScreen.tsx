@@ -7,7 +7,7 @@ import { Pulse } from "@/components/ui";
 import { play } from "@/lib/sound";
 
 /* ===== Realistic 25x25 QR Code Generator ===== */
-function RealisticQRCode({ seed, size = 204 }: { seed: number; size?: number }) {
+function RealisticQRCode({ seed, size = 220 }: { seed: number; size?: number }) {
   const grid = useMemo(() => {
     const N = 25;
     const cells: boolean[][] = Array.from({ length: N }, () => Array(N).fill(false));
@@ -363,16 +363,16 @@ export default function LoginScreen({
                 <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-[#c3c9d3]/70 rounded-bl" />
                 <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-[#c3c9d3]/70 rounded-br" />
 
-                <RealisticQRCode seed={seed} size={204} />
+                <RealisticQRCode seed={seed} size={220} />
               </div>
 
-              <div className="flex items-center justify-between w-full max-w-[224px] font-mono text-[0.65rem] text-[#8b95a5] px-1">
+              <div className="flex items-center justify-between w-full max-w-[240px] font-mono text-[0.65rem] text-[#8b95a5] px-1">
                 <span>TOKEN: {code.slice(0, 8)}</span>
                 <span className="text-[#c3c9d3] tabular-nums">{count}s</span>
               </div>
 
               {/* Countdown Progress Bar — tightly under TOKEN */}
-              <div className="h-1 w-full max-w-[224px] overflow-hidden rounded-full bg-[#050609] border border-white/[0.06] p-[1px]">
+              <div className="h-1 w-full max-w-[240px] overflow-hidden rounded-full bg-[#050609] border border-white/[0.06] p-[1px]">
                 <motion.div
                   className="h-full rounded-full bg-gradient-to-r from-[#565d68] via-[#aeb6c2] to-[#eaeef5]"
                   animate={{ width: `${(count / 15) * 100}%` }}
