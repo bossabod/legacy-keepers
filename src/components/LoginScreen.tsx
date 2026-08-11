@@ -8,12 +8,13 @@ import { Pulse } from "@/components/ui";
 import { play } from "@/lib/sound";
 
 /* ===== QR Code حقيقي يتولّد برمجياً من القيمة المتغيرة ===== */
-function LiveQRCode({ value, size = 176 }: { value: string; size?: number }) {
+function LiveQRCode({ value, size = 168 }: { value: string; size?: number }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
     let cancelled = false;
+    // ارسم بالبكسل العالي للوضوح، ثم تُثبَّت أبعاد العرض بالبكسل (مربع 1:1)
     QRCode.toCanvas(canvasRef.current, value, {
       width: size * 2,
       margin: 3,
@@ -28,12 +29,18 @@ function LiveQRCode({ value, size = 176 }: { value: string; size?: number }) {
   return (
     <div
       className="flex items-center justify-center overflow-hidden rounded-xl bg-[#f0f3f8] shadow-[0_4px_15px_rgba(0,0,0,0.6)]"
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, flexShrink: 0 }}
     >
       <canvas
         ref={canvasRef}
-        className="block rounded-xl"
-        style={{ width: "100%", height: "100%", display: "block" }}
+        className="block"
+        style={{
+          width: size,
+          height: size,
+          aspectRatio: "1 / 1",
+          display: "block",
+          imageRendering: "auto",
+        }}
       />
     </div>
   );
@@ -289,7 +296,7 @@ export default function LoginScreen({
                 <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-[#c3c9d3]/70 rounded-bl" />
                 <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-[#c3c9d3]/70 rounded-br" />
 
-                <LiveQRCode value={code} size={152} />
+                <LiveQRCode value={code} size={168} />
               </div>
 
               <div className="mt-4 flex items-center justify-between w-full max-w-[208px] font-mono text-[0.65rem] text-[#8b95a5]">
