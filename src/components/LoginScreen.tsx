@@ -1,123 +1,10 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
-import { RefreshCw, Loader2, Lock, ArrowLeft, X, Mail, Check, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import { Loader2, Lock, ArrowLeft, X } from "lucide-react";
 import { Cursor, Logo } from "@/components/brand";
 import { Pulse } from "@/components/ui";
 import { play } from "@/lib/sound";
-
-/* ===== Realistic 25x25 QR Code Generator ===== */
-function RealisticQRCode({ seed, size = 224 }: { seed: number; size?: number }) {
-  const grid = useMemo(() => {
-    const N = 25;
-    const cells: boolean[][] = Array.from({ length: N }, () => Array(N).fill(false));
-    const reserved: boolean[][] = Array.from({ length: N }, () => Array(N).fill(false));
-
-    const setCell = (r: number, c: number, val: boolean) => {
-      if (r >= 0 && r < N && c >= 0 && c < N) {
-        cells[r][c] = val;
-        reserved[r][c] = true;
-      }
-    };
-
-    // Draw 7x7 finder pattern with separator
-    const drawFinder = (startR: number, startC: number) => {
-      for (let r = -1; r <= 7; r++) {
-        for (let c = -1; c <= 7; c++) {
-          const rr = startR + r;
-          const cc = startC + c;
-          if (rr >= 0 && rr < N && cc >= 0 && cc < N) {
-            if (r === -1 || r === 7 || c === -1 || c === 7) {
-              setCell(rr, cc, false); // separator
-            } else if (r === 0 || r === 6 || c === 0 || c === 6) {
-              setCell(rr, cc, true); // outer ring
-            } else if (r >= 2 && r <= 4 && c >= 2 && c <= 4) {
-              setCell(rr, cc, true); // inner core
-            } else {
-              setCell(rr, cc, false); // inner white ring
-            }
-          }
-        }
-      }
-    };
-
-    drawFinder(0, 0); // Top-left
-    drawFinder(0, N - 7); // Top-right
-    drawFinder(N - 7, 0); // Bottom-left
-
-    // Draw 5x5 alignment pattern centered at (18, 18)
-    const alignR = 18;
-    const alignC = 18;
-    for (let r = -2; r <= 2; r++) {
-      for (let c = -2; c <= 2; c++) {
-        const rr = alignR + r;
-        const cc = alignC + c;
-        if (r === -2 || r === 2 || c === -2 || c === 2 || (r === 0 && c === 0)) {
-          setCell(rr, cc, true);
-        } else {
-          setCell(rr, cc, false);
-        }
-      }
-    }
-
-    // Timing patterns at row 6 and col 6
-    for (let i = 8; i < N - 8; i++) {
-      setCell(6, i, i % 2 === 0);
-      setCell(i, 6, i % 2 === 0);
-    }
-
-    // Fill remaining unreserved cells deterministically using seed
-    let s = seed || 123456789;
-    for (let r = 0; r < N; r++) {
-      for (let c = 0; c < N; c++) {
-        if (!reserved[r][c]) {
-          s = (s * 1103515245 + 12345) & 0x7fffffff;
-          cells[r][c] = (s >> 10) % 2 === 0;
-        }
-      }
-    }
-
-    return cells;
-  }, [seed]);
-
-  return (
-    <div
-      className="grid shrink-0 rounded-[10px] bg-[#f0f3f8] shadow-[0_2px_10px_rgba(0,0,0,0.45)] p-[4px] gap-[1px]"
-      style={{
-        width: size,
-        height: size,
-        minWidth: size,
-        minHeight: size,
-        maxWidth: size,
-        maxHeight: size,
-        gridTemplateColumns: "repeat(25, minmax(0, 1fr))",
-        gridTemplateRows: "repeat(25, minmax(0, 1fr))",
-        aspectRatio: "1 / 1",
-        flexShrink: 0,
-      }}
-    >
-      {grid.map((row, rIdx) =>
-        row.map((on, cIdx) => (
-          <div
-            key={`${rIdx}-${cIdx}`}
-            style={{
-              background: on ? "#080a0f" : "transparent",
-              borderRadius: "1px",
-              width: "100%",
-              height: "100%",
-            }}
-          />
-        ))
-      )}
-    </div>
-  );
-}
-
-function randHex(n: number) {
-  let s = "";
-  for (let i = 0; i < n; i++) s += "0123456789ABCDEF"[Math.floor(Math.random() * 16)];
-  return s;
-}
 
 export default function LoginScreen({
   onAuthenticated,
@@ -129,25 +16,8 @@ export default function LoginScreen({
   const [membership, setMembership] = useState("");
   const [pass, setPass] = useState("");
   const [verifying, setVerifying] = useState(false);
-  const [count, setCount] = useState(15);
-  const [code, setCode] = useState(() => randHex(16));
-  const [seed, setSeed] = useState(() => Date.now());
   const [contactOpen, setContactOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    const t = setInterval(() => {
-      setCount((c) => {
-        if (c <= 1) {
-          setCode(randHex(16));
-          setSeed(Date.now());
-          return 15;
-        }
-        return c - 1;
-      });
-    }, 1000);
-    return () => clearInterval(t);
-  }, []);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,16 +105,15 @@ export default function LoginScreen({
         </div>
       </header>
 
-      {/* ====== Main Two-Column Gateway Panels — PERFECTLY BALANCED ====== */}
+      {/* ====== Main Single Centered Card — MEMBER LOGIN only ====== */}
       <main className="relative z-20 flex-1 flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-6 w-full max-w-[920px] items-stretch justify-items-center mx-auto">
-          
-          {/* ===== Left Panel: Member Login — EQUAL SIZE CARD ===== */}
+        <div className="flex w-full justify-center">
+          {/* ===== Member Login — centered as main element ===== */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1, ease: [0.2, 0.7, 0.2, 1] }}
-            className="relative flex w-full max-w-[440px] h-full min-h-[560px] lg:min-h-[580px] flex-col rounded-2xl p-7 sm:p-8 backdrop-blur-2xl bg-gradient-to-b from-[#0e1118]/90 via-[#080a0e]/92 to-[#040507]/95 border border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden"
+            className="relative flex w-full max-w-[440px] min-h-[560px] lg:min-h-[580px] flex-col rounded-2xl p-7 sm:p-8 backdrop-blur-2xl bg-gradient-to-b from-[#0e1118]/90 via-[#080a0e]/92 to-[#040507]/95 border border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden"
           >
             {/* Subtle top metallic shine */}
             <span className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-50" />
@@ -334,79 +203,6 @@ export default function LoginScreen({
               <span>256-BIT ENCRYPTION</span>
             </div>
           </motion.div>
-
-          {/* ===== Right Panel: QR Access Gate — EQUAL SIZE CARD ===== */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.2, ease: [0.2, 0.7, 0.2, 1] }}
-            className="relative flex w-full max-w-[440px] h-full min-h-[560px] lg:min-h-[580px] flex-col rounded-2xl p-7 sm:p-8 backdrop-blur-2xl bg-gradient-to-b from-[#11141c]/90 via-[#0a0d13]/92 to-[#06070a]/95 border border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden"
-          >
-            <span className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-50" />
-
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-[0.65rem] tracking-[0.3em] uppercase text-[#8b95a5]">
-                VISUAL AUTHENTICATION
-              </span>
-              <span className="font-mono text-[0.65rem] text-[#aeb6c2]">
-                TOKEN &middot; V2.4
-              </span>
-            </div>
-
-            <h2 className="font-luxury text-2xl sm:text-[1.7rem] font-semibold tracking-[0.08em] text-[#eaeef5] uppercase mt-4">
-              QR Access Gate
-            </h2>
-            <p className="font-sans text-[0.8rem] sm:text-sm text-[#7f8896] leading-relaxed mt-2">
-              Scan the dynamic security token with your verified mobile terminal. Regenerates automatically.
-            </p>
-
-            {/* QR Block — tight to description, large, centered, proportionate — locked size no shrink */}
-            <div className="flex flex-col items-center mt-4 gap-3">
-              <div className="relative p-[8px] rounded-2xl bg-gradient-to-b from-[#1e232d] to-[#0a0c10] border border-[#c3c9d3]/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_15px_35px_rgba(0,0,0,0.6),0_0_25px_rgba(195,201,211,0.06)] group/qr transition-colors duration-300 hover:border-[#c3c9d3]/50 w-[242px] h-[242px] flex items-center justify-center shrink-0 box-border">
-                <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-[#c3c9d3]/70 rounded-tl" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-[#c3c9d3]/70 rounded-tr" />
-                <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-[#c3c9d3]/70 rounded-bl" />
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-[#c3c9d3]/70 rounded-br" />
-
-                <RealisticQRCode key={seed} seed={seed} size={224} />
-              </div>
-
-              <div className="flex items-center justify-between w-full max-w-[242px] font-mono text-[0.65rem] text-[#8b95a5] px-1">
-                <span>TOKEN: {code.slice(0, 8)}</span>
-                <span className="text-[#c3c9d3] tabular-nums">{count}s</span>
-              </div>
-
-              {/* Countdown Progress Bar — tightly under TOKEN */}
-              <div className="h-1 w-full max-w-[242px] overflow-hidden rounded-full bg-[#050609] border border-white/[0.06] p-[1px]">
-                <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-[#565d68] via-[#aeb6c2] to-[#eaeef5]"
-                  animate={{ width: `${(count / 15) * 100}%` }}
-                  transition={{ ease: "linear", duration: 1 }}
-                />
-              </div>
-            </div>
-
-            {/* Refresh Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setCode(randHex(16));
-                setSeed(Date.now());
-                setCount(15);
-                play("select");
-              }}
-              onMouseEnter={() => play("hover")}
-              className="group relative w-full overflow-hidden rounded-xl py-3.5 px-6 font-mono text-xs tracking-[0.25em] uppercase text-[#c3c9d3] transition-all duration-300 hover:text-white border border-[#383f4d]/80 bg-[#07090e]/80 hover:border-[#c3c9d3]/40 hover:bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.5)] flex items-center justify-center gap-2.5 mt-4"
-            >
-              <RefreshCw size={14} className="transition-transform duration-500 group-hover:rotate-180" />
-              <span>Refresh</span>
-            </button>
-
-            <div className="mt-auto pt-5 border-t border-white/[0.06] text-center font-mono text-[0.65rem] text-[#565d68]">
-              SESSION HASH: <span className="text-[#8b95a5] select-all">{code}</span>
-            </div>
-          </motion.div>
-
         </div>
       </main>
 
