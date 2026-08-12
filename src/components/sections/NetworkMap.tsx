@@ -330,6 +330,20 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
       {/* الخريطة الرئيسية */}
       <div ref={mountRef} className={className} style={{ width: "100%", height: "100%" }} />
 
+      {/* Crosshair — خطان رفيعان يتقاطعان في مركز الخريطة (Overlay فقط) */}
+      <div className="pointer-events-none absolute inset-0 z-10">
+        {/* خط أفقي — من اليمين إلى اليسار عبر المنتصف */}
+        <div
+          className="absolute left-0 right-0"
+          style={{ top: "50%", height: 1, background: "rgba(255,255,255,0.30)", transform: "translateY(-50%)" }}
+        />
+        {/* خط عمودي — من الأعلى إلى الأسفل عبر المنتصف */}
+        <div
+          className="absolute top-0 bottom-0"
+          style={{ left: "50%", width: 1, background: "rgba(255,255,255,0.30)", transform: "translateX(-50%)" }}
+        />
+      </div>
+
       {/* الخريطة المصغرة / نظرة عامة */}
       <div
         className="pointer-events-auto absolute left-4 top-4 z-20 overflow-hidden rounded-xl border border-[#3a5a86]/50 shadow-[0_10px_30px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(127,176,255,0.15)]"
