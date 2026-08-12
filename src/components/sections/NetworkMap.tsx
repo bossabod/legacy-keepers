@@ -242,32 +242,35 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
       lockZoom(city);
     };
 
-    // ---- الانتقال السينمائي بين المدن (Zoom out ×3 → Blur → Zoom in ×3) ----
+    // ---- الانتقال السينمائي: 3 سحبات Zoom Out → ظلام/Blur → 3 سحبات Zoom In ----
     const flyToCity = (id: string) => {
       const city = findCity(id);
       if (!city || !map) return;
       unlockZoom();
-      const t = 1000; // توقف ثانية بين المراحل
-      // 1) Zoom Out المرحلة 1
-      map.easeTo({ zoom: 8, duration: 700 });
-      setTimeout(() => { map?.easeTo({ zoom: 5, duration: 700 }); }, 700 + t); // 2) Zoom Out المرحلة 2
-      setTimeout(() => {
-        map?.easeTo({ zoom: 2, duration: 700 }); // 3) Zoom Out المرحلة 3 (الأبعد)
-        setBlur(true); // 6) ضباب تدريجي
-      }, 1400 + t * 2);
-      // 7) انقل الكاميرا إلى المدينة الجديدة أثناء الضباب
+      // سحبات منفصلة سريعة (duration ~450ms) مع توقفات قصيرة (~500ms < ثانية)
+      // Zoom Out 1
+      map.easeTo({ zoom: 9, duration: 450 });
+      // Zoom Out 2 (أبعد)
+      setTimeout(() => { map?.easeTo({ zoom: 5, duration: 450 }); }, 950);
+      // Zoom Out 3 (مستوى العالم)
+      setTimeout(() => { map?.easeTo({ zoom: 2, duration: 450 }); }, 1900);
+      // بعد السحبة الثالثة: لحظة قصيرة ثم ظلام + Blur
+      setTimeout(() => { setBlur(true); }, 2500);
+      // أثناء الظلام: انقل المركز إلى المدينة الجديدة بالضبط
       setTimeout(() => {
         map?.jumpTo({ center: city.center, zoom: 2 });
         map?.setMaxBounds(city.bounds);
-      }, 2100 + t * 3 + 500);
-      // 8) إزالة الضباب + بدء Zoom In
+      }, 3000);
+      // اكشف المشهد الجديد من فوق المدينة وابدأ الدخول
       setTimeout(() => {
         setBlur(false);
-        map?.easeTo({ zoom: 6, duration: 700 }); // 9/10) Zoom In المرحلة 1
-      }, 2600 + t * 3 + 700);
-      setTimeout(() => { map?.easeTo({ zoom: 11, duration: 700 }); }, 3300 + t * 4 + 800); // 11) Zoom In المرحلة 2
-      setTimeout(() => { map?.easeTo({ zoom: city.zoom, duration: 900 }); }, 4000 + t * 5 + 900); // 12) Zoom In المرحلة 3
-      setTimeout(() => { applyCity(city); }, 4900 + t * 6 + 1000); // 13) قفل
+        map?.easeTo({ zoom: 6, duration: 450 }); // Zoom In 1
+      }, 3500);
+      // Zoom In 2
+      setTimeout(() => { map?.easeTo({ zoom: 11, duration: 450 }); }, 4400);
+      // Zoom In 3 الأخير حتى مستوى المدينة
+      setTimeout(() => { map?.easeTo({ zoom: city.zoom, duration: 550 }); }, 5300);
+      setTimeout(() => { applyCity(city); }, 6000);
     };
 
     // تحميل الرئيسية (تثبيت الحدود + المصغرة)
@@ -338,11 +341,11 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
         </div>
       </div>
 
-      {/* ضبابية ناعمة أثناء الانتقال */}
+      {/* ظلام + Blur أثناء الانتقال */}
       {blur && (
         <div
-          className="pointer-events-none absolute inset-0 z-30 backdrop-blur-xl"
-          style={{ background: "rgba(10,12,16,0.55)", transition: "backdrop-filter 0.8s ease, background 0.8s ease" }}
+          className="pointer-events-none absolute inset-0 z-30"
+          style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(14px)", transition: "opacity 0.35s ease" }}
         />
       )}
     </div>
