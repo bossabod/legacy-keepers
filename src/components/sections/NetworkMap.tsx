@@ -24,7 +24,8 @@ const NYC_BOUNDS: [[number, number], [number, number]] = [
   [-73.7, 40.93],
 ];
 const CENTER: [number, number] = [-74.006, 40.7128];
-const ZOOM = 11.5;
+// Zoom قريب جدًا — مستوى المباني والشوارع (ثابت لاحقًا)
+const ZOOM = 16;
 
 export default function NetworkMap({ className = "" }: { className?: string }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
