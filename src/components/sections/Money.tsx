@@ -191,14 +191,14 @@ export default function InvestmentsSection({ data: _data }: { data: AppData }) {
             </div>
 
             {/* AVAILABLE INVESTMENTS */}
-            <div className="mb-5 mt-8 text-[0.6rem] uppercase tracking-[0.3em] text-[#7b8494]" style={{ fontFamily: MONO }}>
+            <div className="mb-6 mt-8 text-[0.6rem] uppercase tracking-[0.3em] text-[#7b8494]" style={{ fontFamily: MONO }}>
               Available Investments
             </div>
 
-            {/* شبكة الأقسام — صفوف 2 × 3 */}
-            <div className="grid grid-cols-1 gap-px border border-white/[0.06] bg-white/[0.06] sm:grid-cols-2">
+            {/* مؤشرات استثمارية حرة — Trading Terminal style (لا مربعات) */}
+            <div className="relative space-y-3 border-t border-white/[0.06] pt-4">
               {CATEGORIES.map((c) => (
-                <CategoryCell key={c.id} c={c} onClick={() => openCategory(c.id)} />
+                <CategoryIndicator key={c.id} c={c} onClick={() => openCategory(c.id)} />
               ))}
             </div>
           </motion.div>
@@ -219,29 +219,42 @@ function Metric({ label, value, highlight }: { label: string; value: string; hig
   );
 }
 
-function CategoryCell({ c, onClick }: { c: Category; onClick: () => void }) {
+function CategoryIndicator({ c, onClick }: { c: Category; onClick: () => void }) {
+  // اتجاه سهم لكل قسم (أسلوب مؤشرات التداول)
+  const arrow = c.id === "stocks" || c.id === "commodities" ? "↑"
+    : c.id === "funds" || c.id === "crypto" ? "↓"
+    : "→";
+  const trend = arrow === "↑" ? "#7fb0ff" : arrow === "↓" ? "#8ba0c8" : "#9aa5b3";
   return (
     <button
       onClick={onClick}
-      className="group flex items-start justify-between gap-4 bg-[#07080a] px-5 py-5 text-left transition-colors duration-300 hover:bg-[#0a0d12]"
+      className="group flex w-full items-center gap-4 py-2 text-left"
     >
-      <div>
-        <div className="flex items-baseline gap-3">
-          <span className="text-[0.55rem] tracking-[0.2em] text-[#454d5a]" style={{ fontFamily: MONO }}>{c.num}</span>
-          <span className="text-[0.95rem] uppercase tracking-[0.14em] text-[#e8ecf1] transition-colors group-hover:text-white" style={{ fontFamily: LUX }}>
-            {c.title}
-          </span>
-        </div>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {c.tags.slice(0, 3).map((tg) => (
-            <span key={tg} className="text-[0.5rem] tracking-[0.08em] text-[#5d6675]" style={{ fontFamily: MONO }}>{tg.toUpperCase()}</span>
-          ))}
-        </div>
-      </div>
-      <div className="flex flex-col items-end gap-2">
-        <span className="text-[0.6rem] uppercase tracking-[0.15em] text-[#7fb0ff]" style={{ fontFamily: MONO }}>{c.available}</span>
-        <span className="text-[0.5rem] uppercase tracking-[0.2em] text-[#5d6675] transition-colors group-hover:text-[#7fb0ff]" style={{ fontFamily: MONO }}>OPEN →</span>
-      </div>
+      {/* سهم / Marker */}
+      <span
+        className="flex h-7 w-7 shrink-0 items-center justify-center text-[0.9rem] transition-all duration-300"
+        style={{ color: trend, textShadow: `0 0 8px ${trend}66` }}
+      >
+        {arrow}
+      </span>
+
+      {/* Label + status */}
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-[0.95rem] uppercase tracking-[0.16em] text-[#eef2f7] transition-colors group-hover:text-white" style={{ fontFamily: LUX }}>
+          {c.title}
+        </span>
+        <span className="text-[0.48rem] uppercase tracking-[0.18em] text-[#5d6675] transition-colors group-hover:text-[#7fb0ff]" style={{ fontFamily: MONO }}>
+          Open →
+        </span>
+      </span>
+
+      {/* عدد الفرص */}
+      <span className="shrink-0 text-[0.85rem] text-[#7fb0ff]" style={{ fontFamily: MONO }}>
+        {c.available}
+      </span>
+      <span className="shrink-0 text-[0.48rem] uppercase tracking-[0.18em] text-[#5d6675]" style={{ fontFamily: MONO }}>
+        Available
+      </span>
     </button>
   );
 }
