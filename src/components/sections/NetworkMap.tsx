@@ -45,13 +45,13 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
         satellite: {
           type: "raster",
           tiles: [
-            "https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
           ],
           tileSize: 256,
           minzoom: 0,
-          maxzoom: 22,
+          maxzoom: 19,
           attribution:
-            "Tiles &copy; Esri (Clarity) &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+            "Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
         },
         terrain: {
           type: "raster-dem",
