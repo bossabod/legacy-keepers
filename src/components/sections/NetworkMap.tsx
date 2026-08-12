@@ -19,6 +19,7 @@ import { NAV_COUNTRIES, findCity, DEFAULT_CITY_ID, type NavCity } from "@/lib/ne
    ================================================================== */
 
 export default function NetworkMap({ className = "" }: { className?: string }) {
+  const outerRef = useRef<HTMLDivElement | null>(null);
   const mountRef = useRef<HTMLDivElement | null>(null);
   const miniRef = useRef<HTMLDivElement | null>(null);
   const miniMapRef = useRef<MapLibreMap | null>(null);
@@ -301,7 +302,7 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
       lockZoom(currentCityRef.current);
     });
 
-    (el as any).__globeApi = {
+    const api = {
       zoomIn: () => { if (map && locked) map.setZoom(currentCityRef.current.zoom); },
       zoomOut: () => { if (map && locked) map.setZoom(currentCityRef.current.zoom); },
       flyToCity: (id: string) => flyToCity(id),
@@ -311,6 +312,9 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
         for (const id of ids) if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
       },
     };
+    (el as any).__globeApi = api;
+    // عيّن الـ api أيضًا على الحاوية الخارجية (الأب) ليصل إليه querySelector('[data-globe]')
+    if (el.parentElement) (el.parentElement as any).__globeApi = api;
 
     const ro = new ResizeObserver(() => map?.resize());
     ro.observe(el);
@@ -323,7 +327,7 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
   }, []);
 
   return (
-    <div className="relative h-full w-full" data-globe>
+    <div className="relative h-full w-full" data-globe ref={outerRef}>
       {/* الخريطة الرئيسية */}
       <div ref={mountRef} className={className} style={{ width: "100%", height: "100%" }} />
 
