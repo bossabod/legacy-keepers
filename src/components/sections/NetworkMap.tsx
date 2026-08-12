@@ -29,11 +29,15 @@ const ZOOM = 16;
 
 export default function NetworkMap({ className = "" }: { className?: string }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
+  const miniRef = useRef<HTMLDivElement | null>(null);
+  const miniMapRef = useRef<MapLibreMap | null>(null);
+  const mainMapRef = useRef<MapLibreMap | null>(null);
 
   useEffect(() => {
     const el = mountRef.current;
     if (!el) return;
     let map: MapLibreMap | null = null;
+    const miniCleanups: (() => void)[] = [];
 
     const style: any = {
       version: 8,
@@ -86,6 +90,111 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
       dragPan: true,
       canvasContextAttributes: { antialias: true },
     });
+    mainMapRef.current = map;
+
+    // تحديث مستطيل الـ viewport من الخريطة الرئيسية (عند التحرك)
+    const updateViewport = () => {
+      const mm = mainMapRef.current;
+      const mn = miniMapRef.current;
+      if (!mm || !mn) return;
+      const src = mn.getSource("viewport") as any;
+      if (!src) return;
+      const b = mm.getBounds();
+      const sw = b.getSouthWest();
+      const ne = b.getNorthEast();
+      const ring: [number, number][] = [
+        [sw.lng, sw.lat], [ne.lng, sw.lat], [ne.lng, ne.lat], [sw.lng, ne.lat], [sw.lng, sw.lat],
+      ];
+      src.setData({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [ring] } });
+    };
+
+    // ---- Mini Map / Overview Map ----
+    const miniEl = miniRef.current;
+    if (miniEl) {
+      const mini = new maplibregl.Map({
+        container: miniEl,
+        style,
+        center: [-74.05, 40.72],
+        zoom: 10,
+        minZoom: 10,
+        maxZoom: 10,
+        pitch: 0,
+        bearing: 0,
+        attributionControl: false,
+        scrollZoom: false,
+        boxZoom: false,
+        doubleClickZoom: false,
+        touchZoomRotate: false,
+        keyboard: false,
+        dragPan: false, // سنحرّك الـ viewport يدويًا، لا الخريطة نفسها
+        interactive: true,
+      });
+      miniMapRef.current = mini;
+
+      // إضافة الطبقة والـ viewport indicator داخل mini map
+      mini.on("load", () => {
+        // حدود نيويورك في mini map
+        try {
+          mini.addSource("mini-bounds", {
+            type: "geojson",
+            data: { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [[
+              [-74.3, 40.48], [-73.7, 40.48], [-73.7, 40.93], [-74.3, 40.93], [-74.3, 40.48],
+            ]] } },
+          });
+          mini.addLayer({ id: "mini-bounds-fill", source: "mini-bounds", type: "fill", paint: { "fill-color": "#7fb0ff", "fill-opacity": 0.05 } });
+          mini.addLayer({ id: "mini-bounds-line", source: "mini-bounds", type: "line", paint: { "line-color": "#7fb0ff", "line-width": 1, "line-opacity": 0.4 } });
+        } catch (e) { /* optional */ }
+
+        // viewport indicator — مستطيل يمثل ما تعرضه الخريطة الرئيسية
+        try {
+          mini.addSource("viewport", {
+            type: "geojson",
+            data: { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [[]] } },
+          });
+          mini.addLayer({ id: "viewport-fill", source: "viewport", type: "fill", paint: { "fill-color": "#7fb0ff", "fill-opacity": 0.18 } });
+          mini.addLayer({ id: "viewport-line", source: "viewport", type: "line", paint: { "line-color": "#ffffff", "line-width": 1.5, "line-opacity": 0.9 } });
+        } catch (e) { /* optional */ }
+
+        updateViewport();
+      });
+
+      map.on("move", updateViewport);
+      map.on("moveend", updateViewport);
+
+      // سحب الـ viewport داخل mini map → تحريك الخريطة الرئيسية
+      let dragActive = false;
+      const onPointerDown = (e: MouseEvent) => {
+        dragActive = true;
+        e.preventDefault();
+        handleDrag(e);
+      };
+      const onPointerMove = (e: MouseEvent) => {
+        if (dragActive) handleDrag(e);
+      };
+      const onPointerUp = () => { dragActive = false; };
+      const handleDrag = (e: MouseEvent) => {
+        const mn = miniMapRef.current;
+        const mm = mainMapRef.current;
+        if (!mn || !mm) return;
+        const rect = miniEl.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const ll = mn.unproject([x, y]);
+        // حرّك الخريطة الرئيسية إلى ذلك الموقع مع ثبات الزوم
+        mm.easeTo({ center: [ll.lng, ll.lat], zoom: ZOOM, duration: 250 });
+      };
+      miniEl.addEventListener("pointerdown", onPointerDown);
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", onPointerUp);
+
+      // احتفظ بمرجع التنظيف
+      miniCleanups.push(() => {
+        miniEl.removeEventListener("pointerdown", onPointerDown);
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", onPointerUp);
+        mini.remove();
+      });
+    }
 
     // تأكيد إضافي: أي محاولة تقريب تعيد الزوم إلى الثابت
     map.on("zoom", () => {
@@ -215,11 +324,28 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
 
     return () => {
       ro.disconnect();
+      miniCleanups.forEach((c) => { try { c(); } catch (e) { /* noop */ } });
       map?.remove();
     };
   }, []);
 
   return (
-    <div ref={mountRef} data-globe className={className} style={{ width: "100%", height: "100%" }} />
+    <div className="relative h-full w-full" data-globe>
+      {/* الخريطة الرئيسية */}
+      <div ref={mountRef} className={className} style={{ width: "100%", height: "100%" }} />
+
+      {/* الخريطة المصغرة / نظرة عامة — أعلى الخريطة الرئيسية */}
+      <div
+        className="pointer-events-auto absolute left-4 top-4 z-20 overflow-hidden rounded-xl border border-[#3a5a86]/50 shadow-[0_10px_30px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(127,176,255,0.15)]"
+        style={{ width: 180, height: 180 }}
+      >
+        <div ref={miniRef} className="h-full w-full" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-black/70 to-transparent flex items-end justify-center pb-1">
+          <span className="font-mono text-[0.5rem] tracking-[0.25em] uppercase text-[#9db4d8]/80">
+            NYC · Overview
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }
