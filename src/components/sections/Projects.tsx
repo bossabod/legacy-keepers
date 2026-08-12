@@ -11,50 +11,16 @@ import type { AppData } from "@/lib/types";
 
 type Tab = "digital" | "physical" | "submit" | null;
 
-/* ===== بطاقة بوابة فاخرة (مربع كبير بإطار + توهج + Hover) ===== */
+/* ===== قسم بوابة منفصل (أسلوب مفتوح — ليس Card تقليدية) ===== */
 type CardVariant = "digital" | "physical" | "submit";
 
 const CARD_STYLE: Record<
   CardVariant,
-  {
-    idles: string;
-    ring: string;
-    glow: string;
-    chip: string;
-    accent: string;
-    inner: string;
-  }
+  { accent: string; chip: string; line: string; corner: string }
 > = {
-  // أسود غامق + لمسة رمادية
-  digital: {
-    idles:
-      "border-[#1a1f2a]/90 bg-gradient-to-b from-[#0a0c11] via-[#05060a] to-[#020204] hover:border-slate-400/40",
-    ring: "bg-slate-400/20",
-    glow: "radial-gradient(70% 80% at 50% 0%, rgba(148,163,184,0.14), transparent 70%)",
-    chip: "#94a3b8",
-    accent: "from-[#0a0c11] via-[#1e2633] to-[#020204]",
-    inner: "shadow-[0_22px_60px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.05)]",
-  },
-  // رمادي داكن معدني مع لمسة فضية
-  physical: {
-    idles:
-      "border-[#232936]/90 bg-gradient-to-b from-[#10141b] via-[#080b10] to-[#030406] hover:border-slate-300/40",
-    ring: "bg-slate-300/25",
-    glow: "radial-gradient(70% 80% at 50% 0%, rgba(226,232,240,0.16), transparent 70%)",
-    chip: "#cbd5e1",
-    accent: "from-[#10141b] via-[#2a313d] to-[#030406]",
-    inner: "shadow-[0_26px_70px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.08)]",
-  },
-  // أزرق داكن بلمسة ملكية
-  submit: {
-    idles:
-      "border-[#0f2233]/90 bg-gradient-to-b from-[#071018] via-[#04090e] to-[#010304] hover:border-sky-400/40",
-    ring: "bg-sky-400/20",
-    glow: "radial-gradient(70% 80% at 50% 0%, rgba(56,189,248,0.16), transparent 70%)",
-    chip: "#38bdf8",
-    accent: "from-[#071018] via-[#0f2a3f] to-[#010304]",
-    inner: "shadow-[0_24px_65px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(56,189,248,0.10)]",
-  },
+  digital: { accent: "#94a3b8", chip: "#94a3b8", line: "rgba(148,163,184,0.35)", corner: "#cdd5e0" },
+  physical: { accent: "#cbd5e1", chip: "#cbd5e1", line: "rgba(203,213,225,0.4)", corner: "#e2e8f0" },
+  submit: { accent: "#38bdf8", chip: "#38bdf8", line: "rgba(56,189,248,0.4)", corner: "#7dd3fc" },
 };
 
 function CardStagger({
@@ -85,65 +51,79 @@ function CardStagger({
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -7, scale: 1.025 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ y: -6 }}
+      whileTap={{ scale: 0.985 }}
       className={[
-        "group relative w-full overflow-hidden rounded-2xl px-6 py-8 text-left transition-all duration-500 sm:min-h-[15rem]",
+        "group relative w-full px-2 py-10 text-left sm:min-h-[15rem]",
         offset,
-        active ? `${v.ring} ring-1 ring-white/20` : v.idles,
-        v.inner,
+        "transition-transform duration-500",
       ].join(" ")}
     >
-      {/* تدرّج عمق داخلي */}
+      {/* شريط علوي أفقي دقيق */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-70"
-        style={{ background: `linear-gradient(180deg, ${v.accent.split(" via ")[0]}, transparent 45%)` }}
+        className="pointer-events-none absolute inset-x-0 top-0 h-px transition-colors duration-500"
+        style={{ background: `linear-gradient(90deg, transparent, ${v.line}, transparent)`, opacity: active ? 1 : 0.55 }}
       />
 
-      {/* حافة علوية لامعة */}
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent opacity-70" />
-
-      {/* توهج عند التحويم */}
+      {/* شريط جانبي عمودي دقيق */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-        style={{ background: v.glow }}
+        className="pointer-events-none absolute inset-y-0 left-0 w-px transition-all duration-500"
+        style={{ background: `linear-gradient(180deg, transparent, ${v.line}, transparent)`, opacity: active ? 1 : 0.4 }}
       />
 
-      {/* إطار داخلي أنيق */}
+      {/* عناصر هندسية — ركن متحرك عند التحويم */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-2 rounded-xl border border-white/[0.04]"
+        className="pointer-events-none absolute left-0 top-0 h-3 w-3 transition-all duration-500"
+        style={{ borderLeft: `1.5px solid ${v.corner}`, borderTop: `1.5px solid ${v.corner}`, opacity: active ? 0.9 : 0.3, transform: "translate(-1px,-1px)" }}
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute left-3 top-3 h-2 w-2 border border-[#c3c9d3]/20 transition-all duration-500 group-hover:border-[#c3c9d3]/50"
+      />
+
+      {/* توهج خفيف يظهر عند التحويم */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-x-3 inset-y-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+        style={{ background: `radial-gradient(60% 70% at 50% 10%, ${v.chip}14, transparent 70%)` }}
       />
 
       {/* رقم */}
-      <div className="relative flex items-start justify-between">
-        <span className="font-mono text-[0.6rem] tracking-[0.3em] text-[#5d6675]">
+      <div className="relative flex items-center justify-between">
+        <span className="font-mono text-[0.6rem] tracking-[0.35em] text-[#5d6675]">
           {glyph}
         </span>
         <span
-          className={`h-1.5 w-1.5 rounded-full ${v.chip} shadow-[0_0_8px_currentColor] transition-opacity duration-300`}
-          style={{ opacity: active ? 1 : 0.35, background: v.chip, boxShadow: `0 0 10px ${v.chip}` }}
+          className="h-1 w-1 rounded-full"
+          style={{ background: v.chip, boxShadow: `0 0 8px ${v.chip}`, opacity: active ? 1 : 0.35 }}
         />
       </div>
 
+      {/* خط فاصل دقيق بين الرقم والعنوان */}
+      <div className="relative my-5 h-px w-10 bg-gradient-to-r from-white/25 to-transparent transition-all duration-500 group-hover:w-16" />
+
       {/* العنوان */}
       <h3
-        className="relative mt-6 text-[clamp(1.15rem,2.4vw,1.5rem)] font-semibold uppercase tracking-[0.12em] text-[#f2f4f8]"
-        style={{ fontFamily: "var(--font-luxury)", textShadow: `0 0 22px ${v.chip}55` }}
+        className="relative text-[clamp(1.2rem,2.5vw,1.6rem)] font-semibold uppercase tracking-[0.14em] text-[#f2f4f8]"
+        style={{ fontFamily: "var(--font-luxury)", textShadow: `0 0 26px ${v.chip}44` }}
       >
         {title}
       </h3>
 
       {/* الوصف */}
-      <p className="relative mt-3 text-[0.8rem] leading-relaxed text-[#9aa4b2]">
+      <p className="relative mt-4 max-w-[30ch] text-[0.8rem] leading-relaxed text-[#9aa4b2]">
         {desc}
       </p>
 
-      {/* مؤشر فتح */}
-      <span className="relative mt-6 inline-flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.25em] text-[#c3c9d3] transition-colors duration-300 group-hover:text-white">
-        {active ? "✓" : "→"} <span>{active ? "مفتوح" : "فتح"}</span>
+      {/* مؤشر فتح — خط سفلي يتوسع عند التحويم */}
+      <span className="relative mt-7 inline-flex items-center gap-3">
+        <span className="h-px w-5 bg-[#7fb0ff] transition-all duration-500 group-hover:w-8" />
+        <span className="text-[0.62rem] uppercase tracking-[0.28em] text-[#c3c9d3] transition-colors duration-300 group-hover:text-white">
+          {active ? "✓ OPEN" : "→ OPEN"}
+        </span>
       </span>
     </motion.button>
   );
