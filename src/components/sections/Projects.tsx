@@ -11,17 +11,8 @@ import type { AppData } from "@/lib/types";
 
 type Tab = "digital" | "physical" | "submit" | null;
 
-/* ===== عنصر مشروع مفتوح (بدون مربع/خلفية) مع خط سفلي مميز ===== */
+/* ===== عنصر مشروع — نص حر فقط، بدون أي Container بصري ===== */
 type CardVariant = "digital" | "physical" | "submit";
-
-const CARD_STYLE: Record<
-  CardVariant,
-  { accent: string; line: string }
-> = {
-  digital: { accent: "#94a3b8", line: "rgba(148,163,184,0.45)" },
-  physical: { accent: "#cbd5e1", line: "rgba(203,213,225,0.5)" },
-  submit: { accent: "#38bdf8", line: "rgba(56,189,248,0.5)" },
-};
 
 function CardStagger({
   title,
@@ -29,82 +20,52 @@ function CardStagger({
   glyph,
   active,
   onClick,
-  offset = "",
   dir,
-  variant = "digital",
+  index,
 }: {
   title: string;
   desc: string;
   glyph: string;
   active: boolean;
   onClick: () => void;
-  offset?: string;
   dir: "rtl" | "ltr";
-  variant?: CardVariant;
+  index: number;
 }) {
-  const v = CARD_STYLE[variant];
   return (
-    <motion.button
+    <button
       type="button"
       onClick={onClick}
       dir={dir}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -4 }}
-      whileTap={{ scale: 0.99 }}
-      className={[
-        "group relative w-full px-1 pb-10 pt-2 text-left",
-        offset,
-      ].join(" ")}
+      className="group flex flex-col items-start text-left"
+      style={{
+        justifyContent: index === 1 ? "center" : index === 0 ? "flex-start" : "flex-end",
+        alignItems: index === 1 ? "center" : index === 0 ? "flex-start" : "flex-end",
+        textAlign: index === 1 ? "center" : index === 0 ? "left" : "right",
+      }}
     >
-      {/* توهج خفيف جدًا عند التحويم (بلا خلفية) */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -inset-x-4 inset-y-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-        style={{ background: `radial-gradient(55% 70% at 50% 15%, ${v.accent}10, transparent 75%)` }}
-      />
-
       {/* رقم صغير */}
-      <span className="relative font-mono text-[0.6rem] tracking-[0.35em] text-[#5d6675]">
+      <span className="font-mono text-[0.62rem] tracking-[0.4em] text-[#5d6675]">
         {glyph}
       </span>
 
-      {/* العنوان */}
+      {/* العنوان الكبير */}
       <h3
-        className="relative mt-3 text-[clamp(1.25rem,2.6vw,1.7rem)] font-semibold uppercase tracking-[0.14em] text-[#f2f4f8]"
-        style={{ fontFamily: "var(--font-luxury)", textShadow: `0 0 26px ${v.accent}33` }}
+        className="mt-3 text-[clamp(1.4rem,3vw,2.2rem)] font-semibold uppercase tracking-[0.1em] text-[#f2f4f8] transition-colors duration-300 group-hover:text-white"
+        style={{ fontFamily: "var(--font-luxury)" }}
       >
         {title}
       </h3>
 
-      {/* الوصف */}
-      <p className="relative mt-3 max-w-[30ch] text-[0.8rem] leading-relaxed text-[#9aa4b2]">
+      {/* الوصف القصير */}
+      <p className="mt-3 max-w-[26ch] text-[0.82rem] leading-relaxed text-[#9aa4b2]">
         {desc}
       </p>
 
-      {/* زر OPEN */}
-      <span className="relative mt-6 inline-flex items-center gap-2 text-[0.62rem] uppercase tracking-[0.28em] text-[#c3c9d3] transition-colors duration-300 group-hover:text-white">
+      {/* OPEN — رابط نصي بسيط */}
+      <span className="mt-5 text-[0.66rem] uppercase tracking-[0.3em] text-[#7fb0ff] transition-colors duration-300 group-hover:text-sky-200">
         {active ? "✓ OPEN" : "→ OPEN"}
       </span>
-
-      {/* الخط الأفقي المميز أسفل كل عنصر — مع توهج خفيف */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-px transition-all duration-500"
-        style={{
-          background: `linear-gradient(90deg, transparent 0%, ${v.line} 25%, ${v.line} 75%, transparent 100%)`,
-          boxShadow: `0 0 10px ${v.accent}40`,
-          opacity: active ? 1 : 0.75,
-        }}
-      />
-      {/* نقطة نهاية مضيئة على الخط */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 h-1 w-1 -translate-y-[1.5px] rounded-full transition-opacity duration-500 group-hover:opacity-100"
-        style={{ background: v.accent, boxShadow: `0 0 6px ${v.accent}`, opacity: active ? 1 : 0.3, [dir === "rtl" ? "left" : "right"]: 0 }}
-      />
-    </motion.button>
+    </button>
   );
 }
 
@@ -159,9 +120,11 @@ export default function ProjectsSection({
               }}
             />
 
-            <div className="relative grid w-full max-w-5xl grid-cols-1 items-start gap-5 sm:grid-cols-3 sm:gap-8">
+            {/* توزيع حر بالعرض الكامل: 01 يسار، 02 وسط، 03 يمين */}
+            <div className="relative grid w-full grid-cols-1 gap-14 sm:grid-cols-3 sm:gap-10">
               {/* يسار: تقديم مشروع */}
               <CardStagger
+                index={0}
                 dir={ar ? "rtl" : "ltr"}
                 title={TABS[2].label}
                 desc={
@@ -169,13 +132,13 @@ export default function ProjectsSection({
                     ? "اقترح فكرة أو مبادرة جديدة ليراجعها المجلس وتأخذ مكانها."
                     : "Propose a new idea or initiative for the council to review and place."
                 }
-                glyph="01"
+                glyph="PROJECT 01"
                 active={tab === "submit"}
                 onClick={() => setTab(tab === "submit" ? null : "submit")}
-                variant="submit"
               />
               {/* وسط: المشاريع الواقعية */}
               <CardStagger
+                index={1}
                 dir={ar ? "rtl" : "ltr"}
                 title={TABS[1].label}
                 desc={
@@ -183,14 +146,13 @@ export default function ProjectsSection({
                     ? "أعمال ملموسة على الأرض: مشاريع ميدانية وواقعية تُبنى وتمتد."
                     : "Tangible on-the-ground work: field and physical projects built to last."
                 }
-                glyph="02"
+                glyph="PROJECT 02"
                 active={tab === "physical"}
                 onClick={() => setTab(tab === "physical" ? null : "physical")}
-                offset="sm:mt-10"
-                variant="physical"
               />
               {/* يمين: المشاريع الرقمية */}
               <CardStagger
+                index={2}
                 dir={ar ? "rtl" : "ltr"}
                 title={TABS[0].label}
                 desc={
@@ -198,10 +160,9 @@ export default function ProjectsSection({
                     ? "استكشف المبادرات الرقمية: المنصّات، التطبيقات، والأعمال التفاعلية داخل الدائرة."
                     : "Explore digital initiatives: platforms, apps, and interactive works within the circle."
                 }
-                glyph="03"
+                glyph="PROJECT 03"
                 active={tab === "digital"}
                 onClick={() => setTab(tab === "digital" ? null : "digital")}
-                variant="digital"
               />
             </div>
           </div>
