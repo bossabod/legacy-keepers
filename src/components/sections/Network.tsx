@@ -33,9 +33,11 @@ export default function NetworkSection() {
         </div>
       </div>
 
-      {/* the interactive map (original natural satellite) */}
+      {/* the interactive map (original natural satellite) + high-contrast filter */}
       <div className="absolute inset-0 z-0">
-        <NetworkMap />
+        <div className="h-full w-full map-high-contrast">
+          <NetworkMap />
+        </div>
       </div>
 
       {/* interaction hint — pan only */}
@@ -43,6 +45,16 @@ export default function NetworkSection() {
         <RotateCw size={11} />
         <span>{ar ? "اسحب لتحريك الخريطة" : "Drag to pan"}</span>
       </div>
+
+      {/* CSS-only high-contrast filter — does NOT change the map source/library */}
+      <style>{`
+        .map-high-contrast {
+          filter: contrast(1.55) saturate(1.15) brightness(1.02);
+        }
+        .map-high-contrast canvas {
+          background: #0a0c10;
+        }
+      `}</style>
     </div>
   );
 }
