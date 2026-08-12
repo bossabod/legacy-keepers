@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { MapPin, RotateCw, ZoomIn, ZoomOut, Box, Network as NetworkIcon } from "lucide-react";
+import { RotateCw, Box, Network as NetworkIcon } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { play } from "@/lib/sound";
 
@@ -39,25 +39,15 @@ export default function NetworkSection() {
 
   return (
     <div className="relative w-full overflow-hidden" style={{ height: "calc(100vh - 66px)", background: "#0b0e12" }}>
-      {/* header */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between p-5">
-        <div>
+      {/* header — العنوان في منتصف الأعلى */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col items-center justify-start pt-5">
+        <div className="text-center">
           <div className="text-[0.5rem] uppercase tracking-[0.3em] text-[#7c8794]" style={{ fontFamily: "var(--font-mono)" }}>
             {ar ? "محور العمليات · نيويورك" : "Operations Hub · New York"}
           </div>
-          <div className="mt-1 text-[0.8rem] tracking-[0.12em] text-[#eaeef5]" style={{ fontFamily: "var(--font-luxury)" }}>
-            {ar ? "خريطة الأقمار الصناعية · مدينة نيويورك" : "Satellite Map · New York City"}
+          <div className="mt-1 text-[0.95rem] tracking-[0.12em] text-[#eaeef5]" style={{ fontFamily: "var(--font-luxury)", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>
+            {ar ? "مدينة نيويورك" : "New York City"}
           </div>
-        </div>
-
-        {/* status chip */}
-        <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-white/10 bg-[#05080d]/80 px-4 py-2.5 backdrop-blur-md">
-          <MapPin size={14} className="text-[#5d96b8]" />
-          <span className="text-[0.74rem] text-[#c3c9d3]">
-            {mode3D
-              ? (ar ? "3D · مبانٍ وتضاريس" : "3D · Buildings + Terrain")
-              : (ar ? "قمر صناعي · Esri" : "Satellite · Esri")}
-          </span>
         </div>
       </div>
 
@@ -96,26 +86,10 @@ export default function NetworkSection() {
         </button>
       </div>
 
-      {/* zoom controls */}
-      <div className="absolute right-4 bottom-6 z-20 flex flex-col gap-1.5">
-        <button
-          onClick={() => { const el = document.querySelector('[data-globe]'); (el as any)?.__globeApi?.zoomIn(); play("click"); }}
-          className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#05080d]/80 text-[#c3c9d3] backdrop-blur-md transition hover:border-white/30 hover:text-white"
-        >
-          <ZoomIn size={15} />
-        </button>
-        <button
-          onClick={() => { const el = document.querySelector('[data-globe]'); (el as any)?.__globeApi?.zoomOut(); play("click"); }}
-          className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#05080d]/80 text-[#c3c9d3] backdrop-blur-md transition hover:border-white/30 hover:text-white"
-        >
-          <ZoomOut size={15} />
-        </button>
-      </div>
-
-      {/* interaction hints */}
-      <div className="pointer-events-none absolute bottom-5 left-1/2 z-20 -translate-x-1/2 flex items-center gap-5 text-[0.48rem] uppercase tracking-[0.2em] text-[#4a515e]" style={{ fontFamily: "var(--font-mono)" }}>
-        <span className="flex items-center gap-1.5"><RotateCw size={11} /> {ar ? "اسحب للتحريك · Ctrl+سحب للتدوير" : "Drag to pan · Ctrl+drag to rotate"}</span>
-        <span className="flex items-center gap-1.5"><ZoomIn size={11} /> {ar ? "عجلة أو أزرار للتكبير" : "Scroll / buttons to zoom"}</span>
+      {/* interaction hint — pan only */}
+      <div className="pointer-events-none absolute bottom-5 left-1/2 z-20 -translate-x-1/2 flex items-center gap-2 text-[0.48rem] uppercase tracking-[0.2em] text-[#4a515e]" style={{ fontFamily: "var(--font-mono)" }}>
+        <RotateCw size={11} />
+        <span>{ar ? "اسحب لتحريك الخريطة" : "Drag to pan"}</span>
       </div>
     </div>
   );
