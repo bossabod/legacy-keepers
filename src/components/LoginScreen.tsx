@@ -318,7 +318,7 @@ export default function LoginScreen({
             <div className="relative flex flex-col items-center justify-center">
               {/* الإطار الخارجي — مربع يملأ معظم العرض المتاح */}
               <div className="relative grid place-items-center rounded-2xl border border-[#3a5a86]/40 bg-gradient-to-b from-[#0c1220] to-[#060a12] shadow-[inset_0_2px_10px_rgba(0,0,0,0.8),0_12px_35px_rgba(0,0,0,0.6)] p-2.5"
-                style={{ width: "min(100%, 250px)", height: "min(100%, 250px)", aspectRatio: "1 / 1" }}
+                style={{ width: "min(100%, 268px)", height: "min(100%, 268px)", aspectRatio: "1 / 1" }}
               >
                 {/* زوايا تقنية */}
                 <span className="pointer-events-none absolute -top-0.5 -left-0.5 h-4 w-4 border-t-2 border-l-2 border-[#7fb0ff]/70 rounded-tl" />
@@ -326,8 +326,8 @@ export default function LoginScreen({
                 <span className="pointer-events-none absolute -bottom-0.5 -left-0.5 h-4 w-4 border-b-2 border-l-2 border-[#7fb0ff]/70 rounded-bl" />
                 <span className="pointer-events-none absolute -bottom-0.5 -right-0.5 h-4 w-4 border-b-2 border-r-2 border-[#7fb0ff]/70 rounded-br" />
 
-                {/* الـ QR — قريب من حدود الإطار بهامش متساوٍ وصغير */}
-                <div className="grid place-items-center" style={{ width: "94%", height: "94%" }}>
+                {/* الـ QR — أكبر، قريب جدًا من حدود الإطار بهامش صغير متساوٍ */}
+                <div className="grid place-items-center" style={{ width: "97%", height: "97%" }}>
                   <LiveQRCode value={code} size={1} />
                 </div>
               </div>
