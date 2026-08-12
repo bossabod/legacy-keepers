@@ -1,7 +1,9 @@
 "use client";
+import { useState } from "react";
 import dynamic from "next/dynamic";
-import { RotateCw } from "lucide-react";
+import { RotateCw, ChevronDown, MapPin, Navigation } from "lucide-react";
 import { useApp } from "@/lib/store";
+import { NAV_COUNTRIES } from "@/lib/network-cities";
 
 // MapLibre touches `window` and must only load in the browser (not SSR).
 const NetworkMap = dynamic(() => import("@/components/sections/NetworkMap"), {
@@ -11,13 +13,20 @@ const NetworkMap = dynamic(() => import("@/components/sections/NetworkMap"), {
 
 /* ==================================================================
    Network — New York City interactive map (MapLibre GL).
-   Satellite (Esri) base. Zoom locked close to buildings/streets, drag
-   to pan only. Includes a linked mini/overview map.
+   Satellite (Esri) base + architectural dark filter. City-navigation
+   panel on the right with countries → cities. Cinematic travel on pick.
+   Zoom locked, drag to pan only within current city.
    ================================================================== */
 
 export default function NetworkSection() {
   const { lang } = useApp();
   const ar = lang === "ar";
+  const [openCountry, setOpenCountry] = useState<string | null>(null);
+
+  const travelTo = (cityId: string) => {
+    const el = document.querySelector('[data-globe]');
+    (el as any)?.__globeApi?.flyToCity?.(cityId);
+  };
 
   return (
     <div className="relative w-full overflow-hidden" style={{ height: "calc(100vh - 66px)", background: "#0b0e12" }}>
@@ -25,18 +34,64 @@ export default function NetworkSection() {
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col items-center justify-start pt-5">
         <div className="text-center">
           <div className="text-[0.5rem] uppercase tracking-[0.3em] text-[#7c8794]" style={{ fontFamily: "var(--font-mono)" }}>
-            {ar ? "محور العمليات · نيويورك" : "Operations Hub · New York"}
+            {ar ? "محور العمليات · شبكة المدن" : "Operations Hub · City Network"}
           </div>
           <div className="mt-1 text-[0.95rem] tracking-[0.12em] text-[#eaeef5]" style={{ fontFamily: "var(--font-luxury)", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>
-            {ar ? "مدينة نيويورك" : "New York City"}
+            {ar ? "التنقل بين المدن" : "City Navigation"}
           </div>
         </div>
       </div>
 
-      {/* the interactive map (original natural satellite) + high-contrast filter */}
+      {/* the interactive map */}
       <div className="absolute inset-0 z-0">
         <div className="h-full w-full map-high-contrast">
           <NetworkMap />
+        </div>
+      </div>
+
+      {/* CITY NAVIGATION panel — يمين الشاشة */}
+      <div className="pointer-events-auto absolute right-4 top-1/2 z-20 w-60 -translate-y-1/2 rounded-2xl border border-[#3a5a86]/40 bg-[#0a0c12]/90 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(127,176,255,0.12)] overflow-hidden">
+        {/* header */}
+        <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+          <span className="flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.25em] text-[#c3c9d3]" style={{ fontFamily: "var(--font-luxury)" }}>
+            <Navigation size={13} className="text-[#7fb0ff]" />
+            City Navigation
+          </span>
+        </div>
+
+        {/* قائمة الدول */}
+        <div className="max-h-[55vh] overflow-y-auto p-2">
+          {NAV_COUNTRIES.map((country) => {
+            const open = openCountry === country.id;
+            return (
+              <div key={country.id} className="mb-1">
+                <button
+                  onClick={() => setOpenCountry(open ? null : country.id)}
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[0.78rem] tracking-[0.05em] text-[#c3c9d3] transition-colors hover:bg-white/[0.04] hover:text-white"
+                >
+                  <span className="flex items-center gap-2">
+                    <MapPin size={12} className="text-[#7fb0ff]/70" />
+                    {country.name}
+                  </span>
+                  <ChevronDown size={13} className={`text-[#7fb0ff]/70 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
+                </button>
+
+                {open && (
+                  <div className="ml-4 border-l border-[#3a5a86]/30 pl-2">
+                    {country.cities.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => travelTo(c.id)}
+                        className="block w-full rounded-md px-3 py-1.5 text-left text-[0.72rem] text-[#8b95a5] transition-colors hover:bg-sky-400/10 hover:text-sky-100"
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

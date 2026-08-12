@@ -1,43 +1,37 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { buildNodesGeoJSON, buildLinksGeoJSON } from "@/lib/network-links";
+import { NAV_COUNTRIES, findCity, DEFAULT_CITY_ID, type NavCity } from "@/lib/network-cities";
 
 /* ==================================================================
-   NetworkMap — New York City satellite map (MapLibre GL), NYC only.
-   The camera is centered on New York City and locked to its metro
-   bounds: you cannot pan out of NYC to other cities/countries.
-     • Satellite base — Esri World Imagery (free, no key).
-     • 3D Buildings — OpenFreeMap vector tiles.
-     • Terrain — free public terrarium DEM tiles.
-     • Network overlay — glowing white nodes + luminous blue links
-       (relations / connections layer, togglable).
-   Map source / colors / functions are unchanged.
-   Exposes: zoomIn / zoomOut / set3D(bool) / setNetwork(bool).
+   NetworkMap — interactive city-navigable satellite map (MapLibre GL).
+   • Main map: close zoom (buildings/streets), drag to pan only within
+     the current city bounds, zoom locked after arrival.
+   • Mini/overview map: whole city region from afar with a live
+     Viewport Rectangle synced to the main camera (both directions).
+   • Cinematic travel between cities: zoom-out steps → fade-to-black →
+     zoom-in steps → lock at the city's detail zoom.
+   Satellite (Esri), filter, layers, and design stay unchanged.
+   Exposes: flyToCity(id), zoomIn/zoomOut (no-op), setNetwork(bool).
    ================================================================== */
-
-// New York City metro bounds (SW lon/lat, NE lon/lat)
-const NYC_BOUNDS: [[number, number], [number, number]] = [
-  [-74.3, 40.48],
-  [-73.7, 40.93],
-];
-const CENTER: [number, number] = [-74.006, 40.7128];
-// Zoom قريب جدًا — مستوى المباني والشوارع (ثابت لاحقًا)
-const ZOOM = 16;
 
 export default function NetworkMap({ className = "" }: { className?: string }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const miniRef = useRef<HTMLDivElement | null>(null);
   const miniMapRef = useRef<MapLibreMap | null>(null);
   const mainMapRef = useRef<MapLibreMap | null>(null);
+  const currentCityRef = useRef<NavCity>(findCity(DEFAULT_CITY_ID)!);
+  const [fade, setFade] = useState(false);
 
   useEffect(() => {
     const el = mountRef.current;
     if (!el) return;
     let map: MapLibreMap | null = null;
     const miniCleanups: (() => void)[] = [];
+    let locked = false;
 
     const style: any = {
       version: 8,
@@ -70,18 +64,15 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
     map = new maplibregl.Map({
       container: el,
       style,
-      center: CENTER,
-      zoom: ZOOM,
-      minZoom: ZOOM,
-      maxZoom: ZOOM,
+      center: currentCityRef.current.center,
+      zoom: currentCityRef.current.zoom,
       pitch: 0,
       bearing: 0,
       maxPitch: 65,
-      maxBounds: NYC_BOUNDS, // lock to New York City
+      maxBounds: currentCityRef.current.bounds,
       dragRotate: true,
       pitchWithRotate: true,
       attributionControl: false,
-      // ---- Zoom مقيّد بالكامل: تعطيل كل وسائل التكبير/التبعيد ----
       scrollZoom: false,
       boxZoom: false,
       doubleClickZoom: false,
@@ -92,7 +83,26 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
     });
     mainMapRef.current = map;
 
-    // تحديث مستطيل الـ viewport من الخريطة الرئيسية (عند التحرك)
+    // ---- قفل / فتح الزوم ----
+    const lockZoom = (city: NavCity) => {
+      locked = true;
+      if (!map) return;
+      map.setMinZoom(city.zoom);
+      map.setMaxZoom(city.zoom);
+      map.setMaxBounds(city.bounds);
+      if (map.getZoom() !== city.zoom) map.setZoom(city.zoom);
+    };
+    const unlockZoom = () => {
+      locked = false;
+      if (!map) return;
+      map.setMinZoom(1);
+      map.setMaxZoom(22);
+    };
+    map.on("zoom", () => {
+      if (locked && map) map.setZoom(currentCityRef.current.zoom);
+    });
+
+    // ---- تحديث مستطيل الـ viewport في الخريطة المصغرة ----
     const updateViewport = () => {
       const mm = mainMapRef.current;
       const mn = miniMapRef.current;
@@ -108,16 +118,14 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
       src.setData({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [ring] } });
     };
 
-    // ---- Mini Map / Overview Map ----
+    // ---- إنشاء الخريطة المصغرة ----
     const miniEl = miniRef.current;
     if (miniEl) {
       const mini = new maplibregl.Map({
         container: miniEl,
         style,
-        center: [-74.05, 40.72],
-        zoom: 10,
-        minZoom: 10,
-        maxZoom: 10,
+        center: currentCityRef.current.center,
+        zoom: 9,
         pitch: 0,
         bearing: 0,
         attributionControl: false,
@@ -126,26 +134,20 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
         doubleClickZoom: false,
         touchZoomRotate: false,
         keyboard: false,
-        dragPan: false, // سنحرّك الـ viewport يدويًا، لا الخريطة نفسها
+        dragPan: false,
         interactive: true,
       });
       miniMapRef.current = mini;
 
-      // إضافة الطبقة والـ viewport indicator داخل mini map
       mini.on("load", () => {
-        // حدود نيويورك في mini map
         try {
           mini.addSource("mini-bounds", {
             type: "geojson",
-            data: { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [[
-              [-74.3, 40.48], [-73.7, 40.48], [-73.7, 40.93], [-74.3, 40.93], [-74.3, 40.48],
-            ]] } },
+            data: { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [[]] } },
           });
           mini.addLayer({ id: "mini-bounds-fill", source: "mini-bounds", type: "fill", paint: { "fill-color": "#7fb0ff", "fill-opacity": 0.05 } });
           mini.addLayer({ id: "mini-bounds-line", source: "mini-bounds", type: "line", paint: { "line-color": "#7fb0ff", "line-width": 1, "line-opacity": 0.4 } });
         } catch (e) { /* optional */ }
-
-        // viewport indicator — مستطيل يمثل ما تعرضه الخريطة الرئيسية
         try {
           mini.addSource("viewport", {
             type: "geojson",
@@ -154,23 +156,42 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
           mini.addLayer({ id: "viewport-fill", source: "viewport", type: "fill", paint: { "fill-color": "#7fb0ff", "fill-opacity": 0.18 } });
           mini.addLayer({ id: "viewport-line", source: "viewport", type: "line", paint: { "line-color": "#ffffff", "line-width": 1.5, "line-opacity": 0.9 } });
         } catch (e) { /* optional */ }
-
+        updateMiniForCity(currentCityRef.current);
         updateViewport();
       });
+
+      // تحديث الخريطة المصغرة حسب المدينة
+      const updateMiniForCity = (city: NavCity) => {
+        const mn = miniMapRef.current;
+        if (!mn) return;
+        // حدود المدينة في المصغرة
+        const src = mn.getSource("mini-bounds") as any;
+        if (src) {
+          src.setData({
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "Polygon",
+              coordinates: [[
+                [city.bounds[0][0], city.bounds[0][1]],
+                [city.bounds[1][0], city.bounds[0][1]],
+                [city.bounds[1][0], city.bounds[1][1]],
+                [city.bounds[0][0], city.bounds[1][1]],
+                [city.bounds[0][0], city.bounds[0][1]],
+              ]],
+            },
+          });
+        }
+        try { mn.fitBounds(city.bounds, { padding: 6, duration: 0 }); } catch (e) { /* optional */ }
+      };
 
       map.on("move", updateViewport);
       map.on("moveend", updateViewport);
 
-      // سحب الـ viewport داخل mini map → تحريك الخريطة الرئيسية
+      // سحب الـ viewport في المصغرة → تحريك الرئيسية
       let dragActive = false;
-      const onPointerDown = (e: MouseEvent) => {
-        dragActive = true;
-        e.preventDefault();
-        handleDrag(e);
-      };
-      const onPointerMove = (e: MouseEvent) => {
-        if (dragActive) handleDrag(e);
-      };
+      const onPointerDown = (e: MouseEvent) => { dragActive = true; e.preventDefault(); handleDrag(e); };
+      const onPointerMove = (e: MouseEvent) => { if (dragActive) handleDrag(e); };
       const onPointerUp = () => { dragActive = false; };
       const handleDrag = (e: MouseEvent) => {
         const mn = miniMapRef.current;
@@ -180,14 +201,11 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         const ll = mn.unproject([x, y]);
-        // حرّك الخريطة الرئيسية إلى ذلك الموقع مع ثبات الزوم
-        mm.easeTo({ center: [ll.lng, ll.lat], zoom: ZOOM, duration: 250 });
+        mm.easeTo({ center: [ll.lng, ll.lat], zoom: currentCityRef.current.zoom, duration: 250 });
       };
       miniEl.addEventListener("pointerdown", onPointerDown);
       window.addEventListener("pointermove", onPointerMove);
       window.addEventListener("pointerup", onPointerUp);
-
-      // احتفظ بمرجع التنظيف
       miniCleanups.push(() => {
         miniEl.removeEventListener("pointerdown", onPointerDown);
         window.removeEventListener("pointermove", onPointerMove);
@@ -196,129 +214,104 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
       });
     }
 
-    // تأكيد إضافي: أي محاولة تقريب تعيد الزوم إلى الثابت
-    map.on("zoom", () => {
-      if (map && map.getZoom() !== ZOOM) map.setZoom(ZOOM);
-    });
-
-    const mapReady = map;
-    mapReady.on("load", () => {
-      // Terrain (3D relief) — best-effort; map still works if it fails.
-      try {
-        mapReady.setTerrain({ source: "terrain", exaggeration: 1.2 });
-      } catch (e) {
-        // terrain optional
+    // ---- بناء مدينة (تثبيت الحدود والزوم) ----
+    const applyCity = (city: NavCity) => {
+      currentCityRef.current = city;
+      const mn = miniMapRef.current;
+      if (mn) {
+        const src = mn.getSource("mini-bounds") as any;
+        if (src) {
+          src.setData({
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "Polygon",
+              coordinates: [[
+                [city.bounds[0][0], city.bounds[0][1]],
+                [city.bounds[1][0], city.bounds[0][1]],
+                [city.bounds[1][0], city.bounds[1][1]],
+                [city.bounds[0][0], city.bounds[1][1]],
+                [city.bounds[0][0], city.bounds[0][1]],
+              ]],
+            },
+          });
+        }
+        try { mn.fitBounds(city.bounds, { padding: 6, duration: 0 }); } catch (e) { /* optional */ }
       }
+      lockZoom(city);
+    };
 
-      // Real 3D buildings (OpenFreeMap) — best-effort.
+    // ---- الانتقال السينمائي بين المدن ----
+    const flyToCity = (id: string) => {
+      const city = findCity(id);
+      if (!city || !map) return;
+      unlockZoom();
+      // 1) Zoom Out على 3 مراحل
+      map.easeTo({ zoom: 8, duration: 800 });
+      setTimeout(() => { map?.easeTo({ zoom: 5, duration: 800 }); }, 950);
+      setTimeout(() => {
+        map?.easeTo({ zoom: 2, duration: 900 });
+        setFade(true); // 6) Fade-to-black
+      }, 1900);
+      // الانتقال إلى المدينة الجديدة من بعيد + إظهار بعد الظلام
+      setTimeout(() => {
+        map?.jumpTo({ center: city.center, zoom: 2 });
+        map?.setMaxBounds(city.bounds);
+      }, 3000);
+      setTimeout(() => {
+        setFade(false);
+        map?.easeTo({ zoom: 6, duration: 900 }); // 9) Zoom In
+      }, 3400);
+      setTimeout(() => {
+        map?.easeTo({ zoom: 11, duration: 900 }); // 11) Zoom In
+      }, 4400);
+      setTimeout(() => {
+        map?.easeTo({ zoom: city.zoom, duration: 1000 }); // 13) Zoom In أخير
+      }, 5400);
+      setTimeout(() => {
+        applyCity(city); // قفل الزوم والحدود
+      }, 6600);
+    };
+
+    // تحميل الرئيسية (تثبيت الحدود + المصغرة)
+    map.on("load", () => {
+      try { map?.setTerrain({ source: "terrain", exaggeration: 1.2 }); } catch (e) { /* optional */ }
       try {
-        mapReady.addSource("openfreemap", {
-          type: "vector",
-          url: "https://tiles.openfreemap.org/planet",
-        });
-        mapReady.addLayer({
-          id: "3d-buildings",
-          source: "openfreemap",
-          "source-layer": "building",
-          type: "fill-extrusion",
-          minzoom: 15,
-          filter: ["!=", ["get", "hide_3d"], true],
-          layout: { visibility: "none" },
+        map?.addSource("openfreemap", { type: "vector", url: "https://tiles.openfreemap.org/planet" });
+        map?.addLayer({
+          id: "3d-buildings", source: "openfreemap", "source-layer": "building", type: "fill-extrusion",
+          minzoom: 15, filter: ["!=", ["get", "hide_3d"], true], layout: { visibility: "none" },
           paint: {
-            "fill-extrusion-color": [
-              "interpolate", ["linear"], ["get", "render_height"],
-              0, "#c9c4b8", 90, "#9e998e", 200, "#8b867b", 350, "#7d7870",
-            ],
+            "fill-extrusion-color": ["interpolate", ["linear"], ["get", "render_height"], 0, "#c9c4b8", 90, "#9e998e", 200, "#8b867b", 350, "#7d7870"],
             "fill-extrusion-opacity": 0.9,
-            "fill-extrusion-height": [
-              "interpolate", ["linear"], ["zoom"], 15, 0, 16, ["get", "render_height"],
-            ],
-            "fill-extrusion-base": [
-              "case", [">=", ["get", "zoom"], 16], ["get", "render_min_height"], 0,
-            ],
+            "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 15, 0, 16, ["get", "render_height"]],
+            "fill-extrusion-base": ["case", [">=", ["get", "zoom"], 16], ["get", "render_min_height"], 0],
           },
         });
-      } catch (e) {
-        // buildings optional — satellite + terrain still work
-      }
-
-      // ---- network overlay (nodes + links) — kept as-is ----
+      } catch (e) { /* optional */ }
+      // الشبكة
       try {
-        mapReady.addSource("net-nodes", { type: "geojson", data: buildNodesGeoJSON() as any });
-        mapReady.addSource("net-links", { type: "geojson", data: buildLinksGeoJSON() as any });
-
-        mapReady.addLayer({
-          id: "net-link-glow",
-          source: "net-links",
-          type: "line",
-          layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": "#2a7fff", "line-width": 2.2, "line-opacity": 0.18 },
-        });
-        mapReady.addLayer({
-          id: "net-link",
-          source: "net-links",
-          type: "line",
-          layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": "#3d8bff", "line-width": 1, "line-opacity": 0.7 },
-        });
-
-        mapReady.addLayer({
-          id: "net-node-halo",
-          source: "net-nodes",
-          type: "circle",
-          paint: {
-            "circle-radius": ["case", ["get", "hub"], 7, 5],
-            "circle-color": "#ffffff",
-            "circle-opacity": 0.25,
-            "circle-blur": 0.9,
-          },
-        });
-        mapReady.addLayer({
-          id: "net-node",
-          source: "net-nodes",
-          type: "circle",
-          paint: {
-            "circle-radius": ["case", ["get", "hub"], 3.2, 2.4],
-            "circle-color": "#ffffff",
-            "circle-opacity": 0.95,
-            "circle-stroke-color": "#9cc4ff",
-            "circle-stroke-width": 0.8,
-          },
-        });
-      } catch (e) {
-        // network overlay optional — map still works
-      }
+        map?.addSource("net-nodes", { type: "geojson", data: buildNodesGeoJSON() as any });
+        map?.addSource("net-links", { type: "geojson", data: buildLinksGeoJSON() as any });
+        map?.addLayer({ id: "net-link-glow", source: "net-links", type: "line", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#2a7fff", "line-width": 2.2, "line-opacity": 0.18 } });
+        map?.addLayer({ id: "net-link", source: "net-links", type: "line", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#3d8bff", "line-width": 1, "line-opacity": 0.7 } });
+        map?.addLayer({ id: "net-node-halo", source: "net-nodes", type: "circle", paint: { "circle-radius": ["case", ["get", "hub"], 7, 5], "circle-color": "#ffffff", "circle-opacity": 0.25, "circle-blur": 0.9 } });
+        map?.addLayer({ id: "net-node", source: "net-nodes", type: "circle", paint: { "circle-radius": ["case", ["get", "hub"], 3.2, 2.4], "circle-color": "#ffffff", "circle-opacity": 0.95, "circle-stroke-color": "#9cc4ff", "circle-stroke-width": 0.8 } });
+      } catch (e) { /* optional */ }
+      lockZoom(currentCityRef.current);
     });
 
     (el as any).__globeApi = {
-      // Zoom ثابت — الأزرار الخارجية بلا تأثير
-      zoomIn: () => { if (map && map.getZoom() !== ZOOM) map.setZoom(ZOOM); },
-      zoomOut: () => { if (map && map.getZoom() !== ZOOM) map.setZoom(ZOOM); },
+      zoomIn: () => { if (map && locked) map.setZoom(currentCityRef.current.zoom); },
+      zoomOut: () => { if (map && locked) map.setZoom(currentCityRef.current.zoom); },
+      flyToCity: (id: string) => flyToCity(id),
       setNetwork: (on: boolean) => {
         if (!map) return;
         const ids = ["net-link-glow", "net-link", "net-node-halo", "net-node"];
-        for (const id of ids) {
-          if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
-        }
-      },
-      set3D: (on: boolean) => {
-        if (!map) return;
-        if (on) {
-          // zoom يبقى ثابتًا (ZOOM) — الميلان فقط
-          map.easeTo({ pitch: 55, bearing: -30, zoom: ZOOM, duration: 900 });
-          if (map.getLayer("3d-buildings")) {
-            map.setLayoutProperty("3d-buildings", "visibility", "visible");
-          }
-        } else {
-          map.easeTo({ pitch: 0, bearing: 0, zoom: ZOOM, duration: 700 });
-          if (map.getLayer("3d-buildings")) {
-            map.setLayoutProperty("3d-buildings", "visibility", "none");
-          }
-        }
+        for (const id of ids) if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
       },
     };
 
-    // keep map sized correctly
     const ro = new ResizeObserver(() => map?.resize());
     ro.observe(el);
 
@@ -334,18 +327,23 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
       {/* الخريطة الرئيسية */}
       <div ref={mountRef} className={className} style={{ width: "100%", height: "100%" }} />
 
-      {/* الخريطة المصغرة / نظرة عامة — أعلى الخريطة الرئيسية */}
+      {/* الخريطة المصغرة / نظرة عامة */}
       <div
         className="pointer-events-auto absolute left-4 top-4 z-20 overflow-hidden rounded-xl border border-[#3a5a86]/50 shadow-[0_10px_30px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(127,176,255,0.15)]"
-        style={{ width: 180, height: 180 }}
+        style={{ width: 170, height: 170 }}
       >
         <div ref={miniRef} className="h-full w-full" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-black/70 to-transparent flex items-end justify-center pb-1">
-          <span className="font-mono text-[0.5rem] tracking-[0.25em] uppercase text-[#9db4d8]/80">
-            NYC · Overview
-          </span>
+          <span className="font-mono text-[0.5rem] tracking-[0.25em] uppercase text-[#9db4d8]/80">Overview</span>
         </div>
       </div>
+
+      {/* Fade-to-black أثناء الانتقال */}
+      {fade && (
+        <div className="pointer-events-none absolute inset-0 z-30 bg-black transition-opacity duration-200" />
+      )}
     </div>
   );
 }
+
+export { NAV_COUNTRIES };
