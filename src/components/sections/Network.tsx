@@ -46,13 +46,13 @@ export default function NetworkSection() {
         <span>{ar ? "اسحب لتحريك الخريطة" : "Drag to pan"}</span>
       </div>
 
-      {/* CSS-only blue-tint filter — does NOT change the map source/library */}
+      {/* CSS-only warm architectural dark-tone filter — does NOT change the map */}
       <style>{`
         .map-high-contrast {
-          filter: contrast(1.2) saturate(1.35) brightness(0.95) sepia(0.25) hue-rotate(190deg);
+          filter: grayscale(1) sepia(0.42) brightness(0.72) contrast(1.18) saturate(1.1);
         }
         .map-high-contrast canvas {
-          background: #0a0c12;
+          background: #191512;
         }
       `}</style>
     </div>
