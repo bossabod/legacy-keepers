@@ -301,133 +301,150 @@ function ModuleHead({ label, id, right }: { label: string; id: string; right?: s
   );
 }
 
-/* Large self-drawing performance graph with axes, grid, data points,
-   hover tooltip, and high/low markers. */
-function PerformanceGraph({ series, run }: { series: Point[]; run: boolean }) {
-  const W = 640, H = 230, PL = 30, PR = 12, PT = 18, PB = 26;
-  const pathRef = useRef<SVGPathElement>(null);
-  const [hover, setHover] = useState<number | null>(null);
+/* Deterministic seeded RNG for stable candle data. */
+function mulberry(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* Generate a realistic, zigzagging OHLC candle series ending near 31. */
+function generateCandles(count = 180) {
+  const rnd = mulberry(0x9c2d);
+  const out: { o: number; h: number; l: number; c: number }[] = [];
+  let price = 18 + rnd() * 6;
+  for (let i = 0; i < count; i++) {
+    let drift = (rnd() - 0.5) * 2.2;
+    if (rnd() < 0.12) drift *= 3.2; // strong up/down
+    const o = price;
+    const c = Math.max(4, o + drift);
+    const wick = (rnd() * 1.6 + 0.4) * (rnd() < 0.5 ? 1 : -1);
+    const h = Math.max(o, c) + Math.abs(wick) * 0.5 + rnd() * 0.6;
+    const l = Math.min(o, c) - Math.abs(wick) * 0.5 - rnd() * 0.6;
+    out.push({ o, h: Math.max(h, Math.max(o, c) + 0.2), l: Math.max(0.5, Math.min(l, Math.min(o, c) - 0.2)), c });
+    price = c;
+    if (i > count * 0.55 && i < count * 0.85) price += 0.04;
+  }
+  const last = out[out.length - 1].c;
+  const scale = 31 / last;
+  return out.map((k) => ({ o: k.o * scale, h: k.h * scale, l: k.l * scale, c: k.c * scale }));
+}
+
+/* Interactive Candlestick chart — white/light-gray candles on a very dark
+   background, draggable to pan left/right. Realistic zigzag price. */
+function PerformanceGraph({ series: _series, run }: { series: Point[]; run: boolean }) {
+  const W = 640, H = 230, PL = 34, PR = 12, PT = 16, PB = 24;
+  const candles = useMemo(() => generateCandles(), []);
+  const maxVisible = 46;
+  const [offset, setOffset] = useState(0);
+  const [drag, setDrag] = useState<{ x0: number; start: number } | null>(null);
+
+  const maxOff = Math.max(0, candles.length - maxVisible);
+  const vis = candles.slice(offset, offset + maxVisible);
 
   const geo = useMemo(() => {
-    if (!series.length) return null;
-    const vs = series.map((p) => p.v);
-    let lo = Math.min(...vs), hi = Math.max(...vs);
-    const pad = (hi - lo) * 0.16 || 1;
+    if (!vis.length) return null;
+    let lo = Infinity, hi = -Infinity;
+    for (const k of vis) { if (k.l < lo) lo = k.l; if (k.h > hi) hi = k.h; }
+    const pad = (hi - lo) * 0.14 || 1;
     lo -= pad; hi += pad;
-    const w = W - PL - PR, h = H - PT - PB;
-    const pts = series.map((p, i) => {
-      const x = PL + (i / (series.length - 1)) * w;
-      const y = PT + (1 - (p.v - lo) / (hi - lo)) * h;
-      return [x, y];
-    });
-    let d = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
-    for (let i = 1; i < pts.length; i++) {
-      const [x0, y0] = pts[i - 1];
-      const [x1, y1] = pts[i];
-      const mx = (x0 + x1) / 2;
-      d += ` C ${mx.toFixed(1)} ${y0.toFixed(1)}, ${mx.toFixed(1)} ${y1.toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`;
-    }
-    // nearest index for high/low markers
-    let hiI = 0, loI = 0;
-    vs.forEach((v, i) => { if (v > vs[hiI]) hiI = i; if (v < vs[loI]) loI = i; });
-    return { d, pts, lo, hi, hiI, loI, vs };
-  }, [series]);
+    const iw = (W - PL - PR) / maxVisible;
+    return { lo, hi, iw };
+  }, [vis]);
 
-  useEffect(() => {
-    if (pathRef.current) {
-      const len = pathRef.current.getTotalLength();
-      pathRef.current.style.strokeDasharray = `${len}`;
-      pathRef.current.style.strokeDashoffset = `${len}`;
-    }
-  }, [geo]);
+  const onDown = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    setDrag({ x0: e.clientX, start: offset });
+  };
+  const onMove = (e: React.PointerEvent) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x0;
+    const dOff = Math.round(-dx / 7);
+    setOffset(Math.max(0, Math.min(maxOff, drag.start + dOff)));
+  };
+  const onUp = () => setDrag(null);
 
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.4 });
   const draw = run && inView;
 
-  const last = series.length ? series[series.length - 1].v : 0;
-  const first = series.length ? series[0].v : 0;
-  const pct = first ? ((last - first) / first) * 100 : 0;
-  const hiP = geo && series[geo.hiI] ? series[geo.hiI].v : 0;
-  const loP = geo && series[geo.loI] ? series[geo.loI].v : 0;
-
-  const onMove = (e: React.MouseEvent) => {
-    if (!geo || !series.length) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const ratio = (e.clientX - rect.left) / rect.width;
-    const idx = Math.round(ratio * (series.length - 1));
-    setHover(idx);
-  };
-
-  const hoverPt = hover !== null && geo ? geo.pts[hover] : null;
-
   return (
-    <div ref={ref} className="relative overflow-hidden border border-white/[0.06]" style={{ background: "#07080a" }}>
-      {/* faint horizontal gridlines */}
-      {[0.25, 0.5, 0.75].map((f) => (
-        <span key={f} className="pointer-events-none absolute inset-x-0 h-px"
-          style={{ top: `${PT + f * (H - PT - PB)}px`, background: "rgba(255,255,255,0.05)" }} />
-      ))}
-      <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" preserveAspectRatio="none" aria-hidden="true"
-        onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
-        <defs>
-          <linearGradient id="pgrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#dfe8f2" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="#dfe8f2" stopOpacity="0" />
-          </linearGradient>
-        </defs>
+    <div
+      ref={ref}
+      className="relative select-none overflow-hidden border border-white/[0.06]"
+      style={{ background: "#050506", cursor: "grab", touchAction: "none" }}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+      onPointerCancel={onUp}
+    >
+      {/* subtle horizontal price-level lines */}
+      {geo && [0.18, 0.38, 0.58, 0.78].map((f) => {
+        const y = PT + f * (H - PT - PB);
+        const pv = geo.lo + f * (geo.hi - geo.lo);
+        return (
+          <span key={f} className="pointer-events-none absolute inset-x-0 h-px" style={{ top: y, background: "rgba(255,255,255,0.05)" }}>
+            <span className="absolute right-1 top-[-6px] text-[0.44rem] tracking-widest text-[#4a515e]" style={{ fontFamily: MONO }}>{pv.toFixed(1)}</span>
+          </span>
+        );
+      })}
+
+      {/* very transparent rectangular price zones */}
+      {geo && (
+        <>
+          <div className="pointer-events-none absolute inset-x-0" style={{ top: PT + 0.12 * (H - PT - PB), height: 0.14 * (H - PT - PB), background: "rgba(255,255,255,0.025)" }} />
+          <div className="pointer-events-none absolute inset-x-0" style={{ top: PT + 0.6 * (H - PT - PB), height: 0.12 * (H - PT - PB), background: "rgba(255,255,255,0.02)" }} />
+        </>
+      )}
+
+      <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" preserveAspectRatio="none" aria-hidden="true">
         {geo && (
           <>
-            {/* axis lines */}
-            <line x1={PL} x2={W - PR} y1={H - PB} y2={H - PB} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-            <line x1={PL} x2={PL} y1={PT} y2={H - PB} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-            <path d={`${geo.d} L ${geo.pts[geo.pts.length - 1][0].toFixed(1)} ${H - PB} L ${geo.pts[0][0].toFixed(1)} ${H - PB} Z`} fill="url(#pgrad)" opacity="0.5" />
-            <path ref={pathRef} d={geo.d} fill="none" stroke="#dfe8f2" strokeWidth="1.4" strokeLinecap="round"
-              className="transition-[stroke-dashoffset] duration-[2200ms] ease-out"
-              style={{ strokeDashoffset: draw ? "0" : undefined, transitionDuration: draw ? "2200ms" : "0ms" }} />
-            {/* data points */}
-            {geo.pts.map(([x, y], i) => (
-              <circle key={i} cx={x} cy={y} r={hover === i ? 3.4 : 2}
-                fill={hover === i ? "#ffffff" : "#dfe8f2"}
-                opacity={draw ? 1 : 0} style={{ transition: "r 0.2s, fill 0.2s" }} />
-            ))}
-            {/* high marker */}
-            <circle cx={geo.pts[geo.hiI][0]} cy={geo.pts[geo.hiI][1]} r="4" fill="none" stroke="#9aa5b3" strokeWidth="1" opacity="0.8" />
-            <text x={geo.pts[geo.hiI][0] + 6} y={geo.pts[geo.hiI][1] - 4} fill="#9aa5b3" fontSize="8" style={{ fontFamily: "var(--font-mono)" }}>▲ {fmt(hiP)}%</text>
-            {/* low marker */}
-            <circle cx={geo.pts[geo.loI][0]} cy={geo.pts[geo.loI][1]} r="4" fill="none" stroke="#7f8896" strokeWidth="1" opacity="0.8" />
-            <text x={geo.pts[geo.loI][0] + 6} y={geo.pts[geo.loI][1] + 12} fill="#7f8896" fontSize="8" style={{ fontFamily: "var(--font-mono)" }}>▼ {fmt(loP)}%</text>
-            {/* x labels (month-ish ticks) */}
-            {[0, 0.25, 0.5, 0.75, 1].map((f, i) => (
-              <text key={i} x={PL + f * (W - PL - PR)} y={H - 8} textAnchor={f === 0 ? "start" : f === 1 ? "end" : "middle"}
-                fill="rgba(150,160,175,0.5)" fontSize="7.5" style={{ fontFamily: "var(--font-mono)" }}>{Math.round(f * 12)}m</text>
-            ))}
-            {/* y labels */}
+            <line x1={PL} x2={W - PR} y1={H - PB} y2={H - PB} stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+            <line x1={PL} x2={PL} y1={PT} y2={H - PB} stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+            {vis.map((k, i) => {
+              const cx = PL + i * geo.iw + geo.iw / 2;
+              const bodyW = Math.max(2, geo.iw * 0.55);
+              const yO = PT + (1 - (k.o - geo.lo) / (geo.hi - geo.lo)) * (H - PT - PB);
+              const yC = PT + (1 - (k.c - geo.lo) / (geo.hi - geo.lo)) * (H - PT - PB);
+              const yH = PT + (1 - (k.h - geo.lo) / (geo.hi - geo.lo)) * (H - PT - PB);
+              const yL = PT + (1 - (k.l - geo.lo) / (geo.hi - geo.lo)) * (H - PT - PB);
+              const top = Math.min(yO, yC);
+              const bh = Math.max(1.4, Math.abs(yC - yO));
+              const fill = k.c >= k.o ? "#eef2f7" : "#9aa5b3";
+              return (
+                <g key={i}>
+                  <line x1={cx} y1={yH} x2={cx} y2={yL} stroke={fill} strokeWidth="1" opacity="0.9" />
+                  <rect x={cx - bodyW / 2} y={top} width={bodyW} height={bh} fill={fill} rx="0.4" opacity="0.95" />
+                </g>
+              );
+            })}
             {[0, 0.5, 1].map((f, i) => (
-              <text key={i} x={PL - 6} y={PT + f * (H - PT - PB) + 3} textAnchor="end" fill="rgba(150,160,175,0.45)" fontSize="7.5" style={{ fontFamily: "var(--font-mono)" }}>
-                {Math.round(geo.lo + f * (geo.hi - geo.lo))}%
+              <text key={i} x={PL - 5} y={PT + f * (H - PT - PB) + 3} textAnchor="end" fill="rgba(150,160,175,0.4)" fontSize="7.5" style={{ fontFamily: "var(--font-mono)" }}>
+                {Math.round(geo.lo + f * (geo.hi - geo.lo))}
+              </text>
+            ))}
+            {[0, 0.5, 1].map((f, i) => (
+              <text key={i} x={PL + f * (W - PL - PR)} y={H - 7} textAnchor={f === 0 ? "start" : f === 1 ? "end" : "middle"} fill="rgba(150,160,175,0.35)" fontSize="7" style={{ fontFamily: "var(--font-mono)" }}>
+                {Math.round(f * (candles.length / maxVisible)) * 4}
               </text>
             ))}
           </>
         )}
       </svg>
 
-      {/* hover tooltip */}
-      {hoverPt && hover !== null && (
-        <div className="pointer-events-none absolute z-10 -translate-x-1/2 rounded border border-white/15 bg-[#0a0c10] px-2.5 py-1.5 text-[0.6rem] text-[#eaeef5] shadow-xl" style={{ fontFamily: "var(--font-mono)", left: hoverPt[0], top: hoverPt[1] - 34 }}>
-          {series[hover] ? series[hover].v.toFixed(1) : "0"}%
-        </div>
-      )}
-
       {/* footer summary */}
       <div className="pointer-events-none absolute bottom-1 right-3 flex items-center gap-3 text-[0.5rem] tracking-[0.12em] text-[#6d7685]" style={{ fontFamily: MONO }}>
-        <span>YTD {fmt(last)}%</span>
-        <span className={pct >= 0 ? "text-[#7a9a7a]" : "text-[#9a6a6a]"}>{pct >= 0 ? "+" : ""}{pct.toFixed(1)}%</span>
+        <span>YTD {candles[candles.length - 1].c.toFixed(1)}</span>
+        <span className="text-[#9aa5b3]">CANDLE · DRAG</span>
       </div>
     </div>
   );
 }
-
 /* Monthly growth bars. */
 function MonthlyBars({ data, run }: { data: { m: string; avg: number }[]; run: boolean }) {
   const max = Math.max(...data.map((d) => d.avg), 1);
