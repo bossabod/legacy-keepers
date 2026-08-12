@@ -67,6 +67,8 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
       style,
       center: CENTER,
       zoom: ZOOM,
+      minZoom: ZOOM,
+      maxZoom: ZOOM,
       pitch: 0,
       bearing: 0,
       maxPitch: 65,
@@ -74,7 +76,19 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
       dragRotate: true,
       pitchWithRotate: true,
       attributionControl: false,
+      // ---- Zoom مقيّد بالكامل: تعطيل كل وسائل التكبير/التبعيد ----
+      scrollZoom: false,
+      boxZoom: false,
+      doubleClickZoom: false,
+      touchZoomRotate: false,
+      keyboard: false,
+      dragPan: true,
       canvasContextAttributes: { antialias: true },
+    });
+
+    // تأكيد إضافي: أي محاولة تقريب تعيد الزوم إلى الثابت
+    map.on("zoom", () => {
+      if (map && map.getZoom() !== ZOOM) map.setZoom(ZOOM);
     });
 
     const mapReady = map;
@@ -167,8 +181,9 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
     });
 
     (el as any).__globeApi = {
-      zoomIn: () => map?.zoomIn(),
-      zoomOut: () => map?.zoomOut(),
+      // Zoom ثابت — الأزرار الخارجية بلا تأثير
+      zoomIn: () => { if (map && map.getZoom() !== ZOOM) map.setZoom(ZOOM); },
+      zoomOut: () => { if (map && map.getZoom() !== ZOOM) map.setZoom(ZOOM); },
       setNetwork: (on: boolean) => {
         if (!map) return;
         const ids = ["net-link-glow", "net-link", "net-node-halo", "net-node"];
@@ -179,13 +194,13 @@ export default function NetworkMap({ className = "" }: { className?: string }) {
       set3D: (on: boolean) => {
         if (!map) return;
         if (on) {
-          const z = Math.max(map.getZoom(), 16);
-          map.easeTo({ pitch: 55, bearing: -30, zoom: z, duration: 900 });
+          // zoom يبقى ثابتًا (ZOOM) — الميلان فقط
+          map.easeTo({ pitch: 55, bearing: -30, zoom: ZOOM, duration: 900 });
           if (map.getLayer("3d-buildings")) {
             map.setLayoutProperty("3d-buildings", "visibility", "visible");
           }
         } else {
-          map.easeTo({ pitch: 0, bearing: 0, duration: 700 });
+          map.easeTo({ pitch: 0, bearing: 0, zoom: ZOOM, duration: 700 });
           if (map.getLayer("3d-buildings")) {
             map.setLayoutProperty("3d-buildings", "visibility", "none");
           }
