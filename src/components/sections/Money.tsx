@@ -280,12 +280,11 @@ function MiniCard({ id, lang, onOpen }: { id: string; lang: "en" | "ar"; onOpen:
       {/* mini chart */}
       <div ref={mountRef} className="h-24 w-full" />
 
-      {/* footer: opportunities + arrow */}
+      {/* footer: opportunities only (arrow removed) */}
       <div className="flex items-center justify-between px-4 pb-3 pt-2">
         <span className="text-[0.55rem] uppercase tracking-[0.16em] text-[#5d6675]" style={{ fontFamily: MONO }}>
           {AVAIL[id]} {S(lang, "opportunity")}
         </span>
-        <span className="text-[0.85rem] text-[#7fb0ff] transition-transform duration-300 group-hover:translate-x-0.5">→</span>
       </div>
     </button>
   );
