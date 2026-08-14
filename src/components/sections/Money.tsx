@@ -1,16 +1,17 @@
 "use client";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { createChart, CandlestickSeries, HistogramSeries, ColorType, type IChartApi, type ISeriesApi, type UTCTimestamp, type CandlestickData, type HistogramData } from "lightweight-charts";
 import { useApp } from "@/lib/store";
 import { play } from "@/lib/sound";
 import type { AppData } from "@/lib/types";
 
 /* ==================================================================
-   Investments — realistic CANDLESTICK market charts (TradingView logic,
-   Legacy Keepers dark identity). Deterministic daily OHLC dataset
-   2013→present per asset, anchored to historical market cycles.
-   Green=up / Red=down, Volume bars, Percentage axis (no prices),
-   crosshair with OHLC tooltip, timeframes 1Y/6M/1M/1W/1D, zoom & pan.
+   Investments — professional financial charts via TradingView
+   Lightweight Charts (Apache-2.0). Real Time Scale, crosshair bound to
+   chart coordinates, Percentage price scale, Volume, zoom/pan,
+   timeframes, fullscreen. Legacy Keepers dark identity. Deterministic
+   2013→present daily dataset per asset.
    ================================================================== */
 
 const MONO = "var(--font-ibm-mono)";
@@ -18,8 +19,9 @@ const LUX = "var(--font-luxury)";
 const GREEN = "#34d399";
 const RED = "#f87171";
 const CYAN = "#7fb0ff";
+const BG = "#06070b";
 
-/* ────────────── Deterministic OHLC generator (2013 → present) ────────────── */
+/* ───────── Deterministic OHLC (2013 → present) ───────── */
 function mulberry(seed: number) {
   let a = seed >>> 0;
   return () => {
@@ -43,7 +45,6 @@ function normGen(seed: number) {
   };
 }
 
-/* Annual targets per asset — realistic club performance (not all winners) */
 const ASSETS: Record<string, {
   label: string; labelAr: string; perf: string; perfAr: string;
   vol: number; annual: Record<number, number>; base: number;
@@ -92,15 +93,8 @@ const ASSETS: Record<string, {
   },
 };
 
-const TRADING_DAYS = 252;
+interface Candle { t: number; o: number; h: number; l: number; c: number; v: number; }
 
-interface Candle {
-  t: number; // epoch ms
-  o: number; h: number; l: number; c: number; // index level
-  v: number; // volume
-}
-
-/* Build deterministic daily OHLC, anchored so each year sums to target. */
 function buildCandles(id: string): Candle[] {
   const cfg = ASSETS[id];
   const g = normGen(id.length * 97 + id.charCodeAt(0));
@@ -109,22 +103,20 @@ function buildCandles(id: string): Candle[] {
   for (let year = 2013; year <= 2026; year++) {
     const target = cfg.annual[year] ?? 0.03;
     const z: number[] = [];
-    for (let i = 0; i < TRADING_DAYS; i++) z.push(g());
-    const mean = z.reduce((s, v) => s + v, 0) / TRADING_DAYS;
+    for (let i = 0; i < 252; i++) z.push(g());
+    const mean = z.reduce((s, v) => s + v, 0) / 252;
     const desiredSum = Math.log(1 + target);
-    for (let i = 0; i < TRADING_DAYS; i++) {
-      const det = desiredSum / TRADING_DAYS;
+    for (let i = 0; i < 252; i++) {
+      const det = desiredSum / 252;
       const shock = cfg.vol * (z[i] - mean);
       const move = det + shock;
       const o = level;
       const c = Math.max(1, o * Math.exp(move));
-      // wick
       const wick = cfg.vol * 0.5 * (Math.abs(z[i]) + 0.4);
       const h = Math.max(o, c) * (1 + wick * 0.7);
       const l = Math.min(o, c) * (1 - wick * 0.7);
-      // volume: high when |move| large
       const v = Math.round(40 + Math.abs(move) * 2600 + (0.3 + Math.abs(z[i]) * 0.3) * 60);
-      const t = new Date(Date.UTC(year, 0, 1)).getTime() + i * 86400000;
+      const t = new Date(Date.UTC(year, 0, 1)).getTime() / 1000 + i * 86400;
       out.push({ t, o, h, l, c, v });
       level = c;
     }
@@ -145,21 +137,19 @@ const ORDER = ["stocks", "realestate", "funds", "cars", "commodities", "crypto"]
 const AVAIL: Record<string, number> = { stocks: 24, realestate: 15, funds: 11, cars: 7, commodities: 13, crypto: 7 };
 const TOTAL = 77;
 
-/* help text */
 const STR = {
-  portfolio: ["Portfolio", "الاستثمارات"],
-  personal: ["Personal", "شخصي"], club: ["Club", "النادي"],
+  portfolio: ["Portfolio", "الاستثمارات"], personal: ["Personal", "شخصي"], club: ["Club", "النادي"],
   balance: ["Balance", "الرصيد"], activePos: ["Active Positions", "المراكز النشطة"],
   totalInv: ["Total Investments", "إجمالي الاستثمارات"],
   noInv: ["No Personal Investments", "لا توجد استثمارات شخصية"],
   empty: ["Your personal portfolio is currently empty.", "محفظتك الشخصية فارغة حالياً."],
   totalAvail: ["Total Available", "الإجمالي المتاح"], availCat: ["Available Categories", "الأقسام المتاحة"],
-  screens: ["Investment Screens", "شاشات الاستثمار"], open: ["Open", "فتح"],
-  back: ["All Investments", "كل الاستثمارات"],
+  screens: ["Investment Screens", "شاشات الاستثمار"], open: ["Open", "فتح"], back: ["All Investments", "كل الاستثمارات"],
   marketData: ["Market Data", "بيانات السوق"], currentReturn: ["Current Return", "العائد الحالي"],
-  year: ["Year", "السنة"], openT: ["Open", "الافتتاح"], high: ["High", "الأعلى"],
-  low: ["Low", "الأدنى"], close: ["Close", "الإغلاق"], ret: ["Return", "العائد"], chg: ["Change", "التغير"],
-  dd: ["Drawdown", "التراجع"], volume: ["Volume", "حجم التداول"], opportunity: ["Opportunities", "فرص"],
+  openT: ["Open", "الافتتاح"], high: ["High", "الأعلى"], low: ["Low", "الأدنى"],
+  close: ["Close", "الإغلاق"], ret: ["Return", "العائد"], chg: ["Change", "التغير"],
+  volume: ["Volume", "حجم التداول"], opportunity: ["Opportunities", "فرص"],
+  expand: ["Expand", "تكبير"], closeT: ["Close", "إغلاق"], reset: ["Reset", "إعادة"],
 } as const;
 const S = (lang: "en" | "ar", k: keyof typeof STR) => (lang === "ar" ? STR[k][1] : STR[k][0]);
 
@@ -168,7 +158,6 @@ export default function InvestmentsSection({ data: _data }: { data: AppData }) {
   const ar = lang === "ar";
   const [scope, setScope] = useState<"personal" | "club">("club");
   const [active, setActive] = useState<string | null>(null);
-
   const switchScope = (s: "personal" | "club") => { setScope(s); setActive(null); play("click"); };
   const openAsset = (id: string) => { setActive(id); play("open"); };
   const goBack = () => { setActive(null); play("click"); };
@@ -209,7 +198,7 @@ export default function InvestmentsSection({ data: _data }: { data: AppData }) {
         ) : active ? (
           <motion.div key="big" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
             <button onClick={goBack} className="mb-5 flex items-center gap-2 text-[0.62rem] uppercase tracking-[0.25em] text-[#7fb0ff] hover:text-sky-200" style={{ fontFamily: MONO }}>← {S(lang, "back")}</button>
-            <AnalysisScreen id={active} lang={lang} />
+            <AssetChart id={active} lang={lang} />
           </motion.div>
         ) : (
           <motion.div key="club" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
@@ -257,105 +246,126 @@ function Metric({ label, value, highlight }: { label: string; value: string; hig
   );
 }
 
-/* timeframes (in candles) */
-const TF: { id: string; label: string; labelAr: string; n: number; step: number }[] = [
-  { id: "1Y", label: "1Y", labelAr: "1س", n: TRADING_DAYS, step: 4 },
-  { id: "6M", label: "6M", labelAr: "6ش", n: Math.round(TRADING_DAYS / 2), step: 3 },
-  { id: "1M", label: "1M", labelAr: "1ش", n: 22, step: 2 },
-  { id: "1W", label: "1W", labelAr: "1أ", n: 5, step: 1 },
-  { id: "1D", label: "1D", labelAr: "1ي", n: 3, step: 1 },
-];
-
-function AnalysisScreen({ id, lang }: { id: string; lang: "en" | "ar" }) {
+/* ─────────── Lightweight Charts asset screen ─────────── */
+function AssetChart({ id, lang }: { id: string; lang: "en" | "ar" }) {
   const ar = lang === "ar";
   const a = ASSETS[id];
   const data = DATASETS[id];
+  const mountRef = useRef<HTMLDivElement | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const [tf, setTf] = useState("1Y");
-  const [zoom, setZoom] = useState(1); // 1..4 extra zoom-in
-  const [off, setOff] = useState(0);
-  const [cursor, setCursor] = useState<number | null>(null);
-  const dragRef = useRef<{ x0: number; start: number } | null>(null);
-  const boxRef = useRef<HTMLDivElement | null>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const volRef = useRef<ISeriesApi<"Histogram"> | null>(null);
 
-  const tfConf = TF.find((x) => x.id === tf)!;
-  const visibleCount = Math.max(3, Math.round(tfConf.n / zoom));
-  const maxOff = Math.max(0, data.length - visibleCount);
-  const effOff = Math.min(off, maxOff);
-  const vis = data.slice(effOff, effOff + visibleCount);
+  /* map to lightweight-charts series */
+  const candleData: CandlestickData[] = data.map((d) => ({
+    time: d.t as UTCTimestamp, open: d.o, high: d.h, low: d.l, close: d.c,
+  }));
+  const volData: HistogramData[] = data.map((d) => ({
+    time: d.t as UTCTimestamp, value: d.v, color: d.c >= d.o ? "rgba(52,211,153,0.4)" : "rgba(248,113,113,0.4)",
+  }));
 
-  /* current window return & drawdown */
-  const win = useMemo(() => {
-    if (!vis.length) return null;
-    const base = vis[0].c;
-    const ret = (vis[vis.length - 1].c / base - 1) * 100;
-    let peak = vis[0].c;
-    let maxDD = 0;
-    for (const c of vis) { if (c.h > peak) peak = c.h; const dd = (c.c - peak) / peak * 100; if (dd < maxDD) maxDD = dd; }
-    return { ret, maxDD, base };
-  }, [vis]);
+  /* last return % */
+  const last = data[data.length - 1];
+  const baseIdx = Math.max(0, data.length - 252);
+  const base = data[baseIdx].c;
+  const currentRet = (last.c / base - 1) * 100;
 
-  /* %-axis range (dynamic) */
-  const maxPct = useMemo(() => {
-    if (!vis.length) return 100;
-    let m = 0;
-    for (const c of vis) {
-      const p = Math.abs((c.h - vis[0].c) / vis[0].c * 100);
-      const q = Math.abs((c.l - vis[0].c) / vis[0].c * 100);
-      m = Math.max(m, p, q);
-    }
-    m = m * 1.2;
-    const steps = [5, 10, 20, 40, 60, 80, 100, 150, 200, 300, 500, 800, 1200, 2000, 4000];
-    for (const s of steps) if (m <= s) return s;
-    return Math.ceil(m / 500) * 500;
-  }, [vis]);
+  const tfDays: Record<string, number> = { "1Y": 252, "6M": 126, "1M": 22, "1W": 5, "1D": 2 };
 
-  const pct = (level: number) => (level / vis[0].c - 1) * 100;
-  const fmt = (f: number) => `${f >= 0 ? "+" : ""}${f.toFixed(1)}%`;
-
-  /* interaction */
-  const onDown = (e: React.PointerEvent) => {
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    dragRef.current = { x0: e.clientX, start: effOff };
-    setCursorFrom(e);
-  };
-  const onMove = (e: React.PointerEvent) => {
-    setCursorFrom(e);
-    if (dragRef.current) {
-      const dx = e.clientX - dragRef.current.x0;
-      const perCandle = Math.max(1, boxRef.current ? boxRef.current.clientWidth / visibleCount : 6);
-      setOff(Math.max(0, Math.min(maxOff, dragRef.current.start + Math.round(-dx / perCandle))));
-    }
-  };
-  const onUp = () => { dragRef.current = null; };
-  const onWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    setZoom((z) => Math.max(1, Math.min(6, z + (e.deltaY > 0 ? 1 : -1))));
-  };
-  const setCursorFrom = (e: React.PointerEvent) => {
-    const el = boxRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const rel = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-    setCursor(Math.round(rel * (vis.length - 1)));
+  const init = (container: HTMLElement) => {
+    const chart = createChart(container, {
+      autoSize: true,
+      layout: { background: { type: ColorType.Solid, color: BG }, textColor: "#8b95a5", fontFamily: "'IBM Plex Mono', monospace", fontSize: 10 },
+      grid: { vertLines: { color: "rgba(255,255,255,0.04)" }, horzLines: { color: "rgba(255,255,255,0.04)" } },
+      rightPriceScale: { borderColor: "rgba(255,255,255,0.08)" },
+      timeScale: { borderColor: "rgba(255,255,255,0.08)", timeVisible: true, secondsVisible: false },
+      crosshair: {
+        mode: 1,
+        vertLine: { color: "rgba(127,176,255,0.6)", labelBackgroundColor: "#1a2433" },
+        horzLine: { color: "rgba(127,176,255,0.6)", labelBackgroundColor: "#1a2433" },
+      },
+    });
+    const candle = chart.addSeries(CandlestickSeries, {
+      upColor: GREEN, downColor: RED, borderUpColor: GREEN, borderDownColor: RED, wickUpColor: GREEN, wickDownColor: RED,
+    });
+    candle.setData(candleData);
+    const vol = chart.addSeries(HistogramSeries, { priceFormat: { type: "volume" }, priceScaleId: "" });
+    vol.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+    vol.setData(volData);
+    chartRef.current = chart;
+    candleRef.current = candle;
+    volRef.current = vol;
+    applyTimeframe(chart, tf);
+    return chart;
   };
 
-  const cursorC = cursor != null && cursor >= 0 && cursor < vis.length ? vis[cursor] : null;
-
-  /* geometry */
-  const W = 900, H = 320, PL = 62, PR = 18, PT = 18, PB = 26, VOLH = 54;
-  const chartH = H - PT - PB - VOLH - 8;
-
-  const xFor = (i: number) => PL + (i / Math.max(1, vis.length - 1)) * (W - PL - PR);
-  const yFor = (level: number) => {
-    const p = pct(level);
-    return PT + (1 - (p + maxPct) / (2 * maxPct)) * chartH;
+  const applyTimeframe = (chart: IChartApi, frame: string) => {
+    const n = tfDays[frame] ?? 252;
+    chart.timeScale().setVisibleLogicalRange({ from: data.length - n, to: data.length + 4 });
   };
 
-  const lastClose = vis[vis.length - 1]?.c ?? 1;
+  const zoomIn = () => {
+    const c = chartRef.current;
+    if (!c) return;
+    const r = c.timeScale().getVisibleLogicalRange();
+    if (!r) return;
+    const mid = (r.from + r.to) / 2;
+    c.timeScale().setVisibleLogicalRange({ from: mid - (mid - r.from) * 0.6, to: mid + (r.to - mid) * 0.6 });
+  };
+  const zoomOut = () => {
+    const c = chartRef.current;
+    if (!c) return;
+    const r = c.timeScale().getVisibleLogicalRange();
+    if (!r) return;
+    const mid = (r.from + r.to) / 2;
+    c.timeScale().setVisibleLogicalRange({ from: mid - (mid - r.from) * 1.7, to: mid + (r.to - mid) * 1.7 });
+  };
+  const panLeft = () => {
+    const c = chartRef.current;
+    if (!c) return;
+    const r = c.timeScale().getVisibleLogicalRange();
+    if (!r) return;
+    const span = r.to - r.from;
+    c.timeScale().setVisibleLogicalRange({ from: r.from + span * 0.2, to: r.to + span * 0.2 });
+  };
+  const panRight = () => {
+    const c = chartRef.current;
+    if (!c) return;
+    const r = c.timeScale().getVisibleLogicalRange();
+    if (!r) return;
+    const span = r.to - r.from;
+    c.timeScale().setVisibleLogicalRange({ from: r.from - span * 0.2, to: r.to - span * 0.2 });
+  };
+  const resetView = () => {
+    const c = chartRef.current;
+    if (!c) return;
+    applyTimeframe(c, tf);
+  };
+
+  /* mount effect */
+  useEffect(() => {
+    if (!mountRef.current) return;
+    let chart: IChartApi | null = null;
+    try {
+      chart = init(mountRef.current);
+    } catch (e) { /* noop */ }
+    const ro = new ResizeObserver(() => { try { chart?.timeScale().fitContent(); } catch (e) { /* noop */ } });
+    if (mountRef.current) ro.observe(mountRef.current);
+    return () => { ro.disconnect(); try { chart?.remove(); } catch (e) { /* noop */ } };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  useEffect(() => {
+    const ch = chartRef.current;
+    if (!ch) return;
+    applyTimeframe(ch, tf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tf]);
 
   return (
     <div>
-      {/* header */}
       <div className="mb-1">
         <div className="text-[0.62rem] uppercase tracking-[0.3em] text-[#5d6675]" style={{ fontFamily: MONO }}>{ar ? a.labelAr : a.label}</div>
         <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
@@ -364,128 +374,61 @@ function AnalysisScreen({ id, lang }: { id: string; lang: "en" | "ar" }) {
               {ar ? a.perfAr : a.perf}
             </h2>
             <div className="mt-1 flex items-center gap-3 text-[0.5rem] uppercase tracking-[0.2em] text-[#454d5a]" style={{ fontFamily: MONO }}>
-              <span>{S(lang, "marketData")}</span><span>·</span><span>{ar ? "بيانات من 2013" : "Data since 2013"}</span>
+              <span>{S(lang, "marketData")}</span><span>·</span><span>{ar ? "من 2013" : "Since 2013"}</span>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[1.7rem] leading-none" style={{ fontFamily: MONO, color: (win?.ret ?? 0) >= 0 ? GREEN : RED }}>
-              {fmt(win?.ret ?? 0)}
+            <div className="text-[1.7rem] leading-none" style={{ fontFamily: MONO, color: currentRet >= 0 ? GREEN : RED }}>
+              {(currentRet >= 0 ? "+" : "")}{currentRet.toFixed(1)}%
             </div>
             <div className="text-[0.5rem] uppercase tracking-[0.2em] text-[#5d6675]" style={{ fontFamily: MONO }}>{S(lang, "currentReturn")}</div>
           </div>
         </div>
       </div>
 
-      {/* timeframes */}
-      <div className="mb-3 mt-4 flex items-center gap-1 border-b border-white/[0.06] pb-2">
-        {TF.map((x) => (
-          <button key={x.id} onClick={() => { setTf(x.id); setOff(0); setZoom(1); }}
+      {/* toolbar */}
+      <div className="mb-3 mt-4 flex flex-wrap items-center gap-1 border-b border-white/[0.06] pb-2">
+        {["1Y", "6M", "1M", "1W", "1D"].map((x) => (
+          <button key={x} onClick={() => setTf(x)}
             className="rounded px-2.5 py-1 text-[0.62rem] uppercase tracking-[0.12em] transition-colors"
-            style={{ fontFamily: MONO, color: tf === x.id ? "#eef2f7" : "#5d6675", background: tf === x.id ? "rgba(127,176,255,0.12)" : "transparent" }}>
-            {ar ? x.labelAr : x.label}
+            style={{ fontFamily: MONO, color: tf === x ? "#eef2f7" : "#5d6675", background: tf === x ? "rgba(127,176,255,0.12)" : "transparent" }}>
+            {x}
           </button>
         ))}
-        <span className="ml-auto text-[0.5rem] uppercase tracking-[0.18em] text-[#454d5a]" style={{ fontFamily: MONO }}>
-          {ar ? "اسحب · عجلة تكبير" : "Drag · Wheel zoom"}
-        </span>
+        <div className="ml-auto flex items-center gap-1">
+          <ToolBtn label="−" onClick={zoomOut} />
+          <ToolBtn label="+" onClick={zoomIn} />
+          <ToolBtn label="←" onClick={panLeft} />
+          <ToolBtn label="→" onClick={panRight} />
+          <ToolBtn label="RESET" onClick={resetView} />
+          <ToolBtn label="⛶" onClick={() => setExpanded(true)} title={S(lang, "expand")} />
+        </div>
       </div>
 
-      {/* chart */}
+      {/* chart (or fullscreen) */}
       <div
-        ref={boxRef}
-        className="relative select-none overflow-hidden border border-white/[0.08] bg-[#06070b]"
-        style={{ cursor: "crosshair", touchAction: "none" }}
-        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={onWheel}
+        className={`relative w-full overflow-hidden border border-white/[0.08] bg-[#06070b] ${expanded ? "fixed inset-0 z-50" : ""}`}
+        style={{ height: expanded ? "100vh" : "420px" }}
       >
-        {/* grid + %-axis labels */}
-        {Array.from({ length: 7 }).map((_, i) => {
-          const p = -maxPct + (i / 6) * 2 * maxPct;
-          const y = PT + (1 - (p + maxPct) / (2 * maxPct)) * chartH;
-          const zero = Math.abs(p) < 0.5;
-          return (
-            <div key={i} className="pointer-events-none absolute inset-x-0 flex items-center" style={{ top: y }}>
-              <span className="absolute left-0 top-0 h-px w-full" style={{ background: zero ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.05)" }} />
-              <span className="absolute right-0 top-0 -translate-y-1/2 px-1 text-[0.5rem] text-[#7b8494]" style={{ fontFamily: MONO }}>
-                {p === 0 ? "0%" : `${p > 0 ? "+" : ""}${Math.round(p)}%`}
-              </span>
-            </div>
-          );
-        })}
-
-        <svg viewBox={`0 0 ${W} ${H}`} className="relative block w-full" preserveAspectRatio="none" aria-hidden="true">
-          {vis.length > 0 && (
-            <>
-              {/* candles */}
-              {vis.map((c, i) => {
-                const cx = xFor(i);
-                const iw = (W - PL - PR) / Math.max(1, vis.length - 1);
-                const bw = Math.max(1.5, iw * 0.62 * (Math.min(1, 40 / vis.length)));
-                const up = c.c >= c.o;
-                const col = up ? GREEN : RED;
-                const yO = yFor(c.o), yC = yFor(c.c), yH = yFor(c.h), yL = yFor(c.l);
-                return (
-                  <g key={i}>
-                    <line x1={cx} y1={yH} x2={cx} y2={yL} stroke={col} strokeWidth="1" opacity="0.9" />
-                    <rect x={cx - bw / 2} y={Math.min(yO, yC)} width={bw} height={Math.max(1.2, Math.abs(yC - yO))} fill={col} rx="0.3" />
-                    {/* volume */}
-                    <rect x={cx - bw / 2} y={H - PB - VOLH + (1 - c.v / 300) * VOLH} width={bw} height={Math.max(1, (c.v / 300) * VOLH)} fill={col} opacity="0.45" />
-                  </g>
-                );
-              })}
-              {/* x time labels */}
-              {(() => {
-                const n = Math.min(6, vis.length);
-                const labels: { x: number; txt: string }[] = [];
-                for (let k = 0; k < n; k++) {
-                  const i = Math.round((k / (n - 1)) * (vis.length - 1));
-                  const d = new Date(vis[i].t);
-                  labels.push({ x: xFor(i), txt: d.toLocaleDateString("en-GB", { month: "short", year: "2-digit" }) });
-                }
-                return labels.map((lb, k) => (
-                  <text key={k} x={lb.x} y={H - PB - VOLH - 6} textAnchor={k === 0 ? "start" : k === n - 1 ? "end" : "middle"}
-                    fill="rgba(150,160,175,0.35)" fontSize="7.5" style={{ fontFamily: MONO }}>{lb.txt}</text>
-                ));
-              })()}
-              {/* crosshair vertical */}
-              {cursorC && cursor != null && (
-                <>
-                  <line x1={xFor(cursor)} y1={PT} x2={xFor(cursor)} y2={H - PB - VOLH} stroke="rgba(255,255,255,0.35)" strokeWidth="1" strokeDasharray="3 2" />
-                  <line x1={PL} y1={yFor(cursorC.c)} x2={W - PR} y2={yFor(cursorC.c)} stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeDasharray="3 2" />
-                  <circle cx={xFor(cursor)} cy={yFor(cursorC.c)} r="3" fill={cursorC.c >= cursorC.o ? GREEN : RED} />
-                </>
-              )}
-            </>
-          )}
-        </svg>
-
-        {/* tooltip */}
-        {cursorC && cursor != null && (
-          <div className="pointer-events-none absolute z-10 w-48 rounded border border-white/15 bg-[#0a0c10]/95 px-3 py-2 shadow-xl" style={{ left: 8, top: 8, fontFamily: MONO }}>
-            <div className="mb-1 text-[0.5rem] text-[#7fb0ff]">{new Date(cursorC.t).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</div>
-            <RowT label={S(lang, "openT")} val={fmt(pct(cursorC.o))} c="#cdd5e0" />
-            <RowT label={S(lang, "high")} val={fmt(pct(cursorC.h))} c={GREEN} />
-            <RowT label={S(lang, "low")} val={fmt(pct(cursorC.l))} c={RED} />
-            <RowT label={S(lang, "close")} val={fmt(pct(cursorC.c))} c={cursorC.c >= cursorC.o ? GREEN : RED} />
-            <div className="my-1 h-px bg-white/[0.08]" />
-            <RowT label={S(lang, "ret")} val={fmt(pct(cursorC.c))} c={cursorC.c >= cursorC.o ? GREEN : RED} />
-            <RowT label={S(lang, "chg")} val={fmt((cursorC.c - cursorC.o) / cursorC.o * 100)} c={cursorC.c >= cursorC.o ? GREEN : RED} />
-          </div>
+        <div ref={mountRef} className="h-full w-full" />
+        {expanded && (
+          <button onClick={() => setExpanded(false)}
+            className="absolute right-3 top-3 z-10 rounded border border-[#7fb0ff]/40 px-3 py-1 text-[0.6rem] uppercase tracking-[0.2em] text-[#7fb0ff] hover:text-white"
+            style={{ fontFamily: MONO }}>
+            × {S(lang, "closeT")}
+          </button>
         )}
-
-        {/* volume label */}
-        <div className="pointer-events-none absolute right-3 bottom-1 text-[0.45rem] uppercase tracking-[0.16em] text-[#454d5a]" style={{ fontFamily: MONO }}>
-          {S(lang, "volume")}
-        </div>
       </div>
     </div>
   );
 }
 
-function RowT({ label, val, c }: { label: string; val: string; c: string }) {
+function ToolBtn({ label, onClick, title }: { label: string; onClick: () => void; title?: string }) {
   return (
-    <div className="flex justify-between text-[0.58rem]">
-      <span className="text-[#6d7685]">{label}</span>
-      <span style={{ color: c }}>{val}</span>
-    </div>
+    <button onClick={onClick} title={title}
+      className="rounded border border-white/[0.1] px-2 py-1 text-[0.62rem] text-[#9aa5b3] transition hover:border-[#7fb0ff]/50 hover:text-white"
+      style={{ fontFamily: MONO }}>
+      {label}
+    </button>
   );
 }
