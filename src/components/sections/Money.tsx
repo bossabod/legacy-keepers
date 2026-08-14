@@ -203,32 +203,15 @@ export default function InvestmentsSection({ data: _data }: { data: AppData }) {
         ) : (
           <motion.div key="club" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
             <div className="mb-2 text-[0.55rem] uppercase tracking-[0.3em] text-[#5d6675]" style={{ fontFamily: MONO }}>{S(lang, "club")} Portfolio</div>
-            <div className="grid grid-cols-1 gap-px border-t border-white/[0.06] sm:grid-cols-2">
+            <div className="mb-5 mt-1 grid grid-cols-1 gap-px border-t border-white/[0.06] sm:grid-cols-2">
               <Metric label={S(lang, "totalAvail")} value={String(TOTAL)} highlight />
-              <Metric label={S(lang, "availCat")} value="6" />
+              <Metric label={S(lang, "screens")} value="6" />
             </div>
-            <div className="mb-4 mt-8 text-[0.6rem] uppercase tracking-[0.3em] text-[#7b8494]" style={{ fontFamily: MONO }}>{S(lang, "screens")}</div>
-            <div className="space-y-1 border-t border-white/[0.06] pt-1">
-              {ORDER.map((id) => {
-                const a = ASSETS[id];
-                const ds = DATASETS[id];
-                const last = ds[ds.length - 1];
-                const ret = (last.c / ds[0].c - 1) * 100;
-                const up = ret >= 0;
-                return (
-                  <div key={id} className="flex items-center gap-4 py-3">
-                    <span className="w-3 text-[0.9rem]" style={{ color: up ? GREEN : RED }}>{up ? "▲" : "▼"}</span>
-                    <span className="w-44 text-[0.9rem] uppercase tracking-[0.12em] text-[#eef2f7]" style={{ fontFamily: LUX }}>{ar ? a.labelAr : a.label}</span>
-                    <span className="hidden flex-1 text-[0.55rem] uppercase tracking-[0.14em] text-[#5d6675] sm:block" style={{ fontFamily: MONO }}>
-                      {(up ? "+" : "")}{ret.toFixed(1)}% · {S(lang, "ret")}
-                    </span>
-                    <span className="ml-auto text-[0.62rem] text-[#7fb0ff]" style={{ fontFamily: MONO }}>{AVAIL[id]} {S(lang, "opportunity")}</span>
-                    <button onClick={() => openAsset(id)}
-                      className="rounded border border-[#7fb0ff]/40 px-3 py-1.5 text-[0.58rem] uppercase tracking-[0.2em] text-[#7fb0ff] transition hover:border-[#7fb0ff] hover:text-white"
-                      style={{ fontFamily: MONO }}>{S(lang, "open")} ↗</button>
-                  </div>
-                );
-              })}
+            {/* 6 investment cards — 2×3 grid */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              {ORDER.map((id) => (
+                <MiniCard key={id} id={id} lang={lang} onOpen={() => openAsset(id)} />
+              ))}
             </div>
           </motion.div>
         )}
@@ -243,6 +226,72 @@ function Metric({ label, value, highlight }: { label: string; value: string; hig
       <div className="text-[0.52rem] uppercase tracking-[0.24em] text-[#5d6675]" style={{ fontFamily: MONO }}>{label}</div>
       <div className="mt-1.5 text-[1.5rem] leading-none" style={{ fontFamily: MONO, color: highlight ? GREEN : "#eef2f7" }}>{value}</div>
     </div>
+  );
+}
+
+/* ─────────── Mini investment card with a live sparkline chart ─────────── */
+function MiniCard({ id, lang, onOpen }: { id: string; lang: "en" | "ar"; onOpen: () => void }) {
+  const ar = lang === "ar";
+  const a = ASSETS[id];
+  const ds = DATASETS[id];
+  const mountRef = useRef<HTMLDivElement | null>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+
+  const last = ds[ds.length - 1];
+  const baseIdx = Math.max(0, ds.length - 252);
+  const base = ds[baseIdx].c;
+  const ret = (last.c / base - 1) * 100;
+  const up = ret >= 0;
+
+  useEffect(() => {
+    if (!mountRef.current) return;
+    let chart: IChartApi | null = null;
+    try {
+      chart = createChart(mountRef.current, {
+        autoSize: true,
+        layout: { background: { type: ColorType.Solid, color: "transparent" }, textColor: "transparent", fontFamily: "'IBM Plex Mono', monospace", fontSize: 8 },
+        grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+        rightPriceScale: { visible: false },
+        timeScale: { visible: false },
+        crosshair: { mode: 1, vertLine: { color: "rgba(127,176,255,0.5)" }, horzLine: { color: "rgba(127,176,255,0.5)" } },
+        handleScroll: false,
+        handleScale: false,
+      });
+      const series = chart.addSeries(CandlestickSeries, {
+        upColor: GREEN, downColor: RED, borderUpColor: GREEN, borderDownColor: RED, wickUpColor: GREEN, wickDownColor: RED,
+      });
+      series.setData(ds.map((d) => ({ time: d.t as UTCTimestamp, open: d.o, high: d.h, low: d.l, close: d.c })));
+      chart.timeScale().setVisibleLogicalRange({ from: ds.length - 90, to: ds.length + 2 });
+      chartRef.current = chart;
+    } catch (e) { /* noop */ }
+    return () => { try { chart?.remove(); } catch (e) { /* noop */ } };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  return (
+    <button
+      onClick={onOpen}
+      className="group flex flex-col overflow-hidden border border-white/[0.08] bg-[#07080a] text-left transition-all duration-300 hover:border-[#7fb0ff]/50 hover:bg-[#0a0d12]"
+    >
+      {/* header: name + current return */}
+      <div className="flex items-center justify-between px-4 pb-2 pt-3">
+        <span className="text-[0.8rem] uppercase tracking-[0.12em] text-[#eef2f7]" style={{ fontFamily: LUX }}>{ar ? a.labelAr : a.label}</span>
+        <span className="text-[0.72rem]" style={{ fontFamily: MONO, color: up ? GREEN : RED }}>
+          {(up ? "+" : "")}{ret.toFixed(1)}%
+        </span>
+      </div>
+
+      {/* mini chart */}
+      <div ref={mountRef} className="h-24 w-full" />
+
+      {/* footer: opportunities + arrow */}
+      <div className="flex items-center justify-between px-4 pb-3 pt-2">
+        <span className="text-[0.55rem] uppercase tracking-[0.16em] text-[#5d6675]" style={{ fontFamily: MONO }}>
+          {AVAIL[id]} {S(lang, "opportunity")}
+        </span>
+        <span className="text-[0.85rem] text-[#7fb0ff] transition-transform duration-300 group-hover:translate-x-0.5">→</span>
+      </div>
+    </button>
   );
 }
 
