@@ -136,6 +136,8 @@ const DATASETS: Record<string, Candle[]> = {
 const ORDER = ["stocks", "realestate", "funds", "cars", "commodities", "crypto"] as const;
 const AVAIL: Record<string, number> = { stocks: 24, realestate: 15, funds: 11, cars: 7, commodities: 13, crypto: 7 };
 const TOTAL = 77;
+/* نسبة التحقيق السنوي المطلوبة (الترتيب: أسهم 38 > عقار 26 > سيارات 19 > صناديق 15 > سلع 12 > عملات رقمية 8) */
+const PERF: Record<string, number> = { stocks: 38, realestate: 26, cars: 19, funds: 15, commodities: 12, crypto: 8 };
 
 const STR = {
   portfolio: ["Portfolio", "الاستثمارات"], personal: ["Personal", "شخصي"], club: ["Club", "النادي"],
@@ -237,12 +239,6 @@ function MiniCard({ id, lang, onOpen }: { id: string; lang: "en" | "ar"; onOpen:
   const mountRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
 
-  const last = ds[ds.length - 1];
-  const baseIdx = Math.max(0, ds.length - 252);
-  const base = ds[baseIdx].c;
-  const ret = (last.c / base - 1) * 100;
-  const up = ret >= 0;
-
   useEffect(() => {
     if (!mountRef.current) return;
     let chart: IChartApi | null = null;
@@ -273,11 +269,11 @@ function MiniCard({ id, lang, onOpen }: { id: string; lang: "en" | "ar"; onOpen:
       onClick={onOpen}
       className="group flex flex-col overflow-hidden border border-white/[0.08] bg-[#07080a] text-left transition-all duration-300 hover:border-[#7fb0ff]/50 hover:bg-[#0a0d12]"
     >
-      {/* header: name + current return */}
+      {/* header: name + annual performance */}
       <div className="flex items-center justify-between px-4 pb-2 pt-3">
         <span className="text-[0.8rem] uppercase tracking-[0.12em] text-[#eef2f7]" style={{ fontFamily: LUX }}>{ar ? a.labelAr : a.label}</span>
-        <span className="text-[0.72rem]" style={{ fontFamily: MONO, color: up ? GREEN : RED }}>
-          {(up ? "+" : "")}{ret.toFixed(1)}%
+        <span className="text-[0.72rem]" style={{ fontFamily: MONO, color: GREEN }}>
+          +{PERF[id]}%
         </span>
       </div>
 
