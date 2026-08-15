@@ -27,6 +27,7 @@ import RulesSection from "@/components/sections/Rules";
 import FeaturesSection from "@/components/sections/Features";
 import PaymentsSection from "@/components/sections/Payments";
 import ActivitySection from "@/components/sections/Activity";
+import VipSection from "@/components/sections/Vip";
 
 export type SectionKey =
   | "home" | "network" | "log"
@@ -35,7 +36,7 @@ export type SectionKey =
   | "members" | "messages"
   | "archive" | "ladder"
   | "identity" | "goals" | "rules"
-  | "features" | "payments" | "activity";
+  | "features" | "payments" | "activity" | "vip";
 
 // Primary nav — most important pages, always visible and centered
 const PRIMARY_NAV: { key: SectionKey; labelKey: string }[] = [
@@ -46,6 +47,7 @@ const PRIMARY_NAV: { key: SectionKey; labelKey: string }[] = [
   { key: "messages", labelKey: "nav.messages" },
   { key: "ladder", labelKey: "nav.ladder" },
   { key: "archive", labelKey: "nav.archive" },
+  { key: "vip", labelKey: "nav.vip" },
 ];
 
 // Secondary nav — everything else goes into the "More" dropdown
@@ -133,6 +135,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       case "features": return <FeaturesSection />;
       case "payments": return <PaymentsSection />;
       case "activity": return <ActivitySection data={data} />;
+      case "vip": return <VipSection />;
     }
   };
 
