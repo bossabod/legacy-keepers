@@ -29,7 +29,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = "secondary", size = "md", icon, children, className = "", ...props }, ref) => (
     <button
       ref={ref}
-      className={`inline-flex items-center justify-center gap-2 rounded-[8px] border font-medium tracking-[0.04em] transition-all duration-[250ms] disabled:opacity-40 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border font-medium tracking-[0.04em] transition-all duration-[250ms] disabled:opacity-40 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
       style={{ fontFamily: theme.typography.sans }}
       {...props}
     >

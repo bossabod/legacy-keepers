@@ -4,10 +4,9 @@ import { AnimatePresence } from "framer-motion";
 import { AppProvider } from "@/lib/store";
 import WelcomeScreen from "@/components/WelcomeScreen";
 import LoginScreen from "@/components/LoginScreen";
-import LoadingScreen from "@/components/LoadingScreen";
 import Dashboard from "@/components/Dashboard";
 
-type Phase = "welcome" | "login" | "loading" | "app";
+type Phase = "welcome" | "login" | "app";
 
 export default function Page() {
   const [phase, setPhase] = useState<Phase>("welcome");
@@ -21,12 +20,9 @@ export default function Page() {
         {phase === "login" && (
           <LoginScreen
             key="login"
-            onAuthenticated={() => setPhase("loading")}
+            onAuthenticated={() => setPhase("app")}
             onBack={() => setPhase("welcome")}
           />
-        )}
-        {phase === "loading" && (
-          <LoadingScreen key="loading" onDone={() => setPhase("app")} />
         )}
         {phase === "app" && (
           <Dashboard key="app" onLogout={() => setPhase("welcome")} />

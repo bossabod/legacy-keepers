@@ -27,6 +27,7 @@ import RulesSection from "@/components/sections/Rules";
 import FeaturesSection from "@/components/sections/Features";
 import PaymentsSection from "@/components/sections/Payments";
 import ActivitySection from "@/components/sections/Activity";
+import VipSection from "@/components/sections/Vip";
 
 export type SectionKey =
   | "home" | "network" | "log"
@@ -35,26 +36,27 @@ export type SectionKey =
   | "members" | "messages"
   | "archive" | "ladder"
   | "identity" | "goals" | "rules"
-  | "features" | "payments" | "activity";
+  | "features" | "payments" | "activity" | "vip";
 
-// Primary nav — 5 most important pages, always visible and centered
+// Primary nav — most important pages, always visible and centered
 const PRIMARY_NAV: { key: SectionKey; labelKey: string }[] = [
   { key: "home", labelKey: "nav.home" },
   { key: "network", labelKey: "nav.network" },
   { key: "projects", labelKey: "nav.projects" },
+  { key: "investments", labelKey: "nav.investments" },
   { key: "messages", labelKey: "nav.messages" },
+  { key: "ladder", labelKey: "nav.ladder" },
   { key: "archive", labelKey: "nav.archive" },
+  { key: "vip", labelKey: "nav.vip" },
 ];
 
 // Secondary nav — everything else goes into the "More" dropdown
 const SECONDARY_NAV: { key: SectionKey; labelKey: string }[] = [
   { key: "features", labelKey: "nav.features" },
-  { key: "investments", labelKey: "nav.investments" },
   { key: "members", labelKey: "nav.members" },
   { key: "payments", labelKey: "nav.payments" },
   { key: "activity", labelKey: "nav.activity" },
   { key: "log", labelKey: "nav.reports" },
-  { key: "ladder", labelKey: "nav.ladder" },
   { key: "identity", labelKey: "nav.identity" },
   { key: "vault", labelKey: "nav.organizations" },
   { key: "rules", labelKey: "nav.rules" },
@@ -122,7 +124,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       case "projects": return <ProjectsSection data={data} onNavigate={(k) => go(k as SectionKey)} />;
       case "investments": return <InvestmentsSection data={data} />;
       case "vault": return <VaultSection data={data} />;
-      case "invoices": return <InvoicesSection data={data} />;
+      case "invoices": return <InvoicesSection data={data} onNavigate={(k) => go(k as SectionKey)} />;
       case "members": return <MembersSection data={data} />;
       case "messages": return <MessagesSection data={data} />;
       case "archive": return <ArchiveSection data={data} />;
@@ -133,6 +135,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       case "features": return <FeaturesSection />;
       case "payments": return <PaymentsSection />;
       case "activity": return <ActivitySection data={data} />;
+      case "vip": return <VipSection />;
     }
   };
 

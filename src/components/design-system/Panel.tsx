@@ -12,7 +12,7 @@ interface PanelProps extends HTMLAttributes<HTMLDivElement> {
 export function Panel({ children, glass = false, title, actions, className = "", ...props }: PanelProps) {
   return (
     <div
-      className={`rounded-[10px] border overflow-hidden ${glass ? "border-[var(--color-border)] bg-[var(--color-charcoal)]/85 backdrop-blur-lg" : "border-[var(--color-border)] bg-[var(--color-charcoal)]"} ${className}`}
+      className={`rounded-[var(--radius-lg)] border overflow-hidden ${glass ? "border-[var(--color-border)] bg-[var(--color-charcoal)]/85 backdrop-blur-lg" : "border-[var(--color-border)] bg-[var(--color-charcoal)]"} ${className}`}
       style={{ boxShadow: theme.shadows.md }}
       {...props}
     >

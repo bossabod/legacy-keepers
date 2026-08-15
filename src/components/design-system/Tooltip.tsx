@@ -20,7 +20,7 @@ export function Tooltip({ content, children, side = "top" }: TooltipProps) {
     <div className="relative inline-flex" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
       {children}
       {show && (
-        <div className={`absolute z-50 pointer-events-none whitespace-nowrap rounded-[6px] border border-[var(--color-border)] bg-[var(--color-charcoal)]/95 px-2.5 py-1.5 text-[0.62rem] text-[var(--color-silver)] shadow-lg backdrop-blur-md ${positions[side]}`} style={{ fontFamily: theme.typography.sans }}>
+        <div className={`absolute z-50 pointer-events-none whitespace-nowrap rounded-[var(--radius-xs)] border border-[var(--color-border)] bg-[var(--color-charcoal)]/95 px-2.5 py-1.5 text-[0.62rem] text-[var(--color-silver)] shadow-lg backdrop-blur-md ${positions[side]}`} style={{ fontFamily: theme.typography.sans }}>
           {content}
         </div>
       )}

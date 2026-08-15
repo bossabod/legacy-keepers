@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ProjectsGate from "@/components/projects/ProjectsGate";
-import PerformanceCard from "@/components/projects/PerformanceCard";
+import ProjectsDashboard from "@/components/projects/ProjectsDashboard";
 import TrackBrowser from "@/components/projects/TrackBrowser";
 import SubmitProject from "@/components/projects/SubmitProject";
 import { useApp } from "@/lib/store";
@@ -10,6 +10,64 @@ import { t } from "@/lib/i18n";
 import type { AppData } from "@/lib/types";
 
 type Tab = "digital" | "physical" | "submit" | null;
+
+/* ===== عنصر مشروع — نص حر فقط، بدون أي Container بصري ===== */
+type CardVariant = "digital" | "physical" | "submit";
+
+function CardStagger({
+  title,
+  desc,
+  glyph,
+  active,
+  onClick,
+  dir,
+  index,
+}: {
+  title: string;
+  desc: string;
+  glyph: string;
+  active: boolean;
+  onClick: () => void;
+  dir: "rtl" | "ltr";
+  index: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      dir={dir}
+      className="group flex flex-col items-start text-left"
+      style={{
+        justifyContent: index === 1 ? "center" : index === 0 ? "flex-start" : "flex-end",
+        alignItems: index === 1 ? "center" : index === 0 ? "flex-start" : "flex-end",
+        textAlign: index === 1 ? "center" : index === 0 ? "left" : "right",
+      }}
+    >
+      {/* رقم صغير */}
+      <span className="font-mono text-[0.62rem] tracking-[0.4em] text-[#5d6675]">
+        {glyph}
+      </span>
+
+      {/* العنوان الكبير */}
+      <h3
+        className="mt-3 text-[clamp(1.4rem,3vw,2.2rem)] font-semibold uppercase tracking-[0.1em] text-[#f2f4f8] transition-colors duration-300 group-hover:text-white"
+        style={{ fontFamily: "var(--font-luxury)" }}
+      >
+        {title}
+      </h3>
+
+      {/* الوصف القصير */}
+      <p className="mt-3 max-w-[26ch] text-[0.82rem] leading-relaxed text-[#9aa4b2]">
+        {desc}
+      </p>
+
+      {/* OPEN — رابط نصي بسيط */}
+      <span className="mt-5 text-[0.66rem] uppercase tracking-[0.3em] text-[#7fb0ff] transition-colors duration-300 group-hover:text-sky-200">
+        {active ? "✓ OPEN" : "→ OPEN"}
+      </span>
+    </button>
+  );
+}
 
 /**
  * قسم المشاريع.
@@ -50,63 +108,74 @@ export default function ProjectsSection({
           className="min-h-[60vh] w-full"
           dir={ar ? "rtl" : "ltr"}
         >
-          {/* ===== الخيارات — متوسّطة ===== */}
-          <nav className="mb-9 flex flex-wrap items-center justify-center gap-x-12 gap-y-3 border-b border-white/[0.06] pb-5 sm:gap-x-16">
-            {TABS.map((x) => {
-              const active = tab === x.key;
-              return (
-                <button
-                  key={x.key}
-                  type="button"
-                  onClick={() => setTab(active ? null : x.key)}
-                  className="group relative shrink-0 py-2"
-                >
-                  <span
-                    className={[
-                      "text-[clamp(0.85rem,1.8vw,1.12rem)] tracking-[0.2em] transition-all duration-400",
-                      active ? "text-white" : "text-[#b3bcc9] group-hover:text-white",
-                    ].join(" ")}
-                    style={{
-                      fontFamily: "var(--font-luxury)",
-                      textShadow: active
-                        ? "0 0 16px rgba(255,255,255,0.55), 0 0 40px rgba(255,255,255,0.22)"
-                        : undefined,
-                    }}
-                  >
-                    {x.label}
-                  </span>
+          {/* ===== بوابة الخيارات — 3 بطاقات فاخرة بترتيب متدرج ===== */}
+          <div className="relative mb-10 flex min-h-[26rem] items-center justify-center py-8">
+            {/* توهج خلفي ناعم */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 mx-auto max-w-5xl"
+              style={{
+                background:
+                  "radial-gradient(55% 60% at 50% 45%, rgba(255,255,255,0.045), transparent 70%)",
+              }}
+            />
 
-                  {active ? (
-                    <span
-                      className="absolute bottom-0 left-0 h-[2.5px] w-full bg-gradient-to-r from-transparent via-[#eaeef5] to-transparent"
-                      style={{ boxShadow: "0 0 8px rgba(195,201,211,0.5)" }}
-                    />
-                  ) : (
-                    <span className="absolute bottom-0 left-1/2 h-[2.5px] w-0 -translate-x-1/2 bg-gradient-to-r from-transparent via-[#c3c9d3] to-transparent transition-all duration-250 group-hover:left-0 group-hover:w-full group-hover:translate-x-0" />
-                  )}
-
-                  {/* توهج خفيف عند التحويم */}
-                  <span
-                    className="pointer-events-none absolute inset-x-0 bottom-0 h-6 opacity-0 transition-opacity duration-400 group-hover:opacity-100"
-                    style={{
-                      background:
-                        "radial-gradient(60% 100% at 50% 100%, rgba(255,255,255,0.10), transparent 70%)",
-                    }}
-                  />
-                </button>
-              );
-            })}
-          </nav>
+            {/* توزيع حر بالعرض الكامل: 01 يسار، 02 وسط، 03 يمين */}
+            <div className="relative grid w-full grid-cols-1 gap-14 sm:grid-cols-3 sm:gap-10">
+              {/* يسار: تقديم مشروع */}
+              <CardStagger
+                index={0}
+                dir={ar ? "rtl" : "ltr"}
+                title={TABS[2].label}
+                desc={
+                  ar
+                    ? "اقترح فكرة أو مبادرة جديدة ليراجعها المجلس وتأخذ مكانها."
+                    : "Propose a new idea or initiative for the council to review and place."
+                }
+                glyph="PROJECT 01"
+                active={tab === "submit"}
+                onClick={() => setTab(tab === "submit" ? null : "submit")}
+              />
+              {/* وسط: المشاريع الواقعية */}
+              <CardStagger
+                index={1}
+                dir={ar ? "rtl" : "ltr"}
+                title={TABS[1].label}
+                desc={
+                  ar
+                    ? "أعمال ملموسة على الأرض: مشاريع ميدانية وواقعية تُبنى وتمتد."
+                    : "Tangible on-the-ground work: field and physical projects built to last."
+                }
+                glyph="PROJECT 02"
+                active={tab === "physical"}
+                onClick={() => setTab(tab === "physical" ? null : "physical")}
+              />
+              {/* يمين: المشاريع الرقمية */}
+              <CardStagger
+                index={2}
+                dir={ar ? "rtl" : "ltr"}
+                title={TABS[0].label}
+                desc={
+                  ar
+                    ? "استكشف المبادرات الرقمية: المنصّات، التطبيقات، والأعمال التفاعلية داخل الدائرة."
+                    : "Explore digital initiatives: platforms, apps, and interactive works within the circle."
+                }
+                glyph="PROJECT 03"
+                active={tab === "digital"}
+                onClick={() => setTab(tab === "digital" ? null : "digital")}
+              />
+            </div>
+          </div>
 
           {/* ===== المحتوى ===== */}
           <AnimatePresence mode="wait">
             {tab === "digital" || tab === "physical" ? (
               <motion.div
                 key={tab}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, y: 14, filter: "brightness(0.6)" }}
+                animate={{ opacity: 1, y: 0, filter: "brightness(1)" }}
+                exit={{ opacity: 0, y: -10, filter: "brightness(0.4)" }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               >
                 <TrackBrowser
                   track={tab}
@@ -117,25 +186,25 @@ export default function ProjectsSection({
             ) : tab === "submit" ? (
               <motion.div
                 key="submit"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, y: 14, filter: "brightness(0.6)" }}
+                animate={{ opacity: 1, y: 0, filter: "brightness(1)" }}
+                exit={{ opacity: 0, y: -10, filter: "brightness(0.4)" }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               >
                 <SubmitProject />
               </motion.div>
             ) : (
               <motion.div
                 key="overview"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="grid auto-rows-min grid-cols-1 gap-5 md:grid-cols-8 lg:grid-cols-12"
+                initial={{ opacity: 0, y: 14, filter: "brightness(0.6)" }}
+                animate={{ opacity: 1, y: 0, filter: "brightness(1)" }}
+                exit={{ opacity: 0, y: -10, filter: "brightness(0.4)" }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               >
-                <div className="md:col-span-5 lg:col-span-4">
-                  <PerformanceCard />
-                </div>
+                <ProjectsDashboard
+                  data={_data}
+                  onOpenTrack={(track) => setTab(track)}
+                />
               </motion.div>
             )}
           </AnimatePresence>

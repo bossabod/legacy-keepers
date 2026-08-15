@@ -432,10 +432,14 @@ function Thread({
         </span>
       </div>
 
-      {/* المجرى — سطور طرفية لا فقاعات */}
-      <div className="max-h-[46vh] space-y-4 overflow-y-auto px-4 py-5">
+      {/* المجرى — فقاعات للقنوات الشخصية / سطور رسمية للإدارات */}
+      <div className="max-h-[46vh] space-y-2 overflow-y-auto px-4 py-5">
         {e.thread.map((m) => (
-          <TurnLine key={m.id} m={m} admin={admin} />
+          admin ? (
+            <TurnLine key={m.id} m={m} admin={admin} />
+          ) : (
+            <Bubble key={m.id} m={m} />
+          )
         ))}
       </div>
 
@@ -532,6 +536,43 @@ function TurnLine({ m, admin }: { m: Turn; admin: boolean }) {
       >
         {ar ? m.textAr : m.textEn}
       </p>
+    </motion.div>
+  );
+}
+
+/* فقاعة محادثة آمنة — للقنوات الشخصية (مثل Signal/WhatsApp) */
+function Bubble({ m }: { m: Turn }) {
+  const { lang } = useApp();
+  const ar = lang === "ar";
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+      className={`flex ${m.mine ? "justify-end" : "justify-start"}`}
+    >
+      <div
+        className="max-w-[78%] rounded-2xl px-3.5 py-2.5"
+        style={{
+          background: m.mine
+            ? "linear-gradient(178deg, #1c232d 0%, #121820 100%)"
+            : "linear-gradient(178deg, #0e1218 0%, #0a0d12 100%)",
+          border: `1px solid ${m.mine ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.07)"}`,
+          boxShadow: m.mine ? "0 6px 18px rgba(0,0,0,0.45)" : "none",
+        }}
+      >
+        <p className="text-[0.78rem] leading-[1.7] text-[#d6dee9]" style={{ fontFamily: MONO }}>
+          {ar ? m.textAr : m.textEn}
+        </p>
+        <div className={`mt-1.5 flex items-center gap-2 ${m.mine ? "justify-end" : "justify-start"}`}>
+          <span className="text-[0.4rem] tracking-[0.1em] text-[#4b525f]" style={{ fontFamily: MONO }}>{m.stamp}</span>
+          {m.mine && (
+            <span className="text-[0.4rem] tracking-[0.1em] text-[#6d7684]" style={{ fontFamily: MONO }}>
+              {m.delivery === "READ" ? "✓✓" : m.delivery === "DELIVERED" ? "✓" : "•"}
+            </span>
+          )}
+        </div>
+      </div>
     </motion.div>
   );
 }

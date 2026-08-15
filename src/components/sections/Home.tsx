@@ -1,35 +1,26 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  ChevronLeft,
-  MapPin,
-  ArrowUpRight,
-  MailOpen,
-  Users,
-  Layers,
-  Eye,
-  EyeOff,
+  MapPin, Users, MailOpen, Layers, ArrowUpRight, Eye, EyeOff, TrendingUp, Activity,
 } from "lucide-react";
-import { Panel, Stat, Reveal, Pulse } from "@/components/ui";
-import { WorldClock, Logo } from "@/components/brand";
+import { Reveal, Pulse } from "@/components/ui";
+import { WorldClock } from "@/components/brand";
 import GlobalCommandGlobe from "@/components/GlobalCommandGlobe";
+import { useApp } from "@/lib/store";
 import { play } from "@/lib/sound";
 import type { AppData } from "@/lib/types";
 import type { SectionKey } from "@/components/Dashboard";
 
-const VERTICAL_NAV: { key: SectionKey; label: string }[] = [
-  { key: "rules", label: "Rules" },
-  { key: "goals", label: "Objectives" },
-  { key: "identity", label: "Who Are the People of Impact" },
+const TAB_NAV: { key: SectionKey; labelEn: string; labelAr: string }[] = [
+  { key: "rules", labelEn: "Rules", labelAr: "القواعد" },
+  { key: "goals", labelEn: "Objectives", labelAr: "الأهداف" },
+  { key: "identity", labelEn: "Who Are the People of Impact", labelAr: "من هم أصحاب الأثر" },
 ];
 
-const TASKS = [
-  { label: "مراجعة طلب علاقة جديد", section: "network", when: "اليوم", prio: "عالية" },
-  { label: "اعتماد فاتورة معلّقة", section: "invoices", when: "غدًا", prio: "متوسطة" },
-  { label: "متابعة مشروع برج الزمرّد", section: "projects", when: "هذا الأسبوع", prio: "عالية" },
-  { label: "معاينة ملف سري في الأرشيف", section: "archive", when: "هذا الأسبوع", prio: "منخفضة" },
-];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"];
+// deterministic growth series ending at +31%
+const SERIES = [4, 6, 5, 9, 8, 14, 20, 27, 31];
 
 export default function HomeSection({
   data,
@@ -41,198 +32,263 @@ export default function HomeSection({
   const me = data.members[0];
   const unread = data.messages.filter((m) => !m.read).length;
   const [nameVisible, setNameVisible] = useState(false);
+  const { lang } = useApp();
+  const ar = lang === "ar";
+  const [activeTab, setActiveTab] = useState<SectionKey | null>(null);
+  const [drawn, setDrawn] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setDrawn(true), 600); return () => clearTimeout(t); }, []);
+
+  const completedProjects = useMemo(() => data.projects.filter((p) => /مكتم|Completed|complete/i.test(p.status || "")).length, [data.projects]);
+
+  const growth = SERIES[SERIES.length - 1];
+  const maxV = Math.max(...SERIES) * 1.15;
+  const minV = Math.min(...SERIES) * 0.9;
+  const w = 640, h = 180, pl = 30, pr = 14, pt = 12, pb = 24;
+  const xs = (i: number) => pl + (i / (SERIES.length - 1)) * (w - pl - pr);
+  const ys = (v: number) => pt + (1 - (v - minV) / (maxV - minV)) * (h - pt - pb);
+  const pts = SERIES.map((v, i) => [xs(i), ys(v)]);
+  const line = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+  const area = `${line} L ${xs(SERIES.length - 1).toFixed(1)} ${h - pb} L ${xs(0).toFixed(1)} ${h - pb} Z`;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-7">
-      {/* ===== لوحة الهوية ومركز القيادة العالمي ===== */}
+    <div className="mx-auto max-w-7xl space-y-8">
+      {/* ===== Premium Navigation Tabs ===== */}
       <Reveal>
-        <Panel className="relative overflow-hidden p-7 sm:p-9 min-h-[560px] lg:min-h-[600px] flex flex-col justify-end border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85)]">
-          {/* محرك قيادة العمليات العالمية 3D (الأرض، خطوط الاتصال الحمراء، وساعات المدن الحية) */}
+        <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-3 border-b border-white/[0.06] pb-5 pt-1">
+          {TAB_NAV.map((t) => {
+            const on = activeTab === t.key;
+            return (
+              <button
+                key={t.key}
+                onMouseEnter={() => { setActiveTab(t.key); play("hover"); }}
+                onMouseLeave={() => setActiveTab(null)}
+                onClick={() => onNavigate(t.key)}
+                className="group relative py-2 text-center"
+              >
+                <span
+                  className={`text-[clamp(1.05rem,1.9vw,1.35rem)] tracking-[0.08em] transition-all duration-300 ${
+                    on ? "text-white" : "text-[#9aa5b3] group-hover:text-[#eaeef5]"
+                  }`}
+                  style={{ fontFamily: "var(--font-luxury)", fontWeight: 700, textShadow: on ? "0 0 18px rgba(234,238,245,0.35)" : "none" }}
+                >
+                  {ar ? t.labelAr : t.labelEn}
+                </span>
+                <span className="absolute inset-x-0 -bottom-[2px] mx-auto h-[2px] bg-gradient-to-r from-transparent via-[#eaeef5] to-transparent transition-all duration-500"
+                  style={{ width: on ? "100%" : "0%", boxShadow: "0 0 8px rgba(195,201,211,0.55)" }} />
+                <span className="pointer-events-none absolute inset-x-0 -bottom-2 h-6 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                  style={{ background: "radial-gradient(60% 100% at 50% 100%, rgba(255,255,255,0.10), transparent 70%)" }} />
+              </button>
+            );
+          })}
+        </div>
+      </Reveal>
+
+      {/* ===== Globe + member info ===== */}
+      <Reveal>
+        <Panel className="relative overflow-hidden p-0 min-h-[560px] lg:min-h-[600px] border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85)]">
           <GlobalCommandGlobe className="absolute inset-0 w-full h-full z-0" />
 
-          {/* تدرج داكن عميق لضمان وضوح نصوص العضو أمام الكرة الأرضية بنسبة 100% */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-[#050608] via-[#050608]/94 via-[#050608]/55 to-transparent z-0" />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#050608] via-[#050608]/80 to-transparent lg:hidden z-0" />
+          {/* member info — top-right beside globe, elegant text rows */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-[#050608] via-[#050608]/90 to-transparent z-0" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#050608] via-transparent to-transparent lg:hidden z-0" />
 
-          {/* ===== التنقل العمودي المتميز على اليمين بجانب الكرة ===== */}
-          <div className="absolute right-8 top-[20%] z-20 hidden xl:flex flex-col gap-8 pointer-events-auto">
-            {VERTICAL_NAV.map((item) => {
-              return (
-                <button
-                  key={item.key}
-                  onClick={() => { onNavigate(item.key); play("open"); }}
-                  onMouseEnter={() => play("hover")}
-                  className="group relative text-right"
-                >
-                  <span
-                    className="text-[1.1rem] tracking-[0.14em] transition-all duration-300 text-[#7f8896] group-hover:text-[#eaeef5]"
-                    style={{ fontFamily: "var(--font-luxury)", fontWeight: 700 }}
-                  >
-                    {item.label}
-                  </span>
-                  <span className="absolute -bottom-2 right-0 h-[2px] w-0 bg-gradient-to-l from-[#eaeef5] via-[#c3c9d3] to-transparent transition-all duration-300 group-hover:w-full" style={{ boxShadow: "0 0 6px rgba(195,201,211,0.4)" }} />
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="relative z-10 lg:w-[60%] lg:ml-auto">
-            <div className="flex items-center justify-between mb-2">
+          <div className="relative z-10 flex h-full flex-col">
+            {/* header row */}
+            <div className="flex items-center justify-between px-7 pt-7 sm:px-9">
               <span className="text-[0.78rem] tracking-[0.2em] uppercase text-[#8b95a5]" style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
-                Owners of Impact Live Network
+                {ar ? "شبكة أصحاب الأثر الحيّة" : "Owners of Impact Live Network"}
               </span>
               <span className="mono text-[0.72rem] text-[#c3c9d3] bg-white/[0.04] px-3 py-1 rounded-full border border-white/[0.1]">{me.code}</span>
             </div>
 
-            <div className="mt-3 flex items-center gap-3">
-              <h1 className="etched text-4xl font-bold tracking-tight text-[#eaeef5] sm:text-5xl">
-                {nameVisible ? me.name : "****************"}
-              </h1>
-              <button
-                onClick={() => { setNameVisible(!nameVisible); play("click"); }}
-                onMouseEnter={() => play("hover")}
-                className="shrink-0 rounded-lg p-2 text-[#7f8896] transition-all duration-300 hover:text-[#eaeef5] hover:bg-white/[0.05] border border-transparent hover:border-white/10"
-                aria-label="Toggle name visibility"
-              >
-                {nameVisible ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
+            <div className="flex flex-1 flex-col lg:flex-row">
+              {/* left: identity */}
+              <div className="flex-1 px-7 pb-8 lg:px-9 lg:max-w-[55%]">
+                <div className="mt-6 flex items-center gap-3">
+                  <h1 className="etched text-3xl font-bold tracking-tight text-[#eaeef5] sm:text-4xl">
+                    {nameVisible ? me.name : "****************"}
+                  </h1>
+                  <button
+                    onClick={() => { setNameVisible(!nameVisible); play("click"); }}
+                    onMouseEnter={() => play("hover")}
+                    className="shrink-0 rounded-lg p-2 text-[#7f8896] transition-all duration-300 hover:text-[#eaeef5] hover:bg-white/[0.05] border border-transparent hover:border-white/10"
+                    aria-label="Toggle name visibility"
+                  >
+                    {nameVisible ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <span
-                className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.74rem] font-medium"
-                style={{ border: "1px solid rgba(195,201,211,0.4)", background: "rgba(195,201,211,0.1)", color: "#eaeef5" }}
-              >
-                <span className="h-2 w-2 rotate-45 bg-[#ef4444] shadow-[0_0_8px_#ef4444]" />
-                الرتبة: {me.rank}
-              </span>
-              <span className="text-[0.78rem] text-[#aeb6c2] bg-black/40 px-3 py-1.5 rounded-full border border-white/5">{me.role}</span>
-              <span className="flex items-center gap-1.5 text-[0.74rem] text-[#8b95a5] bg-black/40 px-3 py-1.5 rounded-full border border-white/5">
-                <MapPin size={13} className="text-[#ef4444]" /> {me.city} · {me.country}
-              </span>
-            </div>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <span className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.74rem] font-medium"
+                    style={{ border: "1px solid rgba(195,201,211,0.4)", background: "rgba(195,201,211,0.1)", color: "#eaeef5" }}>
+                    <span className="h-2 w-2 rotate-45 bg-[#c3c9d3] shadow-[0_0_8px_rgba(195,201,211,0.6)]" />
+                    {ar ? "الرتبة" : "Rank"}: {me.rank}
+                  </span>
+                  <span className="text-[0.78rem] text-[#aeb6c2] bg-black/40 px-3 py-1.5 rounded-full border border-white/5">{me.role}</span>
+                  <span className="flex items-center gap-1.5 text-[0.74rem] text-[#8b95a5] bg-black/40 px-3 py-1.5 rounded-full border border-white/5">
+                    <MapPin size={13} className="text-[#9aa5b3]" /> {me.city} · {me.country}
+                  </span>
+                </div>
 
-            <p className="mt-4 max-w-2xl text-sm leading-loose text-[#aeb6c2]">{me.bio}</p>
+                <p className="mt-4 max-w-xl text-sm leading-loose text-[#aeb6c2]">{me.bio}</p>
 
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <Stat label="الرتبة" value={me.rank} />
-              <Stat label="رقم العضوية" value={me.code} mono />
-              <Stat label="عضو منذ" value={me.memberSince} mono />
-              <Stat label="مشاريع مرتبطة" value={data.projects.length} mono />
+                {/* member metadata — elegant text rows (no cards) */}
+                <div className="mt-6 space-y-2.5 border-t border-white/[0.08] pt-5 max-w-md">
+                  <MetaRow label={ar ? "المرتبة" : "Rank"} value={me.rank} />
+                  <MetaRow label={ar ? "رقم العضوية" : "Membership No."} value={me.code} mono />
+                  <MetaRow label={ar ? "سنة الانضمام" : "Join Year"} value={String(me.memberSince)} mono />
+                  <MetaRow label={ar ? "مشاريع مرتبطة" : "Related Projects"} value={String(data.projects.length)} mono />
+                </div>
+              </div>
             </div>
           </div>
         </Panel>
       </Reveal>
 
-      <div className="grid gap-7 lg:grid-cols-3">
-        {/* المهام */}
-        <Reveal delay={0.05} className="lg:col-span-2">
-          <Panel className="h-full p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <div className="eyebrow">المهام المتاحة</div>
-                <h3 className="mt-1 text-lg font-semibold text-[#eaeef5]">قائمة الانتظار</h3>
-              </div>
-              <span className="mono rounded-full border border-white/10 px-2.5 py-1 text-[0.66rem] text-[#aeb6c2]">
-                {TASKS.length} مفتوحة
+      {/* ===== Operational Performance Dashboard ===== */}
+      <Reveal delay={0.05}>
+        <Panel className="p-6 sm:p-7">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="eyebrow">{ar ? "لوحة الأداء التشغيلي" : "Operational Performance"}</div>
+              <h3 className="mt-1 text-lg font-semibold text-[#eaeef5]">
+                {ar ? "الأداء السنوي الحالي" : "Current Yearly Performance"}
+              </h3>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-4 py-2">
+              <TrendingUp size={15} className="text-[#7f8896]" />
+              <span className="text-2xl font-semibold text-white" style={{ fontFamily: "var(--font-mono)" }}>+{growth}%</span>
+              <span className="flex items-center gap-1 text-[0.7rem] text-[#7f8896]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#7a9a7a]" style={{ boxShadow: "0 0 6px #7a9a7a" }} />
+                {ar ? "نمو" : "Growth"}
               </span>
             </div>
-            <div className="space-y-2">
-              {TASKS.map((t, i) => (
-                <button
-                  key={i}
-                  onMouseEnter={() => {}}
-                  onClick={() => onNavigate(t.section as SectionKey)}
-                  className="group flex w-full items-center gap-3 rounded-xl border border-white/5 bg-black/20 p-3.5 text-right transition hover:border-white/15 hover:bg-white/[0.04]"
-                >
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{
-                      background:
-                        t.prio === "عالية" ? "#c3c9d3" : t.prio === "متوسطة" ? "#7f8896" : "#3a4049",
-                    }}
-                  />
-                  <span className="flex-1">
-                    <span className="block text-[0.86rem] text-[#eaeef5]">{t.label}</span>
-                    <span className="mono mt-0.5 block text-[0.62rem] text-[#565d68]">
-                      {t.section} · {t.when}
-                    </span>
-                  </span>
-                  <span className="rounded border border-white/5 px-2 py-0.5 text-[0.6rem] text-[#7f8896]">
-                    {t.prio}
-                  </span>
-                  <ChevronLeft
-                    size={15}
-                    className="text-[#565d68] transition group-hover:-translate-x-1 group-hover:text-[#c3c9d3]"
-                  />
-                </button>
-              ))}
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* line chart */}
+            <div className="lg:col-span-2">
+              <div className="rounded-lg border border-white/[0.06] bg-black/20 p-4">
+                <div className="relative w-full">
+                  <svg viewBox={`0 0 ${w} ${h}`} className="w-full" preserveAspectRatio="none" style={{ height: 180 }}>
+                    {/* grid lines */}
+                    {[0.25, 0.5, 0.75].map((f) => (
+                      <line key={f} x1={pl} x2={w - pr} y1={pt + f * (h - pt - pb)} y2={pt + f * (h - pt - pb)} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                    ))}
+                    {/* area */}
+                    <motion.path d={area} fill="url(#perfGrad)" opacity={drawn ? 0.35 : 0} initial={false} animate={{ opacity: drawn ? 0.35 : 0 }} transition={{ duration: 1.4 }} />
+                    <defs>
+                      <linearGradient id="perfGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#eaeef5" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#eaeef5" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    {/* line */}
+                    <motion.path d={line} fill="none" stroke="#dfe8f2" strokeWidth="2" strokeLinecap="round"
+                      initial={{ pathLength: 0 }} animate={{ pathLength: drawn ? 1 : 0 }} transition={{ duration: 1.6, ease: "easeInOut" }} />
+                    {/* data points */}
+                    {pts.map(([x, y], i) => (
+                      <motion.circle key={i} cx={x} cy={y} r="2.6" fill="#eaeef5"
+                        initial={{ opacity: 0, scale: 0 }} animate={{ opacity: drawn ? 1 : 0, scale: drawn ? 1 : 0 }}
+                        transition={{ duration: 0.3, delay: 0.1 + i * 0.12 }} />
+                    ))}
+                    {/* x labels */}
+                    {MONTHS.map((m, i) => (
+                      <text key={m} x={xs(i)} y={h - 6} textAnchor="middle" fill="rgba(150,160,175,0.55)" fontSize="8" style={{ fontFamily: "var(--font-mono)" }}>{m}</text>
+                    ))}
+                    {/* y labels */}
+                    {[minV, (minV + maxV) / 2, maxV].map((v, i) => (
+                      <text key={i} x={pl - 5} y={ys(v) + 3} textAnchor="end" fill="rgba(150,160,175,0.4)" fontSize="8" style={{ fontFamily: "var(--font-mono)" }}>{Math.round(v)}</text>
+                    ))}
+                  </svg>
+                  {/* current value badge */}
+                  <div className="pointer-events-none absolute right-2 top-2 rounded border border-white/10 bg-black/60 px-2 py-1 text-[0.62rem] text-[#eaeef5]" style={{ fontFamily: "var(--font-mono)" }}>
+                    {ar ? "الحالي" : "Current"}: +{growth}%
+                  </div>
+                </div>
+              </div>
+              <p className="mt-2 text-[0.7rem] text-[#565d68]">
+                {ar ? "منحنى تصاعدي ثابت عبر الأشهر الثمانية — يعكس نمواً سنوياً +31%" : "Steady upward curve across eight months — reflects +31% annual growth."}
+              </p>
+            </div>
+
+            {/* right stats */}
+            <div className="space-y-3">
+              <MiniStat label={ar ? "أعلى نقطة" : "Highest Point"} value="+27%" />
+              <MiniStat label={ar ? "الانطلاق" : "Start"} value="+4%" />
+              <MiniStat label={ar ? "مشاريع نشطة" : "Active Projects"} value={String(data.projects.length)} />
+              <MiniStat label={ar ? "رسائل غير مقروءة" : "Unread Messages"} value={String(unread)} />
+              <div className="rounded-lg border border-white/[0.06] bg-black/20 p-4">
+                <div className="mb-2 flex items-center gap-2 text-[0.7rem] text-[#7f8896]">
+                  <Activity size={13} /> {ar ? "أحداث تشغيلية" : "Operational Events"}
+                </div>
+                <div className="space-y-2 text-[0.72rem] text-[#aeb6c2]">
+                  <div className="flex justify-between"><span>{ar ? "تحديث أرشيف" : "Archive update"}</span><span className="mono text-[#565d68]">02:14</span></div>
+                  <div className="flex justify-between"><span>{ar ? "إغلاق مشروع" : "Project closed"}</span><span className="mono text-[#565d68]">09:40</span></div>
+                  <div className="flex justify-between"><span>{ar ? "جلسة مشفّرة" : "Encrypted session"}</span><span className="mono text-[#565d68]">11:02</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Panel>
+      </Reveal>
+
+      {/* ===== Quick glance + World clocks ===== */}
+      <div className="grid gap-7 lg:grid-cols-3">
+        <Reveal delay={0.1} className="lg:col-span-2">
+          <Panel className="h-full p-6">
+            <div className="eyebrow mb-4">{ar ? "نظرة سريعة" : "Quick Glance"}</div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <QuickRow icon={Users} label={ar ? "إجمالي الأعضاء" : "Total members"} value={`${data.members.length}`} onClick={() => onNavigate("members")} />
+              <QuickRow icon={MailOpen} label={ar ? "رسائل غير مقروءة" : "Unread messages"} value={`${unread}`} onClick={() => onNavigate("messages")} />
+              <QuickRow icon={Layers} label={ar ? "مشاريع نشطة" : "Active projects"} value={`${data.projects.length}`} onClick={() => onNavigate("projects")} />
+              <QuickRow icon={ArrowUpRight} label={ar ? "أصول استثمارية" : "Investment assets"} value={`${data.investments.length}`} onClick={() => onNavigate("investments")} />
             </div>
           </Panel>
         </Reveal>
 
-        {/* نظرة سريعة */}
-        <Reveal delay={0.1}>
+        <Reveal delay={0.15}>
           <Panel className="h-full p-6">
-            <div className="eyebrow mb-4">نظرة سريعة</div>
-            <div className="space-y-3">
-              <QuickRow icon={Users} label="إجمالي الأعضاء" value={`${data.members.length} عضوًا`} onClick={() => onNavigate("members")} />
-              <QuickRow icon={MailOpen} label="رسائل غير مقروءة" value={`${unread}`} onClick={() => onNavigate("messages")} />
-              <QuickRow icon={Layers} label="مشاريع نشطة" value={`${data.projects.length}`} onClick={() => onNavigate("projects")} />
-              <QuickRow icon={ArrowUpRight} label="أصول استثمارية" value={`${data.investments.length}`} onClick={() => onNavigate("investments")} />
-            </div>
-            <div className="divider my-5" />
-            <div className="eyebrow mb-3">الساعات العالمية</div>
+            <div className="eyebrow mb-3">{ar ? "الساعات العالمية" : "World Clocks"}</div>
             <WorldClock />
             <div className="divider my-5" />
             <div className="flex items-center gap-2 text-[0.72rem] text-[#7f8896]">
-              <Pulse /> النظام يعمل ضمن القناة المشفّرة
+              <Pulse /> {ar ? "النظام يعمل ضمن القناة المشفّرة" : "System running on encrypted channel"}
             </div>
           </Panel>
         </Reveal>
       </div>
-
-      {/* المشاريع المرتبطة */}
-      <Reveal delay={0.12}>
-        <Panel className="p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <Logo size={18} />
-            <h3 className="text-lg font-semibold text-[#eaeef5]">المشاريع المرتبطة</h3>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {data.projects.slice(0, 4).map((p) => (
-              <button
-                key={p.id}
-                onClick={() => onNavigate("projects")}
-                className="group rounded-xl border border-white/5 bg-black/20 p-4 text-right transition hover:border-white/15 hover:bg-white/[0.04]"
-              >
-                <div className="text-[0.82rem] text-[#eaeef5]">{p.title}</div>
-                <div className="mono mt-2 text-[0.66rem] text-[#7f8896]">{p.status}</div>
-              </button>
-            ))}
-          </div>
-        </Panel>
-      </Reveal>
     </div>
   );
 }
 
-function QuickRow({
-  icon: Icon,
-  label,
-  value,
-  onClick,
-}: {
-  icon: typeof Users;
-  label: string;
-  value: string;
-  onClick: () => void;
-}) {
+function Panel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-lg p-2 text-right transition hover:bg-white/[0.04]"
-    >
+    <div className={`rounded-2xl border border-white/[0.06] bg-[#0a0b0e] ${className ?? ""}`}>{children}</div>
+  );
+}
+
+function MetaRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <span className="text-[0.62rem] tracking-[0.14em] text-[#565d68]" style={{ fontFamily: "var(--font-mono)" }}>{label}</span>
+      <span className={`text-[0.82rem] text-[#d6dee7] ${mono ? "mono" : ""}`}>{value}</span>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-black/20 px-4 py-3">
+      <span className="text-[0.7rem] text-[#7f8896]">{label}</span>
+      <span className="text-[0.92rem] text-[#eaeef5]" style={{ fontFamily: "var(--font-mono)" }}>{value}</span>
+    </div>
+  );
+}
+
+function QuickRow({ icon: Icon, label, value, onClick }: { icon: typeof Users; label: string; value: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="flex w-full items-center gap-3 rounded-lg border border-white/[0.05] bg-black/20 p-3 text-right transition hover:border-white/15 hover:bg-white/[0.04]">
       <Icon size={15} className="text-[#7f8896]" />
       <span className="flex-1 text-[0.8rem] text-[#aeb6c2]">{label}</span>
       <span className="mono text-[0.78rem] text-[#eaeef5]">{value}</span>
