@@ -27,9 +27,9 @@ const NODE_STATE: Record<string, NodeState> = {
 };
 
 const STATUS_COLOR: Record<NodeState["status"], { main: string; dim: string }> = {
-  ACTIVE:  { main: "94,223,190",  dim: "70,170,150" },   // teal/green
-  ALERT:   { main: "245,176,98",  dim: "205,130,70" },   // amber/orange
-  STANDBY: { main: "130,160,200", dim: "95,120,160" },   // muted blue
+  ACTIVE:  { main: "95,174,131",  dim: "64,122,92" },    // deep emerald
+  ALERT:   { main: "216,162,75",  dim: "160,118,48" },   // antique gold (warning)
+  STANDBY: { main: "106,100,87",  dim: "78,72,62" }      // muted warm
 };
 
 /* anchor angle (deg, 0=right, -90=top) + distance multiplier */
@@ -157,9 +157,9 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
 
       // ===== subtle rim light (only around the edge) =====
       const rim = ctx.createRadialGradient(cx, cy, R * 0.92, cx, cy, R * 1.18);
-      rim.addColorStop(0, "rgba(120,160,220,0.0)");
-      rim.addColorStop(0.55, "rgba(140,165,210,0.05)");
-      rim.addColorStop(0.82, "rgba(150,175,215,0.12)");
+      rim.addColorStop(0, "rgba(216,180,120,0.0)");
+      rim.addColorStop(0.55, "rgba(216,180,120,0.05)");
+      rim.addColorStop(0.82, "rgba(216,180,120,0.14)");
       rim.addColorStop(1, "transparent");
       ctx.fillStyle = rim;
       ctx.beginPath();
@@ -169,22 +169,22 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
       // ===== dark sphere body =====
       const lx = cx + R * 0.4, ly = cy - R * 0.4;
       const sg = ctx.createRadialGradient(lx, ly, 0, cx, cy, R);
-      sg.addColorStop(0, "#1c2431");
-      sg.addColorStop(0.4, "#0d1219");
-      sg.addColorStop(0.78, "#06090d");
-      sg.addColorStop(1, "#030407");
+      sg.addColorStop(0, "#1a150d");
+      sg.addColorStop(0.4, "#0c0a07");
+      sg.addColorStop(0.78, "#050403");
+      sg.addColorStop(1, "#020201");
       ctx.fillStyle = sg;
       ctx.beginPath();
       ctx.arc(cx, cy, R * 0.995, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "rgba(195,201,211,0.12)";
+      ctx.strokeStyle = "rgba(216,180,120,0.14)";
       ctx.lineWidth = 1;
       ctx.stroke();
 
       // ===== lat/long grid (very light) =====
       const pr = (pitchAngle * Math.PI) / 180;
       const cp = Math.cos(pr), sp = Math.sin(pr);
-      ctx.strokeStyle = "rgba(174,182,194,0.045)";
+      ctx.strokeStyle = "rgba(138,112,68,0.05)";
       ctx.lineWidth = 0.7;
       for (let latDeg = -75; latDeg <= 75; latDeg += 15) {
         ctx.beginPath(); let first = true;
@@ -229,9 +229,9 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
           const fadeZ = Math.max(0, z1 / R);
           const a = Math.min(1, Math.max(0.05, fadeZ * 0.6 + Math.max(0, lAlign) * 0.4));
           const r = Math.max(0.5, (0.7 + fadeZ * 0.5) * 0.75);
-          if (lAlign > 0.35) ctx.fillStyle = `rgba(228,233,240,${a})`;
-          else if (lAlign > -0.1) ctx.fillStyle = `rgba(160,172,188,${a * 0.8})`;
-          else ctx.fillStyle = `rgba(90,96,104,${a * 0.5})`;
+          if (lAlign > 0.35) ctx.fillStyle = `rgba(216,180,120,${a})`;
+          else if (lAlign > -0.1) ctx.fillStyle = `rgba(160,140,90,${a * 0.8})`;
+          else ctx.fillStyle = `rgba(90,80,55,${a * 0.5})`;
           ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
         }
       }
@@ -284,8 +284,8 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
 
         // small translucent label
         const bx = tx - boxW / 2, by = ty - boxH / 2;
-        ctx.fillStyle = `rgba(8,10,14,${0.78 * fade})`;
-        ctx.strokeStyle = `rgba(${col.dim},${0.35 * fade})`;
+        ctx.fillStyle = `rgba(8,7,5,${0.8 * fade})`;
+        ctx.strokeStyle = `rgba(216,180,120,${0.35 * fade})`;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.roundRect(bx, by, boxW, boxH, 5);
@@ -297,7 +297,7 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
         ctx.beginPath(); ctx.arc(bx + 8, by + boxH / 2, 2, 0, Math.PI * 2); ctx.fill();
 
         // name
-        ctx.fillStyle = `rgba(234,238,245,${fade})`;
+        ctx.fillStyle = `rgba(228,221,204,${fade})`;
         ctx.font = `600 ${isSel ? 10.5 : 9}px var(--font-ibm-mono), monospace`;
         ctx.textAlign = "left";
         ctx.fillText(city.name, bx + 14, by + (isSel ? 14 : 12));
@@ -306,18 +306,18 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
         const tzStr = formatClock(city.tz);
         ctx.font = `500 ${isSel ? 9 : 8}px var(--font-ibm-mono), monospace`;
         if (isSel) {
-          ctx.fillStyle = `rgba(195,201,211,${0.9 * fade})`;
+          ctx.fillStyle = `rgba(178,170,150,${0.9 * fade})`;
           ctx.fillText(tzStr, bx + 14, by + 26);
           ctx.fillStyle = `rgba(${col.main},${0.9 * fade})`;
           ctx.fillText(st, bx + 14, by + 37);
         } else {
-          ctx.fillStyle = `rgba(195,201,211,${0.85 * fade})`;
+          ctx.fillStyle = `rgba(178,170,150,${0.85 * fade})`;
           ctx.fillText(tzStr, bx + 14, by + 22);
         }
       });
 
       // HUD text — small, not overpowering
-      ctx.fillStyle = "rgba(174,182,194,0.35)";
+      ctx.fillStyle = "rgba(216,180,120,0.34)";
       ctx.font = "500 9px var(--font-ibm-mono), monospace";
       ctx.textAlign = "center";
       ctx.fillText("GLOBAL COMMAND NETWORK · 5 NODES · DRAG · SCROLL ZOOM", width / 2, 22);

@@ -42,7 +42,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <link rel="preload" href="/images/emblem-intro-aligned.png" as="image" />
       </head>
-      <body className="grain vignette min-h-screen bg-[#020203] text-[#eaeef5] antialiased">
+      <body className="grain vignette stage-glow min-h-screen bg-[#060604] text-[#ece9e0] antialiased">
         {children}
       </body>
     </html>
