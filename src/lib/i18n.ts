@@ -75,6 +75,26 @@ const translations: Record<string, { en: string; ar: string }> = {
   "ar.denied": { en: "Access Denied", ar: "الوصول مرفوض" },
   "ar.gateNote": { en: "Attempts are recorded", ar: "تُسجَّل المحاولات" },
 
+  "ar.stats": { en: "Archive Overview", ar: "نظرة عامة على الأرشيف" },
+  "ar.total": { en: "Total Files", ar: "إجمالي الملفات" },
+  "ar.secretCount": { en: "Secret Files", ar: "الملفات السرية" },
+  "ar.archivedCount": { en: "Archived Files", ar: "الملفات المؤرشفة" },
+  "ar.lastUpdate": { en: "Last Update", ar: "آخر تحديث" },
+  "ar.searchPh": { en: "Search by file name or number…", ar: "ابحث باسم الملف أو رقمه…" },
+  "ar.classification": { en: "Classification", ar: "التصنيف" },
+  "ar.status": { en: "Status", ar: "الحالة" },
+  "ar.all": { en: "All", ar: "الكل" },
+  "ar.folders": { en: "Folders", ar: "المجلدات" },
+  "ar.files": { en: "Files", ar: "ملفات" },
+  "ar.name": { en: "File Name", ar: "اسم الملف" },
+  "ar.type": { en: "Type", ar: "النوع" },
+  "ar.added": { en: "Date Added", ar: "تاريخ الإضافة" },
+  "ar.number": { en: "File No.", ar: "رقم الملف" },
+  "ar.secret": { en: "Secret", ar: "سري" },
+  "ar.clear": { en: "Clear", ar: "مسح" },
+  "ar.empty": { en: "No files match the current filters.", ar: "لا توجد ملفات تطابق عوامل التصفية الحالية." },
+  "ar.backToArchive": { en: "Return to Archive", ar: "رجوع إلى الأرشيف" },
+
 
   /* ---------- نظام المراسلات ---------- */
   "ms.eyebrow": { en: "Secure Channel · Internal", ar: "قناة مؤمّنة · داخلي" },
