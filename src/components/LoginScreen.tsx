@@ -20,11 +20,12 @@ export default function LoginScreen({
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (verifying) return;
+    // Enter the app immediately — sound and any fallback are decorative and must
+    // never be able to block the transition.
     setVerifying(true);
-    play("vault");
-    // Go straight to the app — no artificial delay, no loading screen.
-    play("granted");
+    try { play("vault"); } catch { /* noop */ }
     onAuthenticated();
+    try { play("granted"); } catch { /* noop */ }
   };
 
   return (
