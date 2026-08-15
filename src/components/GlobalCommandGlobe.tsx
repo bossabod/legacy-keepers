@@ -26,27 +26,27 @@ const NODE_STATE: Record<string, NodeState> = {
   "PERTH":    { status: "STANDBY" },
 };
 
-/* ---- Digital Data Globe palette: Dark Emerald + Deep Teal (calm, no neon, no blue) ---- */
+/* ---- Digital Data Globe palette: Dark Navy + Deep Teal + Turquoise + Cyan-Green ---- */
 const PALETTE = {
-  bg: "#040d0b",                   // background — near-black with a faint dark-green tint
-  rimDark: "10,105,78",            // dark emerald-teal rim
-  rimStrong: "26,165,116",         // emerald-teal strongest edge highlight
-  continentActive: "86,226,158",   // light green (bright/active)
-  continentBright: "40,190,128",   // emerald-turquoise
-  continentDim: "10,110,72",       // dark emerald (distant/less active)
-  grid: "20,84,62",                // dark transparent green grid
-  link: "40,178,126",              // emerald-turquoise connectors
-  node: "42,184,132",              // emerald-turquoise city nodes
-  labelBg: "4,14,12",              // semi-transparent near-black emerald label bg
-  labelBorder: "40,178,126",       // thin emerald-turquoise label border
-  labelText: "150,224,190",        // soft light emerald text
-  hud: "40,178,126",               // HUD text
+  bg: "#061316",                   // background — very dark navy-black
+  rimDark: "8,127,120",            // #087F78  dark→mid turquoise rim
+  rimStrong: "22,184,166",         // #16B8A6  strongest edge highlight
+  continentActive: "85,230,193",   // #55E6C1  light cyan-green (bright/active)
+  continentBright: "25,211,184",   // #19D3B8  bright turquoise
+  continentDim: "8,122,114",       // #087A72  dark turquoise (distant/less active)
+  grid: "23,100,95",               // #17645F  very dark turquoise grid
+  link: "34,199,181",              // #22C7B5  bright turquoise connectors
+  node: "34,199,181",              // #22C7B5  bright turquoise city nodes
+  labelBg: "4,15,19",              // semi-transparent black/navy label bg
+  labelBorder: "34,199,181",       // thin turquoise label border
+  labelText: "158,230,216",        // light turquoise text
+  hud: "34,199,181",               // HUD text
 };
 
 const STATUS_COLOR: Record<NodeState["status"], { main: string; dim: string }> = {
-  ACTIVE:  { main: "88,226,160",  dim: "50,168,116" },  // light green (active)
-  ALERT:   { main: "238,158,84",  dim: "190,118,50" },  // soft light orange (warning only)
-  STANDBY: { main: "30,138,96",   dim: "22,98,70" },    // dark emerald
+  ACTIVE:  { main: "25,211,184",  dim: "16,148,130" },  // bright turquoise
+  ALERT:   { main: "85,230,193",  dim: "56,192,160" },  // brightest cyan-green
+  STANDBY: { main: "8,122,114",   dim: "6,86,82" },     // dark teal
 };
 
 /* Precomputed local point-density (0..1) per land point, so dense regions read
@@ -207,13 +207,13 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
       ctx.arc(cx, cy, R * 1.18, 0, Math.PI * 2);
       ctx.fill();
 
-      // ===== dark sphere body (deep emerald-turquoise) =====
+      // ===== dark sphere body (deep teal-navy) =====
       const lx = cx + R * 0.4, ly = cy - R * 0.4;
       const sg = ctx.createRadialGradient(lx, ly, 0, cx, cy, R);
-      sg.addColorStop(0, "#0a2a1c");
-      sg.addColorStop(0.4, "#061e16");
-      sg.addColorStop(0.78, "#03120d");
-      sg.addColorStop(1, "#020906");
+      sg.addColorStop(0, "#0c2a30");
+      sg.addColorStop(0.4, "#071B20");
+      sg.addColorStop(0.78, "#041014");
+      sg.addColorStop(1, "#020708");
       ctx.fillStyle = sg;
       ctx.beginPath();
       ctx.arc(cx, cy, R * 0.995, 0, Math.PI * 2);
@@ -269,13 +269,13 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
           const lAlign = nx * lightDirX + ny * lightDirY + nz * lightDirZ;
           const fadeZ = Math.max(0, z1 / R);
           const density = EARTH_DENSITY[i];
-          // dense areas brighter, sparse areas dimmer — gentle live data-cloud feel
-          const bright = 0.55 + density * 0.45;
-          const a = Math.min(0.95, Math.max(0.03, (fadeZ * 0.6 + Math.max(0, lAlign) * 0.4) * bright));
-          const r = Math.max(0.36, (0.42 + fadeZ * 0.34) * 0.6);
+          // dense areas brighter, sparse areas dimmer — live data-cloud feel
+          const bright = 0.5 + density * 0.5;
+          const a = Math.min(1, Math.max(0.04, (fadeZ * 0.6 + Math.max(0, lAlign) * 0.4) * bright));
+          const r = Math.max(0.5, (0.62 + fadeZ * 0.45) * 0.7);
           if (lAlign > 0.35) ctx.fillStyle = `rgba(${PALETTE.continentActive},${a})`;
-          else if (lAlign > -0.1) ctx.fillStyle = `rgba(${PALETTE.continentBright},${a * 0.8})`;
-          else ctx.fillStyle = `rgba(${PALETTE.continentDim},${a * 0.52})`;
+          else if (lAlign > -0.1) ctx.fillStyle = `rgba(${PALETTE.continentBright},${a * 0.82})`;
+          else ctx.fillStyle = `rgba(${PALETTE.continentDim},${a * 0.55})`;
           ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
         }
       }
