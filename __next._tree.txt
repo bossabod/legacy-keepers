@@ -1,2 +1,3 @@
-:HL["/legacy-keepers/_next/static/chunks/0ieza_0nex5_j.css","style"]
-0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}},"staleTime":300,"buildId":"DECC2xz_DOWI6HDT8-rXA"}
+:HL["/legacy-keepers/_next/static/chunks/02.rtf0nocuub.css","style"]
+:HL["/images/emblem-intro-aligned.png","image"]
+0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}},"staleTime":300,"buildId":"HtskQC0dtO7eZgJv2aLDt"}
