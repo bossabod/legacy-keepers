@@ -83,66 +83,55 @@ export default function HomeSection({
         </div>
       </Reveal>
 
-      {/* ===== Globe + member info ===== */}
+      {/* ===== Command-Center Globe (centered, no surrounding card) ===== */}
       <Reveal>
-        <Panel className="relative overflow-hidden p-0 min-h-[560px] lg:min-h-[600px] border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85)]">
+        <div className="relative overflow-hidden min-h-[560px] lg:min-h-[620px]">
           <GlobalCommandGlobe className="absolute inset-0 w-full h-full z-0" />
 
-          {/* member info — top-right beside globe, elegant text rows */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-[#050608] via-[#050608]/90 to-transparent z-0" />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#050608] via-transparent to-transparent lg:hidden z-0" />
+          {/* header row — thin, elegant, over the top */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-7 pt-6 sm:px-9">
+            <span className="text-[0.78rem] tracking-[0.2em] uppercase text-[#8b95a5]" style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
+              {ar ? "شبكة أصحاب الأثر الحيّة" : "Owners of Impact Live Network"}
+            </span>
+            <span className="mono text-[0.72rem] text-[#c3c9d3] bg-black/40 px-3 py-1 rounded-full border border-white/10">{me.code}</span>
+          </div>
 
-          <div className="relative z-10 flex h-full flex-col">
-            {/* header row */}
-            <div className="flex items-center justify-between px-7 pt-7 sm:px-9">
-              <span className="text-[0.78rem] tracking-[0.2em] uppercase text-[#8b95a5]" style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
-                {ar ? "شبكة أصحاب الأثر الحيّة" : "Owners of Impact Live Network"}
-              </span>
-              <span className="mono text-[0.72rem] text-[#c3c9d3] bg-white/[0.04] px-3 py-1 rounded-full border border-white/[0.1]">{me.code}</span>
-            </div>
-
-            <div className="flex flex-1 flex-col lg:flex-row">
-              {/* left: identity */}
-              <div className="flex-1 px-7 pb-8 lg:px-9 lg:max-w-[55%]">
-                <div className="mt-6 flex items-center gap-3">
-                  <h1 className="etched text-3xl font-bold tracking-tight text-[#eaeef5] sm:text-4xl">
-                    {nameVisible ? me.name : "****************"}
-                  </h1>
-                  <button
-                    onClick={() => { setNameVisible(!nameVisible); play("click"); }}
-                    onMouseEnter={() => play("hover")}
-                    className="shrink-0 rounded-lg p-2 text-[#7f8896] transition-all duration-300 hover:text-[#eaeef5] hover:bg-white/[0.05] border border-transparent hover:border-white/10"
-                    aria-label="Toggle name visibility"
-                  >
-                    {nameVisible ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <span className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.74rem] font-medium"
-                    style={{ border: "1px solid rgba(195,201,211,0.4)", background: "rgba(195,201,211,0.1)", color: "#eaeef5" }}>
-                    <span className="h-2 w-2 rotate-45 bg-[#c3c9d3] shadow-[0_0_8px_rgba(195,201,211,0.6)]" />
-                    {ar ? "الرتبة" : "Rank"}: {me.rank}
-                  </span>
-                  <span className="text-[0.78rem] text-[#aeb6c2] bg-black/40 px-3 py-1.5 rounded-full border border-white/5">{me.role}</span>
-                  <span className="flex items-center gap-1.5 text-[0.74rem] text-[#8b95a5] bg-black/40 px-3 py-1.5 rounded-full border border-white/5">
-                    <MapPin size={13} className="text-[#9aa5b3]" /> {me.city} · {me.country}
-                  </span>
-                </div>
-
-                <p className="mt-4 max-w-xl text-sm leading-loose text-[#aeb6c2]">{me.bio}</p>
-
-                {/* member metadata — elegant text rows (no cards) */}
-                <div className="mt-6 space-y-2.5 border-t border-white/[0.08] pt-5 max-w-md">
-                  <MetaRow label={ar ? "المرتبة" : "Rank"} value={me.rank} />
-                  <MetaRow label={ar ? "رقم العضوية" : "Membership No."} value={me.code} mono />
-                  <MetaRow label={ar ? "سنة الانضمام" : "Join Year"} value={String(me.memberSince)} mono />
-                  <MetaRow label={ar ? "مشاريع مرتبطة" : "Related Projects"} value={String(data.projects.length)} mono />
-                </div>
+          {/* member identity — compact elegant overlay, bottom-left, no big box */}
+          <div className="absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-end justify-between gap-6 px-7 pb-6 sm:px-9">
+            <div className="max-w-md">
+              <div className="flex items-center gap-3">
+                <h1 className="etched text-3xl font-bold tracking-tight text-[#eaeef5] sm:text-4xl" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.9)" }}>
+                  {nameVisible ? me.name : "****************"}
+                </h1>
+                <button
+                  onClick={() => { setNameVisible(!nameVisible); play("click"); }}
+                  onMouseEnter={() => play("hover")}
+                  className="shrink-0 rounded-lg p-2 text-[#7f8896] transition-all duration-300 hover:text-[#eaeef5] hover:bg-white/[0.05] border border-transparent hover:border-white/10"
+                  aria-label="Toggle name visibility"
+                >
+                  {nameVisible ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+              <p className="mt-2 max-w-md text-sm leading-relaxed text-[#aeb6c2]" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}>{me.bio}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[0.7rem]"
+                  style={{ border: "1px solid rgba(195,201,211,0.35)", background: "rgba(5,6,8,0.55)", color: "#eaeef5" }}>
+                  <span className="h-1.5 w-1.5 rotate-45 bg-[#c3c9d3]" /> {ar ? "الرتبة" : "Rank"}: {me.rank}
+                </span>
+                <span className="text-[0.7rem] text-[#aeb6c2]" style={{ background: "rgba(5,6,8,0.55)", padding: "2px 10px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.06)" }}>{me.role}</span>
+                <span className="flex items-center gap-1.5 text-[0.7rem] text-[#8b95a5]" style={{ background: "rgba(5,6,8,0.55)", padding: "2px 10px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <MapPin size={12} /> {me.city} · {me.country}
+                </span>
               </div>
             </div>
+
+            <div className="hidden lg:block space-y-1.5 text-right">
+              <MetaRow label={ar ? "رقم العضوية" : "Membership No."} value={me.code} mono />
+              <MetaRow label={ar ? "سنة الانضمام" : "Join Year"} value={String(me.memberSince)} mono />
+              <MetaRow label={ar ? "مشاريع مرتبطة" : "Related Projects"} value={String(data.projects.length)} mono />
+            </div>
           </div>
-        </Panel>
+        </div>
       </Reveal>
 
       {/* ===== Operational Performance Dashboard ===== */}
