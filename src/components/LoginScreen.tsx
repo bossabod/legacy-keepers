@@ -1,10 +1,18 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { Loader2, Lock, ArrowLeft } from "lucide-react";
+import { Loader2, Lock, ArrowLeft, AlertCircle } from "lucide-react";
 import { Cursor } from "@/components/brand";
 import { Pulse } from "@/components/ui";
 import { play } from "@/lib/sound";
+import { checkCredentials, AUTH_MESSAGES } from "@/lib/auth";
+
+/* ────────────────────────────────────────────────────────────────
+   Credentials live in src/lib/auth.ts (VALID_MEMBERSHIP_ID / PASS).
+   Keep the current flow (Welcome → Login → app) and those values.
+   ──────────────────────────────────────────────────────────────── */
+
+const VERIFY_MS = 1500; // length of the "Decrypting…" animation before entry
 
 export default function LoginScreen({
   onAuthenticated,
@@ -16,17 +24,32 @@ export default function LoginScreen({
   const [membership, setMembership] = useState("");
   const [pass, setPass] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (verifying) return;
-    // Enter the app immediately — sound and any fallback are decorative and must
-    // never be able to block the transition.
+
+    /* 1 — validate (empty / wrong credentials) */
+    const res = checkCredentials(membership, pass);
+    if (!res.ok) {
+      setError(AUTH_MESSAGES[res.reason]);
+      try { play("reject"); } catch { /* noop */ }
+      return;
+    }
+
+    /* 2 — authorised: play the verification animation, then enter */
+    setError(null);
     setVerifying(true);
     try { play("vault"); } catch { /* noop */ }
-    onAuthenticated();
-    try { play("granted"); } catch { /* noop */ }
+    window.setTimeout(() => {
+      try { play("granted"); } catch { /* noop */ }
+      onAuthenticated();
+    }, VERIFY_MS);
   };
+
+  const onIdChange = (v: string) => { setMembership(v); if (error) setError(null); try { play("type"); } catch { /* noop */ } };
+  const onPassChange = (v: string) => { setPass(v); if (error) setError(null); try { play("type"); } catch { /* noop */ } };
 
   return (
     <motion.div
@@ -57,31 +80,26 @@ export default function LoginScreen({
         />
       </div>
 
-      {/* ====== Two-Column Layout Overlays: Left darker, right lighter, soft vertical gradient separator ====== */}
+      {/* ====== Two-Column Layout Overlays ====== */}
       <div className="absolute inset-0 flex pointer-events-none">
-        {/* Left Side: slightly darker */}
         <div className="w-1/2 bg-[#020305]/55" />
-        {/* Right Side: slightly lighter */}
         <div className="w-1/2 bg-[#06080e]/35" />
-
-        {/* Soft Vertical Gradient Separator (no harsh line) */}
         <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-48 bg-gradient-to-r from-[#020305]/80 via-[#0a0d14]/30 to-transparent" />
         <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-16 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
       </div>
 
       {/* ====== Top Navigation ====== */}
       <header className="relative z-30 flex items-center justify-between px-6 py-6 sm:px-12 lg:px-16 w-full">
-        {/* Left: Back Button */}
         <button
-          onClick={() => { play("click"); onBack(); }}
-          onMouseEnter={() => play("hover")}
+          type="button"
+          onClick={() => { try { play("click"); } catch { /* noop */ } onBack(); }}
+          onMouseEnter={() => { try { play("hover"); } catch { /* noop */ } }}
           className="group inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-mono tracking-widest text-[#8b95a5] border border-white/[0.08] bg-black/40 backdrop-blur-md transition-all duration-300 hover:border-[#c3c9d3]/40 hover:text-[#eaeef5] hover:bg-white/[0.04]"
         >
           <ArrowLeft size={13} className="transition-transform duration-300 group-hover:-translate-x-1" />
           <span>BACK TO GATEWAY</span>
         </button>
 
-        {/* Right: Institutional Badge */}
         <div className="flex items-center gap-2">
           <span className="font-mono text-[0.6rem] tracking-[0.3em] uppercase text-[#565d68] hidden sm:inline-block">
             ATHAR &middot; ENCRYPTED PORTAL
@@ -89,7 +107,7 @@ export default function LoginScreen({
         </div>
       </header>
 
-      {/* ====== Main: Member Login — centered horizontally & vertically ====== */}
+      {/* ====== Main: Member Login ====== */}
       <main className="relative z-20 flex-1 flex items-center justify-center px-4 sm:px-8 py-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -97,7 +115,6 @@ export default function LoginScreen({
           transition={{ duration: 0.9, ease: [0.2, 0.7, 0.2, 1] }}
           className="relative w-full max-w-md rounded-2xl p-8 sm:p-10 backdrop-blur-2xl bg-gradient-to-b from-[#0e1118]/90 via-[#080a0e]/92 to-[#040507]/95 border border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden"
         >
-          {/* Subtle top metallic shine */}
           <span className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-50" />
 
           <div className="flex items-center justify-between mb-4">
@@ -114,8 +131,8 @@ export default function LoginScreen({
             Enter your verified credentials to decrypt the inner circle channel.
           </p>
 
-          <form onSubmit={submit} className="space-y-5">
-            {/* Membership ID Field (No Placeholder) */}
+          <form onSubmit={submit} noValidate className="space-y-5">
+            {/* Membership ID Field */}
             <div className="space-y-2 text-left">
               <label className="block font-mono text-[0.68rem] uppercase tracking-[0.22em] text-[#aeb6c2]">
                 Membership ID
@@ -123,14 +140,16 @@ export default function LoginScreen({
               <div className="relative">
                 <input
                   type="text"
+                  autoComplete="username"
                   value={membership}
-                  onChange={(e) => { setMembership(e.target.value); play("type"); }}
+                  onChange={(e) => onIdChange(e.target.value)}
+                  onMouseEnter={() => { try { play("hover"); } catch { /* noop */ } }}
                   className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#c3c9d3]/70 rounded-xl px-4 py-3.5 text-[#eaeef5] font-mono tracking-widest text-sm outline-none transition-all duration-300 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] focus:shadow-[0_0_20px_rgba(195,201,211,0.12),inset_0_2px_6px_rgba(0,0,0,0.9)] focus:bg-[#07090f]"
                 />
               </div>
             </div>
 
-            {/* Membership Password Field (No Placeholder) */}
+            {/* Membership Password Field */}
             <div className="space-y-2 text-left">
               <label className="block font-mono text-[0.68rem] uppercase tracking-[0.22em] text-[#aeb6c2]">
                 Membership Password
@@ -138,20 +157,41 @@ export default function LoginScreen({
               <div className="relative">
                 <input
                   type="password"
+                  autoComplete="current-password"
                   value={pass}
-                  onChange={(e) => { setPass(e.target.value); play("type"); }}
+                  onChange={(e) => onPassChange(e.target.value)}
+                  onMouseEnter={() => { try { play("hover"); } catch { /* noop */ } }}
                   className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#c3c9d3]/70 rounded-xl px-4 py-3.5 text-[#eaeef5] font-mono tracking-[0.5em] text-center text-sm outline-none transition-all duration-300 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] focus:shadow-[0_0_20px_rgba(195,201,211,0.12),inset_0_2px_6px_rgba(0,0,0,0.9)] focus:bg-[#07090f]"
                 />
               </div>
             </div>
+
+            {/* Error message */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-start gap-2 rounded-lg border border-red-500/25 bg-red-500/[0.06] px-3 py-2.5"
+                  role="alert"
+                >
+                  <AlertCircle size={14} className="mt-0.5 shrink-0 text-red-400" />
+                  <span className="font-mono text-[0.68rem] leading-relaxed tracking-wide text-red-200/90">
+                    {error}
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Submit Button */}
             <div className="pt-3">
               <button
                 type="submit"
                 disabled={verifying}
-                onMouseEnter={() => play("hover")}
-                className="group relative w-full overflow-hidden rounded-xl py-4 px-6 font-luxury text-sm font-semibold tracking-[0.2em] uppercase text-[#eaeef5] transition-all duration-500 disabled:opacity-50"
+                onMouseEnter={() => { try { play("hover"); } catch { /* noop */ } }}
+                className="group relative w-full overflow-hidden rounded-xl py-4 px-6 font-luxury text-sm font-semibold tracking-[0.2em] uppercase text-[#eaeef5] transition-all duration-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{
                   background: "linear-gradient(180deg, #2a313d 0%, #161b24 50%, #0a0d13 100%)",
                   border: "1px solid rgba(195,201,211,0.35)",
@@ -175,7 +215,14 @@ export default function LoginScreen({
             </div>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-white/[0.06] flex items-center justify-between text-[0.68rem] font-mono text-[#565d68]">
+          {/* Demo credentials hint — keeps the flow usable & testable */}
+          <div className="mt-4 rounded-md border border-white/[0.05] bg-black/30 px-3 py-2 text-center">
+            <span className="font-mono text-[0.55rem] uppercase tracking-[0.2em] text-[#565d68]">
+              Demo access — ID <span className="text-[#9aa3b1]">Q-T-971</span> · Pass <span className="text-[#9aa3b1]">COVENANT</span>
+            </span>
+          </div>
+
+          <div className="mt-5 pt-4 border-t border-white/[0.06] flex items-center justify-between text-[0.68rem] font-mono text-[#565d68]">
             <span className="flex items-center gap-2">
               <Pulse color="#7f8896" />
               MONITORED CHANNEL
