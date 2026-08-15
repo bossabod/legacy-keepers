@@ -85,8 +85,7 @@ export default function HomeSection({
 
       {/* ===== Command-Center Globe (centered, no surrounding card) ===== */}
       <Reveal>
-        <div className="relative overflow-hidden min-h-[560px] lg:min-h-[620px] bg-[#061316]"
-          style={{ boxShadow: "inset 0 0 120px 40px rgba(8,127,120,0.08)" }}>
+        <div className="relative overflow-hidden min-h-[560px] lg:min-h-[620px]">
           <GlobalCommandGlobe className="absolute inset-0 w-full h-full z-0" />
 
           {/* header row — thin, elegant, over the top */}

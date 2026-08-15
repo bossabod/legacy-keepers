@@ -26,52 +26,11 @@ const NODE_STATE: Record<string, NodeState> = {
   "PERTH":    { status: "STANDBY" },
 };
 
-/* ---- Digital Data Globe palette: Dark Navy + Deep Teal + Turquoise + Cyan-Green ---- */
-const PALETTE = {
-  bg: "#061316",                   // background — very dark navy-black
-  rimDark: "8,127,120",            // #087F78  dark→mid turquoise rim
-  rimStrong: "22,184,166",         // #16B8A6  strongest edge highlight
-  continentActive: "85,230,193",   // #55E6C1  light cyan-green (bright/active)
-  continentBright: "25,211,184",   // #19D3B8  bright turquoise
-  continentDim: "8,122,114",       // #087A72  dark turquoise (distant/less active)
-  grid: "23,100,95",               // #17645F  very dark turquoise grid
-  link: "34,199,181",              // #22C7B5  bright turquoise connectors
-  node: "34,199,181",              // #22C7B5  bright turquoise city nodes
-  labelBg: "4,15,19",              // semi-transparent black/navy label bg
-  labelBorder: "34,199,181",       // thin turquoise label border
-  labelText: "158,230,216",        // light turquoise text
-  hud: "34,199,181",               // HUD text
-};
-
 const STATUS_COLOR: Record<NodeState["status"], { main: string; dim: string }> = {
-  ACTIVE:  { main: "25,211,184",  dim: "16,148,130" },  // bright turquoise
-  ALERT:   { main: "85,230,193",  dim: "56,192,160" },  // brightest cyan-green
-  STANDBY: { main: "8,122,114",   dim: "6,86,82" },     // dark teal
+  ACTIVE:  { main: "94,223,190",  dim: "70,170,150" },   // teal/green
+  ALERT:   { main: "245,176,98",  dim: "205,130,70" },   // amber/orange
+  STANDBY: { main: "130,160,200", dim: "95,120,160" },   // muted blue
 };
-
-/* Precomputed local point-density (0..1) per land point, so dense regions read
-   brighter and sparse regions dimmer — the continents read as a live data cloud. */
-const EARTH_DENSITY: number[] = (() => {
-  const n = EARTH_LAND_POINTS.length;
-  const c = new Array<[number, number, number]>(n);
-  for (let i = 0; i < n; i++) {
-    const [lat, lon] = EARTH_LAND_POINTS[i];
-    const la = (lat * Math.PI) / 180, lo = (lon * Math.PI) / 180;
-    c[i] = [Math.cos(la) * Math.cos(lo), Math.cos(la) * Math.sin(lo), Math.sin(la)];
-  }
-  const count = new Array<number>(n).fill(0);
-  const threshold = Math.cos((1.8 * Math.PI) / 180);
-  for (let i = 0; i < n; i++) {
-    for (let j = i + 1; j < n; j++) {
-      const d = c[i][0] * c[j][0] + c[i][1] * c[j][1] + c[i][2] * c[j][2];
-      if (d > threshold) { count[i]++; count[j]++; }
-    }
-  }
-  let mn = Infinity, mx = -Infinity;
-  for (let i = 0; i < n; i++) { if (count[i] < mn) mn = count[i]; if (count[i] > mx) mx = count[i]; }
-  const span = mx - mn || 1;
-  return count.map((v) => Math.pow((v - mn) / span, 0.7));
-})();
 
 /* anchor angle (deg, 0=right, -90=top) + distance multiplier */
 const CITY_LABELS: Record<string, { angle: number; dist: number }> = {
@@ -198,34 +157,34 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
 
       // ===== subtle rim light (only around the edge) =====
       const rim = ctx.createRadialGradient(cx, cy, R * 0.92, cx, cy, R * 1.18);
-      rim.addColorStop(0, `rgba(${PALETTE.rimDark},0.0)`);
-      rim.addColorStop(0.55, `rgba(${PALETTE.rimDark},0.06)`);
-      rim.addColorStop(0.82, `rgba(${PALETTE.rimStrong},0.16)`);
+      rim.addColorStop(0, "rgba(120,160,220,0.0)");
+      rim.addColorStop(0.55, "rgba(140,165,210,0.05)");
+      rim.addColorStop(0.82, "rgba(150,175,215,0.12)");
       rim.addColorStop(1, "transparent");
       ctx.fillStyle = rim;
       ctx.beginPath();
       ctx.arc(cx, cy, R * 1.18, 0, Math.PI * 2);
       ctx.fill();
 
-      // ===== dark sphere body (deep teal-navy) =====
+      // ===== dark sphere body =====
       const lx = cx + R * 0.4, ly = cy - R * 0.4;
       const sg = ctx.createRadialGradient(lx, ly, 0, cx, cy, R);
-      sg.addColorStop(0, "#0c2a30");
-      sg.addColorStop(0.4, "#071B20");
-      sg.addColorStop(0.78, "#041014");
-      sg.addColorStop(1, "#020708");
+      sg.addColorStop(0, "#1c2431");
+      sg.addColorStop(0.4, "#0d1219");
+      sg.addColorStop(0.78, "#06090d");
+      sg.addColorStop(1, "#030407");
       ctx.fillStyle = sg;
       ctx.beginPath();
       ctx.arc(cx, cy, R * 0.995, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = `rgba(${PALETTE.rimStrong},0.16)`;
+      ctx.strokeStyle = "rgba(195,201,211,0.12)";
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // ===== lat/long grid (very dark turquoise, low opacity) =====
+      // ===== lat/long grid (very light) =====
       const pr = (pitchAngle * Math.PI) / 180;
       const cp = Math.cos(pr), sp = Math.sin(pr);
-      ctx.strokeStyle = `rgba(${PALETTE.grid},0.055)`;
+      ctx.strokeStyle = "rgba(174,182,194,0.045)";
       ctx.lineWidth = 0.7;
       for (let latDeg = -75; latDeg <= 75; latDeg += 15) {
         ctx.beginPath(); let first = true;
@@ -268,14 +227,11 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
           const nx = x0 / R, ny = y1 / R, nz = z1 / R;
           const lAlign = nx * lightDirX + ny * lightDirY + nz * lightDirZ;
           const fadeZ = Math.max(0, z1 / R);
-          const density = EARTH_DENSITY[i];
-          // dense areas brighter, sparse areas dimmer — live data-cloud feel
-          const bright = 0.5 + density * 0.5;
-          const a = Math.min(1, Math.max(0.04, (fadeZ * 0.6 + Math.max(0, lAlign) * 0.4) * bright));
-          const r = Math.max(0.5, (0.62 + fadeZ * 0.45) * 0.7);
-          if (lAlign > 0.35) ctx.fillStyle = `rgba(${PALETTE.continentActive},${a})`;
-          else if (lAlign > -0.1) ctx.fillStyle = `rgba(${PALETTE.continentBright},${a * 0.82})`;
-          else ctx.fillStyle = `rgba(${PALETTE.continentDim},${a * 0.55})`;
+          const a = Math.min(1, Math.max(0.05, fadeZ * 0.6 + Math.max(0, lAlign) * 0.4));
+          const r = Math.max(0.5, (0.7 + fadeZ * 0.5) * 0.75);
+          if (lAlign > 0.35) ctx.fillStyle = `rgba(228,233,240,${a})`;
+          else if (lAlign > -0.1) ctx.fillStyle = `rgba(160,172,188,${a * 0.8})`;
+          else ctx.fillStyle = `rgba(90,96,104,${a * 0.5})`;
           ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
         }
       }
@@ -291,18 +247,12 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
         const fade = Math.min(1, Math.max(0, (pt.z + 0.1 * R) / (0.35 * R)));
         const isSel = selectedRef.current === city.name;
 
-        // node dot on the surface — bright turquoise with a small soft glow (no white)
+        // node dot on the surface
         const nodeR = (isSel ? 4.2 : 2.8) + (isSel ? 0 : 0.6 * Math.sin(time * 2.5 + idx));
-        const glowR = nodeR * (isSel ? 4.6 : 3.4);
-        const glow = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, glowR);
-        glow.addColorStop(0, `rgba(${col.main},${0.28 * fade})`);
-        glow.addColorStop(1, `rgba(${col.main},0)`);
-        ctx.fillStyle = glow;
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, glowR, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = `rgba(${col.main},${0.95 * fade})`;
+        ctx.fillStyle = `rgba(${col.main},${0.9 * fade})`;
         ctx.beginPath(); ctx.arc(pt.x, pt.y, nodeR, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = `rgba(${col.dim},${0.7 * fade})`;
-        ctx.lineWidth = isSel ? 1.3 : 1;
+        ctx.strokeStyle = `rgba(${col.main},${0.7 * fade})`;
+        ctx.lineWidth = isSel ? 1.4 : 1;
         ctx.beginPath(); ctx.arc(pt.x, pt.y, nodeR + 2.5, 0, Math.PI * 2); ctx.stroke();
 
         // label anchor
@@ -324,18 +274,18 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
         if (overlaps) ty = Math.max(30 + boxH / 2, ty - boxH - 8);
         drawn.push({ x: tx - boxW / 2, y: ty - boxH / 2, w: boxW, h: boxH });
 
-        // thin connector line from dot to label (bright turquoise)
-        ctx.strokeStyle = `rgba(${PALETTE.link},${0.4 * fade})`;
+        // thin connector line from dot to label
+        ctx.strokeStyle = `rgba(${col.dim},${0.45 * fade})`;
         ctx.lineWidth = 0.8;
         ctx.beginPath();
         ctx.moveTo(pt.x, pt.y);
         ctx.lineTo(tx, ty);
         ctx.stroke();
 
-        // small translucent label (black/navy bg + thin turquoise border + light turquoise text)
+        // small translucent label
         const bx = tx - boxW / 2, by = ty - boxH / 2;
-        ctx.fillStyle = `rgba(${PALETTE.labelBg},${0.8 * fade})`;
-        ctx.strokeStyle = `rgba(${PALETTE.labelBorder},${0.38 * fade})`;
+        ctx.fillStyle = `rgba(8,10,14,${0.78 * fade})`;
+        ctx.strokeStyle = `rgba(${col.dim},${0.35 * fade})`;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.roundRect(bx, by, boxW, boxH, 5);
@@ -346,8 +296,8 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
         ctx.fillStyle = `rgba(${col.main},${0.95 * fade})`;
         ctx.beginPath(); ctx.arc(bx + 8, by + boxH / 2, 2, 0, Math.PI * 2); ctx.fill();
 
-        // name (light turquoise)
-        ctx.fillStyle = `rgba(${PALETTE.labelText},${fade})`;
+        // name
+        ctx.fillStyle = `rgba(234,238,245,${fade})`;
         ctx.font = `600 ${isSel ? 10.5 : 9}px var(--font-ibm-mono), monospace`;
         ctx.textAlign = "left";
         ctx.fillText(city.name, bx + 14, by + (isSel ? 14 : 12));
@@ -356,18 +306,18 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
         const tzStr = formatClock(city.tz);
         ctx.font = `500 ${isSel ? 9 : 8}px var(--font-ibm-mono), monospace`;
         if (isSel) {
-          ctx.fillStyle = `rgba(${PALETTE.labelText},${0.85 * fade})`;
+          ctx.fillStyle = `rgba(195,201,211,${0.9 * fade})`;
           ctx.fillText(tzStr, bx + 14, by + 26);
           ctx.fillStyle = `rgba(${col.main},${0.9 * fade})`;
           ctx.fillText(st, bx + 14, by + 37);
         } else {
-          ctx.fillStyle = `rgba(${PALETTE.labelText},${0.8 * fade})`;
+          ctx.fillStyle = `rgba(195,201,211,${0.85 * fade})`;
           ctx.fillText(tzStr, bx + 14, by + 22);
         }
       });
 
-      // HUD text — small, not overpowering, teal
-      ctx.fillStyle = `rgba(${PALETTE.hud},0.32)`;
+      // HUD text — small, not overpowering
+      ctx.fillStyle = "rgba(174,182,194,0.35)";
       ctx.font = "500 9px var(--font-ibm-mono), monospace";
       ctx.textAlign = "center";
       ctx.fillText("GLOBAL COMMAND NETWORK · 5 NODES · DRAG · SCROLL ZOOM", width / 2, 22);
