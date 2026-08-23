@@ -64,7 +64,7 @@ export default function ProjectOperations({
             <span className="mono text-[0.66rem] text-[#c8a76b]/80 bg-black/40 px-3 py-1 rounded-full border border-[#c8a76b]/15">{me.code}</span>
           </div>
 
-          <div className="absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-end justify-between gap-6 px-7 pb-6 sm:px-9">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-end justify-between gap-6 px-7 pb-6 sm:px-9">
             <div className="max-w-md">
               <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-light tracking-tight text-[#ece9e0] sm:text-4xl" style={{ fontFamily: "var(--font-luxury)", textShadow: "0 2px 12px rgba(0,0,0,0.9)" }}>
@@ -161,6 +161,8 @@ export default function ProjectOperations({
             <div className="space-y-3">
               <MiniStat label={ar ? "أعلى نقطة" : "Highest Point"} value="+27%" />
               <MiniStat label={ar ? "الانطلاق" : "Start"} value="+4%" />
+              <MiniStat label={ar ? "حالة المشاريع" : "Project Status"} value={`${completedProjects}/${data.projects.length}`} />
+              <MiniStat label={ar ? "الإنفاق التقديري" : "Estimated Spend"} value={`${data.investments.length * 12}k`} />
               <MiniStat label={ar ? "مشاريع نشطة" : "Active Projects"} value={String(data.projects.length)} />
               <MiniStat label={ar ? "رسائل غير مقروءة" : "Unread Messages"} value={String(unread)} />
               <div className="rounded-md border border-[#c8a76b]/10 bg-black/20 p-4">
