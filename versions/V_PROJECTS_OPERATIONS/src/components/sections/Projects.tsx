@@ -108,8 +108,8 @@ export default function ProjectsSection({
           className="min-h-[60vh] w-full"
           dir={ar ? "rtl" : "ltr"}
         >
-          {/* ===== بوابة الخيارات — 3 بطاقات فاخرة بترتيب متدرج ===== */}
-          <div className="relative mb-10 flex min-h-[26rem] items-center justify-center py-8">
+          {/* ===== بوابة الخيارات — 4 مسارات؛ تُضغط عند فتح العمليات حتى تظهر الخريطة فوراً ===== */}
+          <div className={`relative mb-10 flex items-center justify-center py-8 ${tab === "operations" ? "min-h-0" : "min-h-[26rem]"}`}>
             {/* توهج خلفي ناعم */}
             <div
               aria-hidden="true"
