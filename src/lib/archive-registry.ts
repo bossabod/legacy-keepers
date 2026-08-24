@@ -131,7 +131,10 @@ export const VAULTS: Vault[] = [
 /*  السنوات والأشهر                                                    */
 /* ------------------------------------------------------------------ */
 
-export const ARCHIVE_YEARS = [2026, 2025, 2024, 2023] as const;
+export const ARCHIVE_YEARS = [
+  2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019,
+  2018, 2017, 2016, 2015, 2014, 2013,
+] as const;
 
 export const MONTH_KEYS = [
   "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
@@ -140,12 +143,11 @@ export const MONTH_KEYS = [
 
 export type MonthName = (typeof MONTH_KEYS)[number];
 
-/** آخر شهر فيه سجلّات لكل سنة (٢٠٢٦ جارية). */
+/** آخر شهر فيه سجلّات لكل سنة (٢٠٢٦ جارية، والباقي مكتمل). */
 const LAST_ACTIVE: Record<number, number> = {
   2026: 8,
-  2025: 12,
-  2024: 12,
-  2023: 12,
+  2025: 12, 2024: 12, 2023: 12, 2022: 12, 2021: 12, 2020: 12,
+  2019: 12, 2018: 12, 2017: 12, 2016: 12, 2015: 12, 2014: 12, 2013: 12,
 };
 
 export function monthHasRecords(year: number, monthIndex: number) {

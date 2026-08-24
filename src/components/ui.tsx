@@ -87,7 +87,7 @@ export function Panel({
       className={cn(
         strong ? "glass-strong" : "glass",
         edge && "edge",
-        "rounded-2xl",
+        "rounded-[var(--radius-lg)]",
         className
       )}
       {...rest}
@@ -108,9 +108,12 @@ export function SectionHeading({
   desc?: string;
 }) {
   return (
-    <div className="mb-7">
+    <div className="mb-8">
       <div className="eyebrow mb-3">{eyebrow}</div>
-      <h1 className="text-3xl font-semibold tracking-tight text-[#eaeef5] md:text-[2.4rem]">
+      <h1
+        className="text-3xl font-semibold leading-tight tracking-[0.02em] text-[#eaeef5] md:text-[2.4rem]"
+        style={{ fontFamily: "var(--font-luxury)" }}
+      >
         {title}
       </h1>
       {desc && <p className="mt-3 max-w-2xl text-sm leading-loose text-[#7f8896]">{desc}</p>}
@@ -225,7 +228,7 @@ export function Modal({
             onClick={onClose}
           />
           <motion.div
-            className="glass-strong relative z-10 w-full max-w-lg rounded-2xl p-6"
+            className="glass-strong relative z-10 w-full max-w-lg rounded-[var(--radius-xl)] p-6"
             initial={{ opacity: 0, scale: 0.94, y: 24 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 12 }}

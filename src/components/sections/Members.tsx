@@ -2,10 +2,13 @@
 import { useState } from "react";
 import { Eye, Lock, ShieldQuestion, Search } from "lucide-react";
 import { Panel, SectionHeading, Reveal, Modal } from "@/components/ui";
+import { useApp } from "@/lib/store";
 import { play } from "@/lib/sound";
 import type { AppData, Member } from "@/lib/types";
 
 export default function MembersSection({ data }: { data: AppData }) {
+  const { lang } = useApp();
+  const ar = lang === "ar";
   const [tab, setTab] = useState<"visible" | "secret">("visible");
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Member | null>(null);
@@ -20,11 +23,13 @@ export default function MembersSection({ data }: { data: AppData }) {
   );
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-6xl" dir={ar ? "rtl" : "ltr"}>
       <SectionHeading
-        eyebrow="المجتمع · الأعضاء"
-        title="دليل الدائرة المغلقة"
-        desc="٧٧ عضوًا يتوزّعون على الرتب التسع. قسمٌ منهم معروضٌ للعامة داخل النظام، والآخر سريّ لا يُكشف إلا بصلاحية."
+        eyebrow={ar ? "المجتمع · الأعضاء" : "Community · Members"}
+        title={ar ? "دليل الدائرة المغلقة" : "The Closed Circle Directory"}
+        desc={ar
+          ? "٧٧ عضوًا يتوزّعون على الرتب التسع. قسمٌ منهم معروضٌ للعامة داخل النظام، والآخر سريّ لا يُكشف إلا بصلاحية."
+          : "77 members distributed across the nine ranks. Some are visible within the system; the rest are confidential and revealed only with clearance."}
       />
 
       {/* التبويبات + البحث */}
@@ -36,7 +41,7 @@ export default function MembersSection({ data }: { data: AppData }) {
               tab === "visible" ? "bg-white/10 text-[#eaeef5]" : "text-[#565d68]"
             }`}
           >
-            <Eye size={14} /> متاح للعرض ({visible.length})
+            <Eye size={14} /> {ar ? `متاح للعرض (${visible.length})` : `Visible (${visible.length})`}
           </button>
           <button
             onClick={() => { setTab("secret"); play("click"); }}
@@ -44,7 +49,7 @@ export default function MembersSection({ data }: { data: AppData }) {
               tab === "secret" ? "bg-white/10 text-[#eaeef5]" : "text-[#565d68]"
             }`}
           >
-            <Lock size={14} /> سري ({secret.length})
+            <Lock size={14} /> {ar ? `سري (${secret.length})` : `Secret (${secret.length})`}
           </button>
         </div>
 
@@ -53,14 +58,14 @@ export default function MembersSection({ data }: { data: AppData }) {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="ابحث بالاسم أو الرتبة…"
+            placeholder={ar ? "ابحث بالاسم أو الرتبة…" : "Search by name or rank…"}
             className="field w-64 pr-9 text-[0.8rem]"
           />
         </div>
       </div>
 
       {list.length === 0 ? (
-        <Panel className="p-10 text-center text-sm text-[#7f8896]">لا نتائج مطابقة.</Panel>
+        <Panel className="p-10 text-center text-sm text-[#7f8896]">{ar ? "لا نتائج مطابقة." : "No matching results."}</Panel>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((m, i) => (
@@ -81,7 +86,7 @@ export default function MembersSection({ data }: { data: AppData }) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[0.86rem] text-[#eaeef5]">
-                    {m.visible ? m.name : "عضو سري"}
+                    {m.visible ? m.name : (ar ? "عضو سري" : "Secret Member")}
                   </div>
                   <div className="mt-0.5 truncate text-[0.7rem] text-[#7f8896]">
                     {m.rank} · {m.visible ? m.city : m.country}
@@ -95,7 +100,7 @@ export default function MembersSection({ data }: { data: AppData }) {
       )}
 
       {/* ملف العضو */}
-      <Modal open={!!selected} onClose={() => setSelected(null)} title="ملف العضو">
+      <Modal open={!!selected} onClose={() => setSelected(null)} title={ar ? "ملف العضو" : "Member Record"}>
         {selected && (
           selected.visible ? (
             <div>
@@ -113,7 +118,7 @@ export default function MembersSection({ data }: { data: AppData }) {
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[0.72rem] text-[#c3c9d3]">
-                  الرتبة: {selected.rank}
+                  {ar ? `الرتبة: ${selected.rank}` : `Rank: ${selected.rank}`}
                 </span>
                 <span className="rounded-full border border-white/10 px-3 py-1 text-[0.72rem] text-[#aeb6c2]">
                   {selected.role}
@@ -125,19 +130,23 @@ export default function MembersSection({ data }: { data: AppData }) {
               <p className="mt-4 text-sm leading-loose text-[#9aa3b2]">{selected.bio}</p>
               <div className="divider my-4" />
               <div className="grid grid-cols-2 gap-3 text-[0.78rem]">
-                <Info label="الإنجازات" value="أثر ممتد في القرارات التشغيلية" />
-                <Info label="صلته بالنادي" value={selected.role} />
-                <Info label="مشاريعه" value="مرتبط بـ ٤ مشاريع" />
-                <Info label="عضو منذ" value={`${selected.memberSince}`} />
+                <Info label={ar ? "الإنجازات" : "Achievements"} value={ar ? "أثر ممتد في القرارات التشغيلية" : "Enduring impact in operational decisions"} />
+                <Info label={ar ? "صلته بالنادي" : "Role in the Circle"} value={selected.role} />
+                <Info label={ar ? "مشاريعه" : "Projects"} value={ar ? "مرتبط بـ ٤ مشاريع" : "Linked to 4 projects"} />
+                <Info label={ar ? "عضو منذ" : "Member Since"} value={`${selected.memberSince}`} />
               </div>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-4 py-6 text-center">
               <ShieldQuestion size={42} className="text-[#aeb6c2]" />
               <div>
-                <div className="text-base font-semibold text-[#eaeef5]">ملف محدود الوصول</div>
+                <div className="text-base font-semibold text-[#eaeef5]">
+                  {ar ? "ملف محدود الوصول" : "Restricted Record"}
+                </div>
                 <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-[#7f8896]">
-                  هذا الملف سريّ ولا يُفتح إلا بصلاحية خاصة من مجلس الميثاق. الرتبة: {selected.rank} — {selected.country}.
+                  {ar
+                    ? `هذا الملف سريّ ولا يُفتح إلا بصلاحية خاصة من مجلس الميثاق. الرتبة: ${selected.rank} — ${selected.country}.`
+                    : `This record is confidential and opens only with special clearance from the Covenant Council. Rank: ${selected.rank} — ${selected.country}.`}
                 </p>
               </div>
             </div>

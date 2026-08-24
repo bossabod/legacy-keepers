@@ -23,7 +23,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <input
           ref={ref}
-          className={`w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-slate)] py-2.5 ${icon ? "pl-9" : "pl-3.5"} pr-3 text-[0.78rem] text-[var(--color-ink)] outline-none transition-all duration-[250ms] focus:border-[var(--color-borderActive)] placeholder:text-[var(--color-faint)] ${className}`}
+          className={`w-full rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-slate)] py-2.5 ${icon ? "pl-9" : "pl-3.5"} pr-3 text-[0.78rem] text-[var(--color-ink)] outline-none transition-all duration-[250ms] focus:border-[var(--color-borderActive)] placeholder:text-[var(--color-faint)] ${className}`}
           style={{ fontFamily: theme.typography.sans }}
           {...props}
         />

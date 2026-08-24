@@ -1,20 +1,21 @@
 "use client";
 import { SectionHeading, Reveal } from "@/components/ui";
+import { LogIn, FileText, MessageSquare, Hammer, Handshake, ClipboardList, User, TrendingUp, BarChart3, Globe, Lock, LogOut } from "lucide-react";
 import type { AppData } from "@/lib/types";
 
 const ACTIVITY_TYPES = [
-  { icon: "🔑", label: "Login", category: "System" },
-  { icon: "📄", label: "Opened File", category: "Archive" },
-  { icon: "💬", label: "Sent Message", category: "Messages" },
-  { icon: "🏗", label: "Created Project", category: "Projects" },
-  { icon: "🤝", label: "Joined Project", category: "Projects" },
-  { icon: "📋", label: "Submitted Request", category: "Features" },
-  { icon: "👤", label: "Viewed Member", category: "Members" },
-  { icon: "📈", label: "Investment Updated", category: "Finance" },
-  { icon: "📊", label: "Opened Reports", category: "System" },
-  { icon: "🌍", label: "Language Changed", category: "System" },
-  { icon: "🔒", label: "Entered Archive", category: "Archive" },
-  { icon: "🚪", label: "Logout", category: "System" },
+  { icon: LogIn, label: "Login", category: "System" },
+  { icon: FileText, label: "Opened File", category: "Archive" },
+  { icon: MessageSquare, label: "Sent Message", category: "Messages" },
+  { icon: Hammer, label: "Created Project", category: "Projects" },
+  { icon: Handshake, label: "Joined Project", category: "Projects" },
+  { icon: ClipboardList, label: "Submitted Request", category: "Features" },
+  { icon: User, label: "Viewed Member", category: "Members" },
+  { icon: TrendingUp, label: "Investment Updated", category: "Finance" },
+  { icon: BarChart3, label: "Opened Reports", category: "System" },
+  { icon: Globe, label: "Language Changed", category: "System" },
+  { icon: Lock, label: "Entered Archive", category: "Archive" },
+  { icon: LogOut, label: "Logout", category: "System" },
 ];
 
 export default function ActivitySection({ data }: { data: AppData }) {

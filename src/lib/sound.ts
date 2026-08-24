@@ -39,22 +39,26 @@ function tone(
   duration: number,
   opts: { type?: OscillatorType; gain?: number; delay?: number; sweepTo?: number } = {}
 ) {
-  const c = ac();
-  if (!c || !enabled) return;
-  const now = c.currentTime + (opts.delay ?? 0);
-  const osc = c.createOscillator();
-  const g = c.createGain();
-  osc.type = opts.type ?? "sine";
-  osc.frequency.setValueAtTime(freq, now);
-  if (opts.sweepTo) osc.frequency.exponentialRampToValueAtTime(opts.sweepTo, now + duration);
-  const peak = opts.gain ?? 0.05;
-  g.gain.setValueAtTime(0.0001, now);
-  g.gain.exponentialRampToValueAtTime(peak, now + 0.008);
-  g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-  osc.connect(g);
-  g.connect(c.destination);
-  osc.start(now);
-  osc.stop(now + duration + 0.02);
+  try {
+    const c = ac();
+    if (!c || !enabled) return;
+    const now = c.currentTime + (opts.delay ?? 0);
+    const osc = c.createOscillator();
+    const g = c.createGain();
+    osc.type = opts.type ?? "sine";
+    osc.frequency.setValueAtTime(freq, now);
+    if (opts.sweepTo) osc.frequency.exponentialRampToValueAtTime(opts.sweepTo, now + duration);
+    const peak = opts.gain ?? 0.05;
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(peak, now + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.connect(g);
+    g.connect(c.destination);
+    osc.start(now);
+    osc.stop(now + duration + 0.02);
+  } catch (e) {
+    /* sound is purely decorative — never let it break the UI */
+  }
 }
 
 export function play(name: SoundName) {
