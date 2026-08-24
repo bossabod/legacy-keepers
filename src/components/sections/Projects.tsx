@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ProjectsGate from "@/components/projects/ProjectsGate";
+import ProjectOperations from "@/components/projects/ProjectOperations";
 import ProjectsDashboard from "@/components/projects/ProjectsDashboard";
 import TrackBrowser from "@/components/projects/TrackBrowser";
 import SubmitProject from "@/components/projects/SubmitProject";
@@ -9,7 +10,7 @@ import { useApp } from "@/lib/store";
 import { t } from "@/lib/i18n";
 import type { AppData } from "@/lib/types";
 
-type Tab = "digital" | "physical" | "submit" | null;
+type Tab = "operations" | "digital" | "physical" | "submit" | null;
 
 /* ===== عنصر مشروع — نص حر فقط، بدون أي Container بصري ===== */
 type CardVariant = "digital" | "physical" | "submit";
@@ -72,8 +73,10 @@ function CardStagger({
 /**
  * قسم المشاريع.
  *
- * بوابة دخول ← لوحة عامة تحمل بطاقة الأداء، مع ثلاثة خيارات
- * متوسّطة أفقياً تفتح كل منها صفحة مستقلة داخل القسم نفسه.
+ * بوابة دخول ← بوابة خيارات تضم Project Operations (الخريطة التشغيلية،
+ * الأداء السنوي، الحالة، النمو، الجدول الزمني، والمشاريع الرقمية
+ * والواقعية) إضافة إلى تقديم المشاريع والرقمية والواقعية؛ كل خيار
+ * يفتح صفحة مستقلة داخل القسم نفسه.
  */
 export default function ProjectsSection({
   data: _data,
@@ -108,21 +111,35 @@ export default function ProjectsSection({
           className="min-h-[60vh] w-full"
           dir={ar ? "rtl" : "ltr"}
         >
-          {/* ===== بوابة الخيارات — 3 بطاقات فاخرة بترتيب متدرج ===== */}
+          {/* ===== بوابة الخيارات — 4 بطاقات فاخرة بترتيب متدرج ===== */}
           <div className="relative mb-10 flex min-h-[26rem] items-center justify-center py-8">
             {/* توهج خلفي ناعم */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 mx-auto max-w-5xl"
+              className="pointer-events-none absolute inset-0 mx-auto max-w-6xl"
               style={{
                 background:
                   "radial-gradient(55% 60% at 50% 45%, rgba(255,255,255,0.045), transparent 70%)",
               }}
             />
 
-            {/* توزيع حر بالعرض الكامل: 01 يسار، 02 وسط، 03 يمين */}
-            <div className="relative grid w-full grid-cols-1 gap-14 sm:grid-cols-3 sm:gap-10">
-              {/* يسار: تقديم مشروع */}
+            {/* توزيع حر بالعرض الكامل */}
+            <div className="relative grid w-full grid-cols-1 gap-14 sm:grid-cols-2 lg:grid-cols-4 sm:gap-10">
+              {/* Project Operations: الخريطة + اللوحات */}
+              <CardStagger
+                index={0}
+                dir={ar ? "rtl" : "ltr"}
+                title={ar ? "عمليات المشاريع" : "Project Operations"}
+                desc={
+                  ar
+                    ? "الخريطة التشغيلية، الأداء السنوي، الحالة، النمو، الجدول الزمني، والمشاريع الرقمية والواقعية."
+                    : "The operational map, annual performance, status, growth, timeline, digital and physical projects."
+                }
+                glyph="PROJECT 00"
+                active={tab === "operations"}
+                onClick={() => setTab(tab === "operations" ? null : "operations")}
+              />
+              {/* تقديم مشروع */}
               <CardStagger
                 index={0}
                 dir={ar ? "rtl" : "ltr"}
@@ -192,6 +209,20 @@ export default function ProjectsSection({
                 transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               >
                 <SubmitProject />
+              </motion.div>
+            ) : tab === "operations" ? (
+              <motion.div
+                key="operations"
+                initial={{ opacity: 0, y: 14, filter: "brightness(0.6)" }}
+                animate={{ opacity: 1, y: 0, filter: "brightness(1)" }}
+                exit={{ opacity: 0, y: -10, filter: "brightness(0.4)" }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <ProjectOperations
+                  data={_data}
+                  onNavigate={onNavigate}
+                  onOpenTrack={(track) => setTab(track)}
+                />
               </motion.div>
             ) : (
               <motion.div
