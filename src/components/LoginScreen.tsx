@@ -1,4 +1,5 @@
 "use client";
+import { publicPath } from "@/lib/public-path";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Loader2, Lock, ArrowLeft, AlertCircle } from "lucide-react";
@@ -65,7 +66,7 @@ export default function LoginScreen({
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url(/images/login-bg-eye.jpg)" }}
+          style={{ backgroundImage: `url(${publicPath("/images/login-bg-eye.jpg")})` }}
           initial={{ scale: 1 }}
           animate={{ scale: 1.03 }}
           transition={{ duration: 25, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}

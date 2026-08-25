@@ -6,7 +6,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "export:static": "STATIC_EXPORT=1 NEXT_PUBLIC_BASE_PATH=/legacy-keepers next build",
+    "deploy:pages": "node scripts/deploy-pages.mjs"
   },
   "dependencies": {
     "@types/three": "^0.185.4",

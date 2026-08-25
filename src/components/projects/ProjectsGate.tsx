@@ -1,4 +1,5 @@
 "use client";
+import { publicPath } from "@/lib/public-path";
 import { motion } from "framer-motion";
 import { useApp } from "@/lib/store";
 import { t } from "@/lib/i18n";
@@ -37,7 +38,7 @@ export default function ProjectsGate({ onEnter }: { onEnter: () => void }) {
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
         style={{
-          backgroundImage: "url(/images/projects-gate.jpg)",
+          backgroundImage: `url(${publicPath("/images/projects-gate.jpg")})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           filter: "blur(96px) brightness(0.34) saturate(0.7)",
@@ -66,7 +67,7 @@ export default function ProjectsGate({ onEnter }: { onEnter: () => void }) {
         }}
       >
         <img
-          src="/images/projects-gate.jpg"
+          src={publicPath("/images/projects-gate.jpg")}
           alt=""
           draggable={false}
           className="h-full w-full select-none object-cover object-center"

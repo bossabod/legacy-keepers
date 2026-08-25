@@ -1,4 +1,5 @@
 "use client";
+import { publicPath } from "@/lib/public-path";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Cursor } from "@/components/brand";
@@ -107,7 +108,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
           introStage !== "done" || exitStage !== "idle" ? "pointer-events-auto" : "pointer-events-none"
         }`}
         style={{
-          backgroundImage: "url(/images/BD60D113-2836-48F0-A78C-CD8269081B2A.png)",
+          backgroundImage: `url(${publicPath("/images/BD60D113-2836-48F0-A78C-CD8269081B2A.png")})`,
         }}
         initial={{ opacity: 0, scale: 1 }}
         animate={{
@@ -143,7 +144,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
         {/* صورة اللوحة الفضية الكاملة (الخلفية) */}
         <motion.div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url(/images/bilinmeyen.jpg)" }}
+          style={{ backgroundImage: `url(${publicPath("/images/bilinmeyen.jpg")})` }}
           initial={{ scale: 1 }}
           animate={{ scale: 1.03 }}
           transition={{ duration: 30, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
