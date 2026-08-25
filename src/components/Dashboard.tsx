@@ -69,7 +69,13 @@ const MONEY: SectionKey[] = ["projects", "investments", "vault", "invoices", "pa
 // Sections that carry a discreet "members only" hint in the navigation
 const RESTRICTED: Set<SectionKey> = new Set(["archive", "vip", "vault", "invoices", "ladder", "payments", "members"]);
 
-export default function Dashboard({ onLogout }: { onLogout: () => void }) {
+export default function Dashboard({
+  onLogout,
+  demoMode = false,
+}: {
+  onLogout: () => void;
+  demoMode?: boolean;
+}) {
   const [section, setSection] = useState<SectionKey>("home");
   const [data, setData] = useState<AppData | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -157,7 +163,21 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col bg-[#060604]" dir={lang === "ar" ? "rtl" : "ltr"}>
+    <div className="relative flex min-h-screen w-full flex-col bg-[#060604]" dir={lang === "ar" ? "rtl" : "ltr"} data-demo={demoMode ? "true" : "false"}>
+      {demoMode && (
+        <div
+          className="relative z-[110] flex items-center justify-center gap-2 border-b border-[#c8a76b]/20 bg-[#0c0b08] px-4 py-1.5"
+          role="status"
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-[#c8a76b]" style={{ boxShadow: "0 0 6px #c8a76b" }} />
+          <span
+            className="text-[0.55rem] uppercase tracking-[0.28em] text-[#c8a76b]/90"
+            style={{ fontFamily: "var(--font-ibm-mono)" }}
+          >
+            {lang === "ar" ? "نسخة تجريبية · DEMO MODE" : "DEMO MODE · READ-ONLY PREVIEW"}
+          </span>
+        </div>
+      )}
       {/* ===== Top Navigation — discreet, gold-hairline, scroll-aware ===== */}
       <nav className={`sticky top-0 z-[100] w-full transition-all duration-500 ${scrolled ? "border-b border-[#c8a76b]/10 bg-[#060604]/85 backdrop-blur-xl" : "border-b border-transparent bg-[#060604]/70 backdrop-blur-md"}`}>
         <div className="flex items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">

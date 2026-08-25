@@ -1,69 +1,164 @@
 "use client";
+
 import { publicPath } from "@/lib/public-path";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
-import { Loader2, Lock, ArrowLeft, AlertCircle } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
+import { Loader2, Lock, ArrowLeft, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Cursor } from "@/components/brand";
 import { Pulse } from "@/components/ui";
 import { play } from "@/lib/sound";
-import { checkCredentials, AUTH_MESSAGES } from "@/lib/auth";
+import {
+  checkCredentials,
+  AUTH_MESSAGES,
+  VALID_MEMBERSHIP_ID,
+  VALID_MEMBERSHIP_PASS,
+} from "@/lib/auth";
 
 /* ────────────────────────────────────────────────────────────────
    Credentials live in src/lib/auth.ts (VALID_MEMBERSHIP_ID / PASS).
    Keep the current flow (Welcome → Login → app) and those values.
    ──────────────────────────────────────────────────────────────── */
 
-const VERIFY_MS = 1500; // length of the "Decrypting…" animation before entry
+const VERIFY_MS = 900;
 
 export default function LoginScreen({
   onAuthenticated,
   onBack,
 }: {
-  onAuthenticated: () => void;
+  onAuthenticated: (opts?: { demo?: boolean }) => void;
   onBack: () => void;
 }) {
   const [membership, setMembership] = useState("");
   const [pass, setPass] = useState("");
+  const [showPass, setShowPass] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const timerRef = useRef<number | null>(null);
+  const idRef = useRef<HTMLInputElement | null>(null);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    // Focus ID field so keyboard / Enter works immediately
+    const t = window.setTimeout(() => idRef.current?.focus(), 80);
+    return () => {
+      window.clearTimeout(t);
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const finishAuth = useCallback(
+    (demo = false) => {
+      try {
+        play("granted");
+      } catch {
+        /* noop */
+      }
+      onAuthenticated({ demo });
+    },
+    [onAuthenticated],
+  );
+
+  const runVerifyThenEnter = useCallback(
+    (demo = false) => {
+      setError(null);
+      setVerifying(true);
+      try {
+        play("vault");
+      } catch {
+        /* noop */
+      }
+      if (timerRef.current != null) window.clearTimeout(timerRef.current);
+      timerRef.current = window.setTimeout(() => {
+        timerRef.current = null;
+        setVerifying(false);
+        finishAuth(demo);
+      }, VERIFY_MS);
+    },
+    [finishAuth],
+  );
+
+  /** AUTHENTICATE — validates then enters the main site */
+  const authenticate = useCallback(() => {
     if (verifying) return;
 
-    /* 1 — validate (empty / wrong credentials) */
     const res = checkCredentials(membership, pass);
     if (!res.ok) {
       setError(AUTH_MESSAGES[res.reason]);
-      try { play("reject"); } catch { /* noop */ }
+      try {
+        play("reject");
+      } catch {
+        /* noop */
+      }
       return;
     }
 
-    /* 2 — authorised: play the verification animation, then enter */
+    runVerifyThenEnter(false);
+  }, [membership, pass, verifying, runVerifyThenEnter]);
+
+  /** DEMO ACCESS — enter demo mode immediately (no credential check) */
+  const enterDemo = useCallback(() => {
+    if (verifying) return;
+    setMembership(VALID_MEMBERSHIP_ID);
+    setPass(VALID_MEMBERSHIP_PASS);
     setError(null);
-    setVerifying(true);
-    try { play("vault"); } catch { /* noop */ }
-    window.setTimeout(() => {
-      try { play("granted"); } catch { /* noop */ }
-      onAuthenticated();
-    }, VERIFY_MS);
+    runVerifyThenEnter(true);
+  }, [verifying, runVerifyThenEnter]);
+
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    authenticate();
   };
 
-  const onIdChange = (v: string) => { setMembership(v); if (error) setError(null); try { play("type"); } catch { /* noop */ } };
-  const onPassChange = (v: string) => { setPass(v); if (error) setError(null); try { play("type"); } catch { /* noop */ } };
+  const onFormKeyDown = (e: KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === "Enter") {
+      // Allow native submit; also force auth if browser swallowed it
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "BUTTON") {
+        // form onSubmit handles it for inputs; for buttons default is fine
+      }
+    }
+  };
+
+  const onIdChange = (v: string) => {
+    setMembership(v);
+    if (error) setError(null);
+    try {
+      play("type");
+    } catch {
+      /* noop */
+    }
+  };
+
+  const onPassChange = (v: string) => {
+    setPass(v);
+    if (error) setError(null);
+    try {
+      play("type");
+    } catch {
+      /* noop */
+    }
+  };
 
   return (
     <motion.div
       className="relative min-h-screen w-full overflow-x-hidden bg-[#020203] flex flex-col justify-between"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.35 } }}
-      transition={{ duration: 0.6, ease: "easeInOut" }}
+      exit={{ opacity: 0, transition: { duration: 0.25 } }}
+      transition={{ duration: 0.45, ease: "easeInOut" }}
+      data-screen="login"
     >
       <Cursor />
 
-      {/* ====== Background: Full cinematic visibility, no blur ====== */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* ====== Background (never intercepts clicks) ====== */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <motion.div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${publicPath("/images/login-bg-eye.jpg")})` }}
@@ -71,7 +166,6 @@ export default function LoginScreen({
           animate={{ scale: 1.03 }}
           transition={{ duration: 25, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
         />
-        {/* Subtle dark overlay for readability only */}
         <div
           className="absolute inset-0"
           style={{
@@ -81,8 +175,8 @@ export default function LoginScreen({
         />
       </div>
 
-      {/* ====== Two-Column Layout Overlays ====== */}
-      <div className="absolute inset-0 flex pointer-events-none">
+      {/* ====== Two-Column Layout Overlays (never intercepts clicks) ====== */}
+      <div className="absolute inset-0 flex pointer-events-none" aria-hidden="true">
         <div className="w-1/2 bg-[#020305]/55" />
         <div className="w-1/2 bg-[#06080e]/35" />
         <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-48 bg-gradient-to-r from-[#020305]/80 via-[#0a0d14]/30 to-transparent" />
@@ -90,12 +184,25 @@ export default function LoginScreen({
       </div>
 
       {/* ====== Top Navigation ====== */}
-      <header className="relative z-30 flex items-center justify-between px-6 py-6 sm:px-12 lg:px-16 w-full">
+      <header className="relative z-40 flex items-center justify-between px-6 py-6 sm:px-12 lg:px-16 w-full pointer-events-auto">
         <button
           type="button"
-          onClick={() => { try { play("click"); } catch { /* noop */ } onBack(); }}
-          onMouseEnter={() => { try { play("hover"); } catch { /* noop */ } }}
-          className="group inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-mono tracking-widest text-[#8b95a5] border border-white/[0.08] bg-black/40 backdrop-blur-md transition-all duration-300 hover:border-[#c3c9d3]/40 hover:text-[#eaeef5] hover:bg-white/[0.04]"
+          onClick={() => {
+            try {
+              play("click");
+            } catch {
+              /* noop */
+            }
+            onBack();
+          }}
+          onMouseEnter={() => {
+            try {
+              play("hover");
+            } catch {
+              /* noop */
+            }
+          }}
+          className="group inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-mono tracking-widest text-[#8b95a5] border border-white/[0.08] bg-black/40 backdrop-blur-md transition-all duration-300 hover:border-[#c3c9d3]/40 hover:text-[#eaeef5] hover:bg-white/[0.04] cursor-pointer"
         >
           <ArrowLeft size={13} className="transition-transform duration-300 group-hover:-translate-x-1" />
           <span>BACK TO GATEWAY</span>
@@ -109,12 +216,12 @@ export default function LoginScreen({
       </header>
 
       {/* ====== Main: Member Login ====== */}
-      <main className="relative z-20 flex-1 flex items-center justify-center px-4 sm:px-8 py-10">
+      <main className="relative z-40 flex-1 flex items-center justify-center px-4 sm:px-8 py-10 pointer-events-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: [0.2, 0.7, 0.2, 1] }}
-          className="relative w-full max-w-md rounded-2xl p-8 sm:p-10 backdrop-blur-2xl bg-gradient-to-b from-[#0e1118]/90 via-[#080a0e]/92 to-[#040507]/95 border border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden"
+          transition={{ duration: 0.7, ease: [0.2, 0.7, 0.2, 1] }}
+          className="relative z-40 w-full max-w-md rounded-2xl p-8 sm:p-10 backdrop-blur-2xl bg-gradient-to-b from-[#0e1118]/90 via-[#080a0e]/92 to-[#040507]/95 border border-[#c3c9d3]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden pointer-events-auto"
         >
           <span className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-50" />
 
@@ -132,38 +239,93 @@ export default function LoginScreen({
             Enter your verified credentials to decrypt the inner circle channel.
           </p>
 
-          <form onSubmit={submit} noValidate className="space-y-5">
+          <form
+            onSubmit={onSubmit}
+            onKeyDown={onFormKeyDown}
+            noValidate
+            className="space-y-5 relative z-10"
+            autoComplete="on"
+          >
             {/* Membership ID Field */}
             <div className="space-y-2 text-left">
-              <label className="block font-mono text-[0.68rem] uppercase tracking-[0.22em] text-[#aeb6c2]">
+              <label
+                htmlFor="membership-id"
+                className="block font-mono text-[0.68rem] uppercase tracking-[0.22em] text-[#aeb6c2]"
+              >
                 Membership ID
               </label>
               <div className="relative">
                 <input
+                  ref={idRef}
+                  id="membership-id"
+                  name="membership-id"
                   type="text"
+                  inputMode="text"
                   autoComplete="username"
+                  autoCapitalize="characters"
+                  spellCheck={false}
                   value={membership}
                   onChange={(e) => onIdChange(e.target.value)}
-                  onMouseEnter={() => { try { play("hover"); } catch { /* noop */ } }}
-                  className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#c3c9d3]/70 rounded-xl px-4 py-3.5 text-[#eaeef5] font-mono tracking-widest text-sm outline-none transition-all duration-300 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] focus:shadow-[0_0_20px_rgba(195,201,211,0.12),inset_0_2px_6px_rgba(0,0,0,0.9)] focus:bg-[#07090f]"
+                  onMouseEnter={() => {
+                    try {
+                      play("hover");
+                    } catch {
+                      /* noop */
+                    }
+                  }}
+                  disabled={verifying}
+                  className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#c3c9d3]/70 rounded-xl px-4 py-3.5 text-[#eaeef5] font-mono tracking-widest text-sm outline-none transition-all duration-300 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] focus:shadow-[0_0_20px_rgba(195,201,211,0.12),inset_0_2px_6px_rgba(0,0,0,0.9)] focus:bg-[#07090f] disabled:opacity-60 pointer-events-auto cursor-text"
                 />
               </div>
             </div>
 
             {/* Membership Password Field */}
             <div className="space-y-2 text-left">
-              <label className="block font-mono text-[0.68rem] uppercase tracking-[0.22em] text-[#aeb6c2]">
+              <label
+                htmlFor="membership-pass"
+                className="block font-mono text-[0.68rem] uppercase tracking-[0.22em] text-[#aeb6c2]"
+              >
                 Membership Password
               </label>
               <div className="relative">
                 <input
-                  type="password"
+                  id="membership-pass"
+                  name="membership-pass"
+                  type={showPass ? "text" : "password"}
                   autoComplete="current-password"
+                  spellCheck={false}
                   value={pass}
                   onChange={(e) => onPassChange(e.target.value)}
-                  onMouseEnter={() => { try { play("hover"); } catch { /* noop */ } }}
-                  className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#c3c9d3]/70 rounded-xl px-4 py-3.5 text-[#eaeef5] font-mono tracking-[0.5em] text-center text-sm outline-none transition-all duration-300 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] focus:shadow-[0_0_20px_rgba(195,201,211,0.12),inset_0_2px_6px_rgba(0,0,0,0.9)] focus:bg-[#07090f]"
+                  onMouseEnter={() => {
+                    try {
+                      play("hover");
+                    } catch {
+                      /* noop */
+                    }
+                  }}
+                  disabled={verifying}
+                  className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#c3c9d3]/70 rounded-xl px-4 py-3.5 pr-12 text-[#eaeef5] font-mono tracking-[0.5em] text-center text-sm outline-none transition-all duration-300 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] focus:shadow-[0_0_20px_rgba(195,201,211,0.12),inset_0_2px_6px_rgba(0,0,0,0.9)] focus:bg-[#07090f] disabled:opacity-60 pointer-events-auto cursor-text"
                 />
+                {/* Show / hide password */}
+                <button
+                  type="button"
+                  tabIndex={0}
+                  aria-label={showPass ? "Hide password" : "Show password"}
+                  aria-pressed={showPass}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowPass((v) => !v);
+                    try {
+                      play("click");
+                    } catch {
+                      /* noop */
+                    }
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 rounded-md p-1.5 text-[#8b95a5] hover:text-[#eaeef5] transition-colors cursor-pointer pointer-events-auto"
+                >
+                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 
@@ -177,6 +339,7 @@ export default function LoginScreen({
                   transition={{ duration: 0.2 }}
                   className="flex items-start gap-2 rounded-lg border border-red-500/25 bg-red-500/[0.06] px-3 py-2.5"
                   role="alert"
+                  data-testid="login-error"
                 >
                   <AlertCircle size={14} className="mt-0.5 shrink-0 text-red-400" />
                   <span className="font-mono text-[0.68rem] leading-relaxed tracking-wide text-red-200/90">
@@ -186,13 +349,24 @@ export default function LoginScreen({
               )}
             </AnimatePresence>
 
-            {/* Submit Button */}
+            {/* AUTHENTICATE */}
             <div className="pt-3">
               <button
                 type="submit"
+                data-testid="login-authenticate"
                 disabled={verifying}
-                onMouseEnter={() => { try { play("hover"); } catch { /* noop */ } }}
-                className="group relative w-full overflow-hidden rounded-xl py-4 px-6 font-luxury text-sm font-semibold tracking-[0.2em] uppercase text-[#eaeef5] transition-all duration-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                onClick={(e) => {
+                  // Backup path if form submit is blocked by a parent handler
+                  if (e.detail === 0) return; // keyboard activation still uses submit
+                }}
+                onMouseEnter={() => {
+                  try {
+                    play("hover");
+                  } catch {
+                    /* noop */
+                  }
+                }}
+                className="group relative w-full overflow-hidden rounded-xl py-4 px-6 font-luxury text-sm font-semibold tracking-[0.2em] uppercase text-[#eaeef5] transition-all duration-500 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer pointer-events-auto"
                 style={{
                   background: "linear-gradient(180deg, #2a313d 0%, #161b24 50%, #0a0d13 100%)",
                   border: "1px solid rgba(195,201,211,0.35)",
@@ -209,18 +383,40 @@ export default function LoginScreen({
                   </span>
                 ) : (
                   <span className="relative z-10 transition-colors duration-300 group-hover:text-white">
-                    Authenticate
+                    AUTHENTICATE
                   </span>
                 )}
               </button>
             </div>
           </form>
 
-          {/* Demo credentials hint — keeps the flow usable & testable */}
-          <div className="mt-4 rounded-md border border-white/[0.05] bg-black/30 px-3 py-2 text-center">
-            <span className="font-mono text-[0.55rem] uppercase tracking-[0.2em] text-[#565d68]">
-              Demo access — ID <span className="text-[#9aa3b1]">Q-T-971</span> · Pass <span className="text-[#9aa3b1]">COVENANT</span>
-            </span>
+          {/* DEMO ACCESS — real button, enters demo site */}
+          <div className="mt-4">
+            <button
+              type="button"
+              data-testid="login-demo"
+              disabled={verifying}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                enterDemo();
+              }}
+              onMouseEnter={() => {
+                try {
+                  play("hover");
+                } catch {
+                  /* noop */
+                }
+              }}
+              className="w-full rounded-md border border-white/[0.08] bg-black/30 px-3 py-2.5 text-center transition-all duration-300 hover:border-[#c3c9d3]/35 hover:bg-white/[0.04] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer pointer-events-auto"
+            >
+              <span className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#9aa3b1]">
+                DEMO ACCESS
+              </span>
+              <span className="mt-1 block font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#565d68]">
+                ID {VALID_MEMBERSHIP_ID} · Pass {VALID_MEMBERSHIP_PASS}
+              </span>
+            </button>
           </div>
 
           <div className="mt-5 pt-4 border-t border-white/[0.06] flex items-center justify-between text-[0.68rem] font-mono text-[#565d68]">
@@ -243,28 +439,22 @@ export default function LoginScreen({
         </p>
       </footer>
 
-      {/* ====== Verification Scrim ====== */}
+      {/* ====== Verification Scrim (only while verifying; does not stick) ====== */}
       <AnimatePresence>
         {verifying && (
           <motion.div
-            className="fixed inset-0 z-[120] flex flex-col items-center justify-center gap-5 bg-black/85 backdrop-blur-xl pointer-events-auto"
+            className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-5 bg-black/85 backdrop-blur-xl"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.2 } }}
+            exit={{ opacity: 0, transition: { duration: 0.15 } }}
             aria-live="polite"
             aria-busy="true"
           >
             <div className="relative h-16 w-16">
               <div
-                className="absolute inset-0 rounded-full border-2 border-transparent"
+                className="absolute inset-0 rounded-full border-2 border-transparent animate-spin"
                 style={{ borderTopColor: "#c3c9d3" }}
-              >
-                <motion.div
-                  className="h-full w-full rounded-full"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                />
-              </div>
+              />
               <Lock className="absolute inset-0 m-auto text-[#c3c9d3]" size={20} />
             </div>
             <p className="font-luxury text-sm tracking-[0.3em] uppercase text-[#eaeef5]">

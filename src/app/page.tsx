@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+
+import { useCallback, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { AppProvider } from "@/lib/store";
 import WelcomeScreen from "@/components/WelcomeScreen";
@@ -12,12 +13,27 @@ type Phase = "welcome" | "login" | "app";
 export default function Page() {
   const [phase, setPhase] = useState<Phase>("welcome");
   const [appKey, setAppKey] = useState(0);
+  const [demoMode, setDemoMode] = useState(false);
+
+  const enterApp = useCallback((opts?: { demo?: boolean }) => {
+    setDemoMode(Boolean(opts?.demo));
+    setPhase("app");
+  }, []);
+
+  const logout = useCallback(() => {
+    setDemoMode(false);
+    setPhase("welcome");
+  }, []);
 
   return (
     <AppProvider>
       <ErrorBoundary
         key={appKey}
-        onReset={() => { setPhase("welcome"); setAppKey((k) => k + 1); }}
+        onReset={() => {
+          setPhase("welcome");
+          setDemoMode(false);
+          setAppKey((k) => k + 1);
+        }}
       >
         <AnimatePresence mode="wait" initial={false}>
           {phase === "welcome" && (
@@ -26,12 +42,16 @@ export default function Page() {
           {phase === "login" && (
             <LoginScreen
               key="login"
-              onAuthenticated={() => setPhase("app")}
+              onAuthenticated={enterApp}
               onBack={() => setPhase("welcome")}
             />
           )}
           {phase === "app" && (
-            <Dashboard key={`app-${appKey}`} onLogout={() => setPhase("welcome")} />
+            <Dashboard
+              key={`app-${appKey}-${demoMode ? "demo" : "member"}`}
+              onLogout={logout}
+              demoMode={demoMode}
+            />
           )}
         </AnimatePresence>
       </ErrorBoundary>

@@ -43,25 +43,29 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
   const [exitStage, setExitStage] = useState<ExitStage>("idle");
 
   const handleEnter = () => {
-    if (exitStage !== "idle" || introStage !== "done") return; // منع النقرات المتعددة أثناء التمهيد أو الخروج
-    play("select");
+    if (exitStage !== "idle") return; // prevent double-fire during exit
+    // If intro still playing, skip straight to login path
+    if (introStage !== "done") {
+      setIntroStage("done");
+    }
+    try { play("select"); } catch { /* noop */ }
     setExitStage("fading-out-site");
 
     // المرحلة الأولى: خلال 1.2 ثانية تتلاشى عناصر الموقع للخلفية السوداء ويبقى الشعار الفارس ثابتاً في المنتصف
     // يستمر عرض الشعار منفرداً على الشاشة السوداء لمدة 0.9 ثانية (حتى t = 2100ms)
     setTimeout(() => {
       setExitStage("holding-emblem");
-    }, 1200);
+    }, 600);
 
     // المرحلة الثانية: عند t = 2100ms يبدأ الشعار بالتلاشي ببطء للظلام الدامس خلال 1.2 ثانية
     setTimeout(() => {
       setExitStage("fading-out-emblem");
-    }, 2100);
+    }, 1000);
 
     // المرحلة الثالثة: فور اكتمال تلاشي الشعار (عند t = 3300ms) ننتقل بسلاسة للصفحة التالية
     setTimeout(() => {
       onEnter();
-    }, 3300);
+    }, 1600);
   };
 
   const getEmblemOpacity = () => {
@@ -195,9 +199,17 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
             className="flex w-full flex-col items-center pb-[8vh]"
           >
             <div
+              role="button"
+              tabIndex={0}
               className="entry-zone"
               onClick={handleEnter}
-              onMouseEnter={() => play("hover")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleEnter();
+                }
+              }}
+              onMouseEnter={() => { try { play("hover"); } catch { /* noop */ } }}
             >
               {/* توهج سينمائي دائم */}
               <div className="entry-glow" />
