@@ -19,7 +19,7 @@ export default function Page() {
         key={appKey}
         onReset={() => { setPhase("welcome"); setAppKey((k) => k + 1); }}
       >
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           {phase === "welcome" && (
             <WelcomeScreen key="welcome" onEnter={() => setPhase("login")} />
           )}

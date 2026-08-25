@@ -125,7 +125,12 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     return () => { active = false; clearTimeout(timer); };
   }, []);
 
-  const go = (k: SectionKey) => { setSection(k); setMobileOpen(false); setMoreOpen(false); play("open"); };
+  const go = (k: SectionKey) => {
+    setSection(k);
+    setMobileOpen(false);
+    setMoreOpen(false);
+    try { play("open"); } catch { /* never block navigation */ }
+  };
 
   const renderSection = () => {
     if (!data) return <LoadingBlock />;
@@ -154,11 +159,11 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="relative flex min-h-screen w-full flex-col bg-[#060604]" dir={lang === "ar" ? "rtl" : "ltr"}>
       {/* ===== Top Navigation — discreet, gold-hairline, scroll-aware ===== */}
-      <nav className={`sticky top-0 z-50 w-full transition-all duration-500 ${scrolled ? "border-b border-[#c8a76b]/10 bg-[#060604]/85 backdrop-blur-xl" : "border-b border-transparent"}`}>
+      <nav className={`sticky top-0 z-[100] w-full transition-all duration-500 ${scrolled ? "border-b border-[#c8a76b]/10 bg-[#060604]/85 backdrop-blur-xl" : "border-b border-transparent bg-[#060604]/70 backdrop-blur-md"}`}>
         <div className="flex items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
 
           {/* Logo / Mark */}
-          <button onClick={() => go("home")} className="group flex items-center gap-3 shrink-0" onMouseEnter={() => play("hover")}>
+          <button type="button" onClick={() => go("home")} className="group flex items-center gap-3 shrink-0" onMouseEnter={() => play("hover")}>
             <Logo size={22} />
             <div className="text-left leading-none hidden sm:block">
               <div className="text-[0.9rem] font-semibold tracking-[0.18em] text-[#ece9e0] transition-colors duration-300 group-hover:text-white" style={{ fontFamily: "var(--font-luxury)" }}>OWNERS OF IMPACT</div>
@@ -172,7 +177,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
               const active = section === item.key;
               const restricted = RESTRICTED.has(item.key);
               return (
-                <button key={item.key} onClick={() => go(item.key)} onMouseEnter={() => play("hover")} className="group relative py-2 shrink-0">
+                <button type="button" key={item.key} onClick={() => go(item.key)} onMouseEnter={() => play("hover")} className="group relative py-2 shrink-0">
                   <span className={`text-[0.84rem] uppercase tracking-[0.16em] transition-all duration-300 ${active ? "text-[#e8c992]" : "text-[#8b8577] group-hover:text-[#ece9e0]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600, textShadow: active ? "0 0 18px rgba(216,180,120,0.28)" : "none" }}>
                     {t(item.labelKey, lang)}
                   </span>
@@ -187,7 +192,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
             {/* More dropdown */}
             <div ref={moreRef} className="relative shrink-0">
-              <button onClick={() => { setMoreOpen(!moreOpen); play("click"); }} onMouseEnter={() => play("hover")} className="group relative py-2 flex items-center gap-1.5">
+              <button type="button" onClick={() => { setMoreOpen(!moreOpen); play("click"); }} onMouseEnter={() => play("hover")} className="group relative py-2 flex items-center gap-1.5">
                 <span className={`text-[0.84rem] uppercase tracking-[0.16em] transition-all duration-300 ${SECONDARY_NAV.some((s) => s.key === section) || moreOpen ? "text-[#e8c992]" : "text-[#8b8577] group-hover:text-[#ece9e0]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
                   {t("nav.more", lang)}
                 </span>
@@ -208,7 +213,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                       const active = section === item.key;
                       const restricted = RESTRICTED.has(item.key);
                       return (
-                        <button key={item.key} onClick={() => go(item.key)} onMouseEnter={() => play("hover")}
+                        <button type="button" key={item.key} onClick={() => go(item.key)} onMouseEnter={() => play("hover")}
                           className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-[0.8rem] tracking-[0.08em] transition-colors duration-200 ${active ? "text-[#e8c992] bg-[#c8a76b]/[0.06]" : "text-[#a39d8e] hover:text-[#ece9e0] hover:bg-[#c8a76b]/[0.03]"}`}
                           style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
                           <span>{t(item.labelKey, lang)}</span>
@@ -217,7 +222,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                       );
                     })}
                     <div className="my-1.5 mx-3 h-px bg-[#c8a76b]/10" />
-                    <button onClick={() => { play("reject"); onLogout(); }} onMouseEnter={() => play("hover")}
+                    <button type="button" onClick={() => { play("reject"); onLogout(); }} onMouseEnter={() => play("hover")}
                       className="block w-full px-4 py-2.5 text-left text-[0.8rem] tracking-[0.08em] text-[#57534a] hover:text-[#a39d8e] transition-colors duration-200"
                       style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
                       {t("nav.logout", lang)}
@@ -233,22 +238,22 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             {MONEY.includes(section) && (
               <div className="hidden sm:flex items-center gap-0.5">
                 {(["CHF", "USD", "BTC"] as const).map((c) => (
-                  <button key={c} onClick={() => setCurrency(c)} className={`text-[0.66rem] tracking-[0.12em] px-2 py-1 transition-colors duration-250 ${currency === c ? "text-[#e8c992]" : "text-[#57534a] hover:text-[#a39d8e]"}`} style={{ fontFamily: "var(--font-ibm-mono)" }}>{c}</button>
+                  <button type="button" key={c} onClick={() => setCurrency(c)} className={`text-[0.66rem] tracking-[0.12em] px-2 py-1 transition-colors duration-250 ${currency === c ? "text-[#e8c992]" : "text-[#57534a] hover:text-[#a39d8e]"}`} style={{ fontFamily: "var(--font-ibm-mono)" }}>{c}</button>
                 ))}
               </div>
             )}
 
             {/* Language Switcher */}
-            <button onClick={() => { setLang(lang === "en" ? "ar" : "en"); play("click"); }} onMouseEnter={() => play("hover")} className="flex items-center gap-1.5 text-[0.7rem] tracking-wide text-[#8b8577] hover:text-[#e8c992] transition-colors duration-300 border border-[#c8a76b]/15 rounded-md px-2.5 py-1.5 hover:border-[#c8a76b]/40">
+            <button type="button" onClick={() => { setLang(lang === "en" ? "ar" : "en"); play("click"); }} onMouseEnter={() => play("hover")} className="flex items-center gap-1.5 text-[0.7rem] tracking-wide text-[#8b8577] hover:text-[#e8c992] transition-colors duration-300 border border-[#c8a76b]/15 rounded-md px-2.5 py-1.5 hover:border-[#c8a76b]/40">
               <Globe size={13} />
               <span style={{ fontFamily: "var(--font-ibm-mono)" }}>{lang === "en" ? "EN" : "ع"}</span>
             </button>
 
-            <button onClick={toggleSound} onMouseEnter={() => play("hover")} className="text-[#8b8577] hover:text-[#e8c992] transition-colors duration-300" aria-label="Sound">
+            <button type="button" onClick={toggleSound} onMouseEnter={() => play("hover")} className="text-[#8b8577] hover:text-[#e8c992] transition-colors duration-300" aria-label="Sound">
               {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
             </button>
 
-            <button onClick={() => { setMobileOpen(!mobileOpen); play("click"); }} className="lg:hidden text-[#a39d8e]" aria-label="Menu">
+            <button type="button" onClick={() => { setMobileOpen(!mobileOpen); play("click"); }} className="lg:hidden text-[#a39d8e]" aria-label="Menu">
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
@@ -272,7 +277,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                   const on = section === item.key;
                   const restricted = RESTRICTED.has(item.key);
                   return (
-                    <button key={item.key} onClick={() => go(item.key)} className={`relative text-left py-2.5 pr-6 text-[0.92rem] tracking-[0.06em] transition-colors ${on ? "text-[#e8c992]" : "text-[#8b8577]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
+                    <button type="button" key={item.key} onClick={() => go(item.key)} className={`relative text-left py-2.5 pr-6 text-[0.92rem] tracking-[0.06em] transition-colors ${on ? "text-[#e8c992]" : "text-[#8b8577]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
                       {t(item.labelKey, lang)}
                       {restricted && <span className="absolute right-1 top-1/2 -translate-y-1/2 h-1 w-1 rotate-45" style={{ background: "#c8a76b" }} />}
                     </button>
@@ -280,16 +285,23 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                 })}
               </div>
               <div className="my-4 h-px bg-[#c8a76b]/10" />
-              <button onClick={() => { play("reject"); onLogout(); }} className="text-left text-[0.92rem] text-[#57534a]" style={{ fontFamily: "var(--font-luxury)" }}>{t("nav.logout", lang)}</button>
+              <button type="button" onClick={() => { play("reject"); onLogout(); }} className="text-left text-[0.92rem] text-[#57534a]" style={{ fontFamily: "var(--font-luxury)" }}>{t("nav.logout", lang)}</button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
+      {/* Main Content — no CSS filter on the wrapper (filter traps clicks / fixed children) */}
       <main className="relative z-10 flex-1 w-full px-5 py-7 sm:px-8 lg:px-10">
         <AnimatePresence mode="wait">
-          <motion.div key={section} initial={{ opacity: 0, y: 16, filter: "blur(8px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -10, filter: "blur(6px)" }} transition={{ duration: 0.55, ease: [0.2, 0.7, 0.2, 1] }}>
+          <motion.div
+            key={section}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4, ease: [0.2, 0.7, 0.2, 1] }}
+            className="relative z-10"
+          >
             {renderSection()}
           </motion.div>
         </AnimatePresence>

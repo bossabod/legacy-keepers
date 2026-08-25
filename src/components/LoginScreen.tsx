@@ -57,8 +57,8 @@ export default function LoginScreen({
       className="relative min-h-screen w-full overflow-x-hidden bg-[#020203] flex flex-col justify-between"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 1.2, ease: "easeInOut" }}
+      exit={{ opacity: 0, transition: { duration: 0.35 } }}
+      transition={{ duration: 0.6, ease: "easeInOut" }}
     >
       <Cursor />
 
@@ -247,10 +247,12 @@ export default function LoginScreen({
       <AnimatePresence>
         {verifying && (
           <motion.div
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black/85 backdrop-blur-xl"
+            className="fixed inset-0 z-[120] flex flex-col items-center justify-center gap-5 bg-black/85 backdrop-blur-xl pointer-events-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, transition: { duration: 0.2 } }}
+            aria-live="polite"
+            aria-busy="true"
           >
             <div className="relative h-16 w-16">
               <div

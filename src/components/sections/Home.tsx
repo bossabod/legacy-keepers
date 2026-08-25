@@ -55,7 +55,8 @@ export default function HomeSection({
   useEffect(() => {
     if (!introShown) {
       introShown = true;
-      const t = setTimeout(() => setIntroOn(false), 3200);
+      // Auto-dismiss quickly so nav/buttons are never blocked long
+      const t = setTimeout(() => setIntroOn(false), 2200);
       return () => clearTimeout(t);
     }
   }, []);
@@ -74,47 +75,64 @@ export default function HomeSection({
 
   return (
     <>
-      {/* ═══════════ Cinematic opening — the house admits you ═══════════ */}
+      {/* ═══════════ Cinematic opening — dismissible, never traps nav forever ═══════════ */}
       <AnimatePresence>
         {introOn && (
           <motion.div
             key="intro"
-            className="fixed inset-0 z-[80] flex items-center justify-center bg-[#060604]"
-            exit={{ opacity: 0, transition: { duration: 1.1, ease: [0.22, 1, 0.36, 1] } }}
+            className="fixed inset-0 z-[90] flex items-center justify-center bg-[#060604]"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } }}
             onClick={() => { setIntroOn(false); play("click"); }}
+            role="button"
+            tabIndex={0}
+            aria-label={ar ? "متابعة" : "Continue"}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
+                e.preventDefault();
+                setIntroOn(false);
+                play("click");
+              }
+            }}
           >
             <motion.div className="pointer-events-none absolute inset-0 stage-glow" />
             <div className="relative flex flex-col items-center px-8 text-center">
-              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}>
+              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1] }}>
                 <Logo size={54} />
               </motion.div>
               <motion.div
-                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
                 className="mt-6 text-[clamp(1.4rem,3vw,2rem)] font-light uppercase tracking-[0.3em] text-[#ece9e0]"
                 style={{ fontFamily: "var(--font-luxury)" }}
               >
                 {ar ? "أصحاب الأثر" : "Owners of Impact"}
               </motion.div>
               <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1, duration: 1.2 }}
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.9 }}
                 className="mt-3 text-[0.55rem] uppercase tracking-[0.42em] text-[#c8a76b]/80"
                 style={{ fontFamily: "var(--font-ibm-mono)" }}
               >
                 {ar ? "نادٍ مغلق · يقبل من يعرفه" : "A private house — it admits those it knows."}
               </motion.div>
               <motion.div
-                initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 1.4, duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 1.0, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
                 className="mt-7 h-px w-56 origin-center"
                 style={{ background: "linear-gradient(90deg, transparent, #c8a76b, transparent)" }}
               />
               <motion.div
-                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.7, duration: 1 }}
-                className="mt-7 flex items-center gap-5 text-[0.5rem] uppercase tracking-[0.24em] text-[#7c7668]"
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2, duration: 0.8 }}
+                className="mt-7 flex flex-col items-center gap-4 text-[0.5rem] uppercase tracking-[0.24em] text-[#7c7668]"
                 style={{ fontFamily: "var(--font-ibm-mono)" }}
               >
-                <span>{ar ? "رقم العضوية" : "Membership No."} · {me.code}</span>
-                <span className="flex items-center gap-1.5" style={{ color: "#c8a76b" }}>
-                  <span className="h-1 w-1 rounded-full" style={{ background: "#c8a76b" }} /> {ar ? "الوصول مُصرَّح" : "Access Authorised"}
+                <div className="flex items-center gap-5">
+                  <span>{ar ? "رقم العضوية" : "Membership No."} · {me.code}</span>
+                  <span className="flex items-center gap-1.5" style={{ color: "#c8a76b" }}>
+                    <span className="h-1 w-1 rounded-full" style={{ background: "#c8a76b" }} /> {ar ? "الوصول مُصرَّح" : "Access Authorised"}
+                  </span>
+                </div>
+                <span className="mt-1 text-[0.55rem] tracking-[0.32em] text-[#c8a76b]/70">
+                  {ar ? "اضغط للمتابعة" : "Click anywhere to continue"}
                 </span>
               </motion.div>
             </div>
@@ -137,9 +155,9 @@ export default function HomeSection({
             </div>
             <div className="flex flex-col">
               {JOURNEY.map((j, i) => (
-                <button
+                <button type="button"
                   key={`${j.no}-${i}`}
-                  onClick={() => { onNavigate(j.key); play("open"); }}
+                  onClick={() => { onNavigate(j.key); try { play("open"); } catch {} }}
                   onMouseEnter={() => play("hover")}
                   className="group flex w-full items-center gap-6 border-b border-[#c8a76b]/[0.08] py-5 text-left transition-colors duration-300 hover:bg-[#c8a76b]/[0.03] sm:gap-10"
                   style={{ textAlign: ar ? "right" : "left" }}
@@ -168,7 +186,7 @@ export default function HomeSection({
             {TAB_NAV.map((t2) => {
               const on = activeTab === t2.key;
               return (
-                <button
+                <button type="button"
                   key={t2.key}
                   onMouseEnter={() => { setActiveTab(t2.key); play("hover"); }}
                   onMouseLeave={() => setActiveTab(null)}
@@ -205,17 +223,18 @@ export default function HomeSection({
               <span className="mono text-[0.66rem] text-[#c8a76b]/80 bg-black/40 px-3 py-1 rounded-full border border-[#c8a76b]/15">{me.code}</span>
             </div>
 
-            {/* member identity — compact, bottom-left */}
-            <div className="absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-end justify-between gap-6 px-7 pb-6 sm:px-9">
+            {/* member identity — compact, bottom-left (pointer-events only on interactive bits) */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-end justify-between gap-6 px-7 pb-6 sm:px-9">
               <div className="max-w-md">
                 <div className="flex items-center gap-3">
                   <h1 className="text-3xl font-light tracking-tight text-[#ece9e0] sm:text-4xl" style={{ fontFamily: "var(--font-luxury)", textShadow: "0 2px 12px rgba(0,0,0,0.9)" }}>
                     {nameVisible ? me.name : "****************"}
                   </h1>
                   <button
+                    type="button"
                     onClick={() => { setNameVisible(!nameVisible); play("click"); }}
                     onMouseEnter={() => play("hover")}
-                    className="shrink-0 rounded-md p-2 text-[#8a7044] transition-all duration-300 hover:text-[#e8c992] border border-transparent hover:border-[#c8a76b]/20"
+                    className="pointer-events-auto shrink-0 rounded-md p-2 text-[#8a7044] transition-all duration-300 hover:text-[#e8c992] border border-transparent hover:border-[#c8a76b]/20"
                     aria-label="Toggle name visibility"
                   >
                     {nameVisible ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -377,7 +396,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
 
 function QuickRow({ icon: Icon, label, value, onClick }: { icon: typeof Users; label: string; value: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="flex w-full items-center gap-3 rounded-md border border-[#c8a76b]/[0.08] bg-black/20 p-3 text-right transition hover:border-[#c8a76b]/25 hover:bg-[#c8a76b]/[0.03]">
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-md border border-[#c8a76b]/[0.08] bg-black/20 p-3 text-right transition hover:border-[#c8a76b]/25 hover:bg-[#c8a76b]/[0.03]">
       <Icon size={15} className="text-[#8a7044]" />
       <span className="flex-1 text-[0.8rem] text-[#a39d8e]">{label}</span>
       <span className="mono text-[0.78rem] text-[#ece9e0]">{value}</span>
