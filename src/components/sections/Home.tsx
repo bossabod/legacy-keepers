@@ -1,11 +1,11 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   MapPin, Users, MailOpen, Layers, ArrowUpRight, ArrowLeft, Eye, EyeOff, TrendingUp, Activity,
 } from "lucide-react";
 import { Reveal, Pulse } from "@/components/ui";
-import { WorldClock, Logo } from "@/components/brand";
+import { WorldClock } from "@/components/brand";
 import GlobalCommandGlobe from "@/components/GlobalCommandGlobe";
 import { useApp } from "@/lib/store";
 import { play } from "@/lib/sound";
@@ -32,9 +32,6 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"];
 // deterministic growth series ending at +31%
 const SERIES = [4, 6, 5, 9, 8, 14, 20, 27, 31];
 
-/* The cinematic opening plays once per session, then the house is revealed. */
-let introShown = false;
-
 export default function HomeSection({
   data,
   onNavigate,
@@ -47,19 +44,9 @@ export default function HomeSection({
   const [nameVisible, setNameVisible] = useState(false);
   const { lang } = useApp();
   const ar = lang === "ar";
-  const [introOn, setIntroOn] = useState(!introShown);
   const [activeTab, setActiveTab] = useState<SectionKey | null>(null);
   const [drawn, setDrawn] = useState(false);
   useEffect(() => { const t = setTimeout(() => setDrawn(true), 600); return () => clearTimeout(t); }, []);
-
-  useEffect(() => {
-    if (!introShown) {
-      introShown = true;
-      // Auto-dismiss quickly so nav/buttons are never blocked long
-      const t = setTimeout(() => setIntroOn(false), 2200);
-      return () => clearTimeout(t);
-    }
-  }, []);
 
   const completedProjects = useMemo(() => data.projects.filter((p) => /مكتم|Completed|complete/i.test(p.status || "")).length, [data.projects]);
 
@@ -75,71 +62,6 @@ export default function HomeSection({
 
   return (
     <>
-      {/* ═══════════ Cinematic opening — dismissible, never traps nav forever ═══════════ */}
-      <AnimatePresence>
-        {introOn && (
-          <motion.div
-            key="intro"
-            className="fixed inset-0 z-[90] flex items-center justify-center bg-[#060604]"
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } }}
-            onClick={() => { setIntroOn(false); play("click"); }}
-            role="button"
-            tabIndex={0}
-            aria-label={ar ? "متابعة" : "Continue"}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
-                e.preventDefault();
-                setIntroOn(false);
-                play("click");
-              }
-            }}
-          >
-            <motion.div className="pointer-events-none absolute inset-0 stage-glow" />
-            <div className="relative flex flex-col items-center px-8 text-center">
-              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1] }}>
-                <Logo size={54} />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-                className="mt-6 text-[clamp(1.4rem,3vw,2rem)] font-light uppercase tracking-[0.3em] text-[#ece9e0]"
-                style={{ fontFamily: "var(--font-luxury)" }}
-              >
-                {ar ? "أصحاب الأثر" : "Owners of Impact"}
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.9 }}
-                className="mt-3 text-[0.55rem] uppercase tracking-[0.42em] text-[#c8a76b]/80"
-                style={{ fontFamily: "var(--font-ibm-mono)" }}
-              >
-                {ar ? "نادٍ مغلق · يقبل من يعرفه" : "A private house — it admits those it knows."}
-              </motion.div>
-              <motion.div
-                initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 1.0, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-                className="mt-7 h-px w-56 origin-center"
-                style={{ background: "linear-gradient(90deg, transparent, #c8a76b, transparent)" }}
-              />
-              <motion.div
-                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2, duration: 0.8 }}
-                className="mt-7 flex flex-col items-center gap-4 text-[0.5rem] uppercase tracking-[0.24em] text-[#7c7668]"
-                style={{ fontFamily: "var(--font-ibm-mono)" }}
-              >
-                <div className="flex items-center gap-5">
-                  <span>{ar ? "رقم العضوية" : "Membership No."} · {me.code}</span>
-                  <span className="flex items-center gap-1.5" style={{ color: "#c8a76b" }}>
-                    <span className="h-1 w-1 rounded-full" style={{ background: "#c8a76b" }} /> {ar ? "الوصول مُصرَّح" : "Access Authorised"}
-                  </span>
-                </div>
-                <span className="mt-1 text-[0.55rem] tracking-[0.32em] text-[#c8a76b]/70">
-                  {ar ? "اضغط للمتابعة" : "Click anywhere to continue"}
-                </span>
-              </motion.div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <div className="mx-auto max-w-7xl space-y-12">
         {/* ═══════ The Journey — index into the house ═══════ */}
         <Reveal>

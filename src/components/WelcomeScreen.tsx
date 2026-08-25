@@ -50,6 +50,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
     }
     try { play("select"); } catch { /* noop */ }
     setExitStage("fading-out-site");
+    // Never leave a blocking layer if user double-taps during exit
 
     // المرحلة الأولى: خلال 1.2 ثانية تتلاشى عناصر الموقع للخلفية السوداء ويبقى الشعار الفارس ثابتاً في المنتصف
     // يستمر عرض الشعار منفرداً على الشاشة السوداء لمدة 0.9 ثانية (حتى t = 2100ms)
@@ -99,18 +100,17 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
   return (
     <motion.div
       className="relative min-h-screen w-full overflow-hidden bg-black"
+      style={{ zIndex: 20 }}
       initial={{ opacity: hasPlayedIntroThisSession ? 0 : 1 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: exitStage !== "idle" ? 0.1 : 1.2, ease: "easeInOut" }}
+      exit={{ opacity: 0, transition: { duration: 0.01 }, pointerEvents: "none" }}
+      transition={{ duration: exitStage !== "idle" ? 0.1 : 0.6, ease: "easeInOut" }}
     >
       <Cursor />
 
       {/* ====== طبقة الوجه — صورة الوجه فقط (خلفية سوداء + وجه فضي في المنتصف) ====== */}
       <motion.div
-        className={`absolute inset-0 z-50 bg-black bg-cover bg-center ${
-          introStage !== "done" || exitStage !== "idle" ? "pointer-events-auto" : "pointer-events-none"
-        }`}
+        className="absolute inset-0 z-50 bg-black bg-cover bg-center pointer-events-none"
         style={{
           backgroundImage: `url(${publicPath("/images/BD60D113-2836-48F0-A78C-CD8269081B2A.png")})`,
         }}

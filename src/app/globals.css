@@ -110,7 +110,7 @@ body {
   position: fixed;
   inset: 0;
   pointer-events: none !important;
-  z-index: 30;
+  z-index: 1;
   opacity: 0.05;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   mix-blend-mode: overlay;
@@ -121,7 +121,7 @@ body {
   position: fixed;
   inset: 0;
   pointer-events: none !important;
-  z-index: 29;
+  z-index: 1;
   background: radial-gradient(130% 100% at 50% 42%, transparent 52%, rgba(0, 0, 0, 0.62) 100%);
 }
 
@@ -344,8 +344,14 @@ body {
 
 
 /* a whisper of warm light behind the stage — very subtle, never loud */
+/* Decorative wash only — NEVER set pointer-events here (applied on <body>). */
 .stage-glow {
-  pointer-events: none;
+  background:
+    radial-gradient(58% 42% at 50% -6%, rgba(200,167,107,0.10), transparent 70%),
+    radial-gradient(44% 36% at 50% 110%, rgba(47,107,79,0.12), transparent 70%);
+}
+.stage-glow-layer {
+  pointer-events: none !important;
   background:
     radial-gradient(58% 42% at 50% -6%, rgba(200,167,107,0.10), transparent 70%),
     radial-gradient(44% 36% at 50% 110%, rgba(47,107,79,0.12), transparent 70%);

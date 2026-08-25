@@ -163,11 +163,18 @@ export default function Dashboard({
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col bg-[#060604]" dir={lang === "ar" ? "rtl" : "ltr"} data-demo={demoMode ? "true" : "false"}>
+    <div
+      className="relative flex min-h-screen w-full flex-col bg-[#060604]"
+      dir={lang === "ar" ? "rtl" : "ltr"}
+      data-demo={demoMode ? "true" : "false"}
+      data-screen="dashboard"
+      style={{ pointerEvents: "auto", position: "relative", zIndex: 10 }}
+    >
       {demoMode && (
         <div
-          className="relative z-[110] flex items-center justify-center gap-2 border-b border-[#c8a76b]/20 bg-[#0c0b08] px-4 py-1.5"
+          className="relative z-[50] flex items-center justify-center gap-2 border-b border-[#c8a76b]/20 bg-[#0c0b08] px-4 py-1.5"
           role="status"
+          style={{ pointerEvents: "none" }}
         >
           <span className="h-1.5 w-1.5 rounded-full bg-[#c8a76b]" style={{ boxShadow: "0 0 6px #c8a76b" }} />
           <span
@@ -179,8 +186,12 @@ export default function Dashboard({
         </div>
       )}
       {/* ===== Top Navigation — discreet, gold-hairline, scroll-aware ===== */}
-      <nav className={`sticky top-0 z-[100] w-full transition-all duration-500 ${scrolled ? "border-b border-[#c8a76b]/10 bg-[#060604]/85 backdrop-blur-xl" : "border-b border-transparent bg-[#060604]/70 backdrop-blur-md"}`}>
-        <div className="flex items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
+      <nav
+        className={`sticky top-0 z-[100] w-full transition-all duration-500 ${scrolled ? "border-b border-[#c8a76b]/10 bg-[#060604]/85 backdrop-blur-xl" : "border-b border-transparent bg-[#060604]/70 backdrop-blur-md"}`}
+        style={{ pointerEvents: "auto" }}
+        data-nav="primary"
+      >
+        <div className="relative z-[101] flex items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8" style={{ pointerEvents: "auto" }}>
 
           {/* Logo / Mark */}
           <button type="button" onClick={() => go("home")} className="group flex items-center gap-3 shrink-0" onMouseEnter={() => play("hover")}>
@@ -311,20 +322,11 @@ export default function Dashboard({
         )}
       </AnimatePresence>
 
-      {/* Main Content — no CSS filter on the wrapper (filter traps clicks / fixed children) */}
-      <main className="relative z-10 flex-1 w-full px-5 py-7 sm:px-8 lg:px-10">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={section}
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.4, ease: [0.2, 0.7, 0.2, 1] }}
-            className="relative z-10"
-          >
-            {renderSection()}
-          </motion.div>
-        </AnimatePresence>
+      {/* Main Content */}
+      <main className="relative z-10 flex-1 w-full px-5 py-7 sm:px-8 lg:px-10" style={{ pointerEvents: "auto" }}>
+        <div key={section} className="relative z-10" style={{ pointerEvents: "auto" }}>
+          {renderSection()}
+        </div>
       </main>
 
       {/* Status Bar */}

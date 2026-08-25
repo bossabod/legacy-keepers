@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { AppProvider } from "@/lib/store";
 import WelcomeScreen from "@/components/WelcomeScreen";
 import LoginScreen from "@/components/LoginScreen";
@@ -17,6 +17,7 @@ export default function Page() {
 
   const enterApp = useCallback((opts?: { demo?: boolean }) => {
     setDemoMode(Boolean(opts?.demo));
+    // Switch immediately — do not leave login mounted over the app
     setPhase("app");
   }, []);
 
@@ -35,7 +36,11 @@ export default function Page() {
           setAppKey((k) => k + 1);
         }}
       >
-        <AnimatePresence mode="wait" initial={false}>
+        {/*
+          No mode="wait": login/welcome unmount immediately when phase changes
+          so their fixed overlays can never cover the dashboard.
+        */}
+        <AnimatePresence initial={false}>
           {phase === "welcome" && (
             <WelcomeScreen key="welcome" onEnter={() => setPhase("login")} />
           )}
@@ -47,11 +52,16 @@ export default function Page() {
             />
           )}
           {phase === "app" && (
-            <Dashboard
+            <motion.div
               key={`app-${appKey}-${demoMode ? "demo" : "member"}`}
-              onLogout={logout}
-              demoMode={demoMode}
-            />
+              className="relative z-10 min-h-screen w-full"
+              style={{ pointerEvents: "auto" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.25 }}
+            >
+              <Dashboard onLogout={logout} demoMode={demoMode} />
+            </motion.div>
           )}
         </AnimatePresence>
       </ErrorBoundary>

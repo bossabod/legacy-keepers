@@ -76,8 +76,10 @@ export default function LoginScreen({
       if (timerRef.current != null) window.clearTimeout(timerRef.current);
       timerRef.current = window.setTimeout(() => {
         timerRef.current = null;
+        // Drop overlay BEFORE routing so nothing covers the dashboard
         setVerifying(false);
-        finishAuth(demo);
+        // next frame → unmount login / mount app
+        window.requestAnimationFrame(() => finishAuth(demo));
       }, VERIFY_MS);
     },
     [finishAuth],
@@ -149,10 +151,11 @@ export default function LoginScreen({
   return (
     <motion.div
       className="relative min-h-screen w-full overflow-x-hidden bg-[#020203] flex flex-col justify-between"
+      style={{ pointerEvents: verifying ? "none" : "auto", zIndex: 20 }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.25 } }}
-      transition={{ duration: 0.45, ease: "easeInOut" }}
+      exit={{ opacity: 0, transition: { duration: 0.01 }, pointerEvents: "none" }}
+      transition={{ duration: 0.35, ease: "easeInOut" }}
       data-screen="login"
     >
       <Cursor />
