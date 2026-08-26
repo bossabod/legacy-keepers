@@ -12,12 +12,6 @@ import { play } from "@/lib/sound";
 import type { AppData } from "@/lib/types";
 import type { SectionKey } from "@/components/Dashboard";
 
-const TAB_NAV: { key: SectionKey; labelEn: string; labelAr: string }[] = [
-  { key: "rules", labelEn: "Rules", labelAr: "القواعد" },
-  { key: "goals", labelEn: "Objectives", labelAr: "الأهداف" },
-  { key: "identity", labelEn: "Who Are the People of Impact", labelAr: "من هم أصحاب الأثر" },
-];
-
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"];
 // deterministic growth series ending at +31%
 const SERIES = [4, 6, 5, 9, 8, 14, 20, 27, 31];
@@ -34,7 +28,6 @@ export default function HomeSection({
   const [nameVisible, setNameVisible] = useState(false);
   const { lang } = useApp();
   const ar = lang === "ar";
-  const [activeTab, setActiveTab] = useState<SectionKey | null>(null);
   const [drawn, setDrawn] = useState(false);
   useEffect(() => { const t = setTimeout(() => setDrawn(true), 600); return () => clearTimeout(t); }, []);
 
@@ -53,51 +46,32 @@ export default function HomeSection({
   return (
     <>
       <div className="mx-auto max-w-7xl space-y-12">
-        {/* ═══════ The Rooms ═══════ */}
-        <Reveal>
-          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-3 border-b border-[#9a9a9a]/[0.08] pb-5 pt-1">
-            {TAB_NAV.map((t2) => {
-              const on = activeTab === t2.key;
-              return (
-                <button type="button"
-                  key={t2.key}
-                  onMouseEnter={() => { setActiveTab(t2.key); play("hover"); }}
-                  onMouseLeave={() => setActiveTab(null)}
-                  onClick={() => onNavigate(t2.key)}
-                  className="group relative py-2 text-center"
-                >
-                  <span
-                    className={`text-[clamp(0.95rem,1.7vw,1.2rem)] tracking-[0.1em] transition-all duration-300 ${on ? "text-[#c0c0c0]" : "text-[#8b8577] group-hover:text-[#e8e8e8]"}`}
-                    style={{ fontFamily: "var(--font-luxury)", fontWeight: 600, textShadow: on ? "0 0 18px rgba(170,170,170,0.3)" : "none" }}
-                  >
-                    {ar ? t2.labelAr : t2.labelEn}
-                  </span>
-                  <span className="absolute inset-x-0 -bottom-[2px] mx-auto h-px transition-all duration-500"
-                    style={{ width: on ? "100%" : "0%", background: "linear-gradient(90deg, transparent, #9a9a9a, transparent)" }} />
-                </button>
-              );
-            })}
-          </div>
-        </Reveal>
-
-        {/* ═══════ Global Command Globe — the operations heart, full-bleed ═══════ */}
+        {/* ═══════ Global Command Globe — full container, complete edges ═══════ */}
         <Reveal>
           <div
-            className="relative overflow-hidden min-h-[560px] lg:min-h-[640px]"
-            style={{ background: "radial-gradient(120% 90% at 50% 30%, #0a0a0a 0%, #050505 62%, #050505 100%)", boxShadow: "inset 0 0 160px 40px rgba(170,170,170,0.05)" }}
+            className="relative w-full overflow-hidden rounded-xl border border-[#2a2a2a]"
+            style={{
+              height: "min(72vh, 680px)",
+              minHeight: 520,
+              background: "radial-gradient(120% 90% at 50% 40%, #0e0e0e 0%, #080808 55%, #050505 100%)",
+              boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04), 0 24px 60px rgba(0,0,0,0.55)",
+            }}
           >
-            <GlobalCommandGlobe className="absolute inset-0 w-full h-full z-0" />
-
-            {/* header row — thin, elegant, over the top */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-7 pt-6 sm:px-9">
-              <span className="text-[0.72rem] tracking-[0.26em] uppercase text-[#6a6a6a]" style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
+            {/* header inside container */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between border-b border-[#1a1a1a]/80 px-6 py-3.5 sm:px-8">
+              <span className="text-[0.72rem] tracking-[0.26em] uppercase text-[#8a8a8a]" style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
                 {ar ? "شبكة القيادة العالمية" : "Global Command Network"}
               </span>
               <span className="mono text-[0.66rem] text-[#9a9a9a]/80 bg-black/40 px-3 py-1 rounded-full border border-[#9a9a9a]/15">{me.code}</span>
             </div>
 
-            {/* member identity — compact, bottom-left (pointer-events only on interactive bits) */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-end justify-between gap-6 px-7 pb-6 sm:px-9">
+            {/* globe fills the box — centered, no overflow */}
+            <div className="absolute inset-0 z-0 pt-12 pb-28">
+              <GlobalCommandGlobe className="h-full w-full" />
+            </div>
+
+            {/* member identity — bottom overlay, pointer-events only on controls */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-end justify-between gap-6 border-t border-[#1a1a1a]/80 px-6 pb-5 pt-4 sm:px-8">
               <div className="max-w-md">
                 <div className="flex items-center gap-3">
                   <h1 className="text-3xl font-light tracking-tight text-[#e8e8e8] sm:text-4xl" style={{ fontFamily: "var(--font-luxury)", textShadow: "0 2px 12px rgba(0,0,0,0.9)" }}>

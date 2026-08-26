@@ -1,123 +1,68 @@
 "use client";
-import { useState } from "react";
-import dynamic from "next/dynamic";
-import { RotateCw, ChevronDown, MapPin, Navigation, X } from "lucide-react";
+import { RotateCw } from "lucide-react";
 import { useApp } from "@/lib/store";
-import { NAV_COUNTRIES } from "@/lib/network-cities";
-
-// MapLibre touches `window` and must only load in the browser (not SSR).
-const NetworkMap = dynamic(() => import("@/components/sections/NetworkMap"), {
-  ssr: false,
-  loading: () => null,
-});
+import GlobalCommandGlobe from "@/components/GlobalCommandGlobe";
 
 /* ==================================================================
-   Network — New York City interactive map (MapLibre GL).
-   Satellite (Esri) base + architectural dark filter. A top navigation
-   button opens a small elegant countries→cities dropdown. Cinematic
-   travel (zoom out ×3 → blur → zoom in ×3) on pick.
+   Network — full-bleed GLOBAL COMMAND NETWORK globe.
+   Complete rectangular container, globe centered & fixed-size,
+   drag-to-rotate only (no zoom).
    ================================================================== */
 
 export default function NetworkSection() {
   const { lang } = useApp();
   const ar = lang === "ar";
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [openCountry, setOpenCountry] = useState<string | null>(null);
-
-  const travelTo = (cityId: string) => {
-    setPanelOpen(false);
-    setOpenCountry(null);
-    const el = document.querySelector('[data-globe]');
-    (el as any)?.__globeApi?.flyToCity?.(cityId);
-  };
 
   return (
-    <div className="relative w-full overflow-hidden" style={{ height: "calc(100vh - 66px)", background: "#0b0e12" }}>
-      {/* header — العنوان في منتصف الأعلى */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col items-center justify-start pt-5">
-        <div className="text-center">
-          <div className="text-[0.5rem] uppercase tracking-[0.3em] text-[#7c8794]" style={{ fontFamily: "var(--font-mono)" }}>
-            {ar ? "محور العمليات · شبكة المدن" : "Operations Hub · City Network"}
-          </div>
-          <div className="mt-1 text-[0.95rem] tracking-[0.12em] text-[#eaeef5]" style={{ fontFamily: "var(--font-luxury)", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>
-            {ar ? "التنقل بين المدن" : "City Navigation"}
-          </div>
-        </div>
-      </div>
-
-      {/* the interactive map */}
-      <div className="absolute inset-0 z-0">
-        <div className="h-full w-full map-high-contrast">
-          <NetworkMap />
-        </div>
-      </div>
-
-      {/* زر التنقل — أعلى الخريطة */}
-      <div className="pointer-events-auto absolute left-1/2 top-3 z-20 -translate-x-1/2">
-        <button
-          onClick={() => { setPanelOpen((v) => !v); setOpenCountry(null); }}
-          className="flex items-center gap-2 rounded-xl border border-[#3a5a86]/50 bg-[#0a0c12]/85 px-4 py-2.5 text-[0.72rem] uppercase tracking-[0.2em] text-[#b0b0b0] backdrop-blur-md shadow-[0_8px_25px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(127,176,255,0.12)] transition hover:border-[#7fb0ff]/60 hover:text-white"
-        >
-          <Navigation size={14} className="text-[#7fb0ff]" />
-          {ar ? "تنقل المدن" : "City Navigation"}
-          {panelOpen ? <X size={13} className="text-[#7fb0ff]/70" /> : <ChevronDown size={13} className="text-[#7fb0ff]/70" />}
-        </button>
-
-        {/* القائمة المنسدلة */}
-        {panelOpen && (
-          <div className="absolute left-1/2 top-full mt-2 w-60 -translate-x-1/2 overflow-hidden rounded-xl border border-[#3a5a86]/40 bg-[#0a0c12]/95 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(127,176,255,0.12)]">
-            <div className="max-h-[50vh] overflow-y-auto p-2">
-              {NAV_COUNTRIES.map((country) => {
-                const open = openCountry === country.id;
-                return (
-                  <div key={country.id} className="mb-0.5">
-                    <button
-                      onClick={() => setOpenCountry(open ? null : country.id)}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[0.78rem] tracking-[0.05em] text-[#b0b0b0] transition-colors hover:bg-white/[0.04] hover:text-white"
-                    >
-                      <span className="flex items-center gap-2">
-                        <MapPin size={12} className="text-[#7fb0ff]/70" />
-                        {country.name}
-                      </span>
-                      <ChevronDown size={13} className={`text-[#7fb0ff]/70 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
-                    </button>
-
-                    {open && (
-                      <div className="ml-4 border-l border-[#3a5a86]/30 pl-2">
-                        {country.cities.map((c) => (
-                          <button
-                            key={c.id}
-                            onClick={() => travelTo(c.id)}
-                            className="block w-full rounded-md px-3 py-1.5 text-left text-[0.72rem] text-[#8b95a5] transition-colors hover:bg-sky-400/10 hover:text-sky-100"
-                          >
-                            {c.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+    <div className="relative w-full" style={{ height: "calc(100vh - 66px)" }}>
+      {/* Full container with clear four edges — no crop / no overflow */}
+      <div
+        className="absolute inset-3 sm:inset-4 lg:inset-5 flex flex-col overflow-hidden rounded-xl border border-[#2a2a2a]"
+        style={{
+          background:
+            "radial-gradient(120% 90% at 50% 40%, #0e0e0e 0%, #080808 55%, #050505 100%)",
+          boxShadow:
+            "inset 0 0 0 1px rgba(255,255,255,0.04), 0 24px 60px rgba(0,0,0,0.65)",
+        }}
+      >
+        {/* Header inside the container */}
+        <div className="relative z-10 flex shrink-0 items-center justify-between border-b border-[#1a1a1a] px-5 py-3.5 sm:px-7">
+          <div>
+            <div
+              className="text-[0.5rem] uppercase tracking-[0.3em] text-[#6e6e6e]"
+              style={{ fontFamily: "var(--font-mono)" }}
+            >
+              {ar ? "محور العمليات · 5 عقد" : "Operations Hub · 5 Nodes"}
+            </div>
+            <div
+              className="mt-1 text-[0.88rem] uppercase tracking-[0.16em] text-[#e8e8e8]"
+              style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}
+            >
+              {ar ? "شبكة القيادة العالمية" : "Global Command Network"}
             </div>
           </div>
-        )}
-      </div>
+          <div
+            className="hidden items-center gap-2 text-[0.48rem] uppercase tracking-[0.22em] text-[#4a4a4a] sm:flex"
+            style={{ fontFamily: "var(--font-mono)" }}
+          >
+            <RotateCw size={11} className="text-[#6e6e6e]" />
+            <span>{ar ? "اسحب للتدوير" : "Drag to rotate"}</span>
+          </div>
+        </div>
 
-      {/* interaction hint — pan only */}
-      <div className="pointer-events-none absolute bottom-5 left-1/2 z-20 -translate-x-1/2 flex items-center gap-2 text-[0.48rem] uppercase tracking-[0.2em] text-[#4a515e]" style={{ fontFamily: "var(--font-mono)" }}>
-        <RotateCw size={11} />
-        <span>{ar ? "اسحب لتحريك الخريطة" : "Drag to pan"}</span>
-      </div>
+        {/* Globe stage — fills remaining container, never overflows */}
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          <GlobalCommandGlobe className="absolute inset-0 h-full w-full" />
+        </div>
 
-      {/* CSS-only warm architectural dark-tone filter — does NOT change the map */}
-      <style>{`
-        .map-high-contrast {
-          filter: grayscale(1) sepia(0.42) brightness(0.72) contrast(1.18) saturate(1.1);
-        }
-        .map-high-contrast canvas {
-          background: #191512;
-        }
-      `}</style>
+        {/* Footer hint */}
+        <div
+          className="pointer-events-none relative z-10 flex shrink-0 items-center justify-center gap-2 border-t border-[#1a1a1a] px-4 py-2.5 text-[0.46rem] uppercase tracking-[0.22em] text-[#4a4a4a]"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
+          <span>{ar ? "تدوير بالسحب · بدون تكبير" : "Drag to rotate · Zoom disabled"}</span>
+        </div>
+      </div>
     </div>
   );
 }

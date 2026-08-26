@@ -3,17 +3,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { OPERATIONAL_CITIES, EARTH_LAND_POINTS } from "@/lib/earth-data";
 
 /* ==================================================================
-   GlobalCommandGlobe — a command-center globe.
-   • Dark 3D sphere, centered (middle of the page, slightly upper),
-     no surrounding card/box, generous whitespace.
-   • Continents drawn as small, dense, naturally-spaced dots.
-   • Light lat/long grid, subtle rim lighting.
-   • City nodes are small dots on the surface; a thin line leads from
-     each dot to a small translucent label (name + clock + status).
-   • Status colors: ACTIVE = teal/green, ALERT = amber/red, STANDBY = muted blue.
-   • Interactive: drag to rotate (free, horizontal + vertical), wheel to
-     zoom, smooth motion. Nodes/labels move with the surface.
-   • Click a node to select it (highlight + enlarged label).
+   GlobalCommandGlobe — command-center globe.
+   • Fixed size (no zoom / no pinch / no scroll-zoom)
+   • Drag-only rotation (smooth inertia)
+   • Stable initial camera: Europe · Africa · Asia in view
+   • City nodes + connector labels unchanged
    ================================================================== */
 
 interface NodeState { status: "ACTIVE" | "ALERT" | "STANDBY"; }
@@ -27,19 +21,29 @@ const NODE_STATE: Record<string, NodeState> = {
 };
 
 const STATUS_COLOR: Record<NodeState["status"], { main: string; dim: string }> = {
-  ACTIVE:  { main: "201,162,39",  dim: "138,107,31" },    // deep emerald
-  ALERT:   { main: "139,46,46",   dim: "107,30,30" },   // antique gold (warning)
-  STANDBY: { main: "106,100,87",  dim: "78,72,62" }      // muted warm
+  ACTIVE:  { main: "180,180,180", dim: "120,120,120" },
+  ALERT:   { main: "140,140,140", dim: "90,90,90" },
+  STANDBY: { main: "100,100,100", dim: "70,70,70" },
 };
 
 /* anchor angle (deg, 0=right, -90=top) + distance multiplier */
 const CITY_LABELS: Record<string, { angle: number; dist: number }> = {
-  "NEW YORK": { angle: 225, dist: 1.62 },
-  "LONDON":   { angle: 290, dist: 1.72 },
-  "OSLO":     { angle: 340, dist: 1.66 },
-  "RIYADH":   { angle: 25,  dist: 1.64 },
-  "PERTH":    { angle: 150, dist: 1.66 },
+  "NEW YORK": { angle: 225, dist: 1.58 },
+  "LONDON":   { angle: 290, dist: 1.66 },
+  "OSLO":     { angle: 340, dist: 1.62 },
+  "RIYADH":   { angle: 25,  dist: 1.60 },
+  "PERTH":    { angle: 150, dist: 1.62 },
 };
+
+/**
+ * Fixed initial orientation so Europe / Africa / Asia face the camera
+ * every time the page opens. rotAngle is longitude offset in the
+ * projection (higher ≈ rotate west features toward center).
+ */
+const INITIAL_ROT = -20;   // centers Afro-Eurasia
+const INITIAL_PITCH = 12;  // slight north tilt, global overview
+/** Fixed scale — never modified by user input */
+const FIXED_ZOOM = 1.12;
 
 export default function GlobalCommandGlobe({ className = "" }: { className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -58,7 +62,8 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
     const resize = () => {
       if (!canvas || !canvas.parentElement) return;
       const r = canvas.parentElement.getBoundingClientRect();
-      width = r.width; height = r.height;
+      width = r.width;
+      height = r.height;
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = width * dpr;
       canvas.height = height * dpr;
@@ -67,9 +72,10 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
     resize();
     window.addEventListener("resize", resize);
 
-    let rotAngle = 150;
-    let pitchAngle = 14;
-    let zoom = 1.0;
+    // Always start from the same camera — never randomized
+    let rotAngle = INITIAL_ROT;
+    let pitchAngle = INITIAL_PITCH;
+    const zoom = FIXED_ZOOM; // const — size never changes
 
     let isDragging = false;
     let lastX = 0, lastY = 0;
@@ -78,43 +84,64 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
 
     const onPointerDown = (e: PointerEvent) => {
       isDragging = true;
-      lastX = e.clientX; lastY = e.clientY;
-      velLon = 0; velPitch = 0;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      velLon = 0;
+      velPitch = 0;
       inactiveFrames = 0;
       canvas.style.cursor = "grabbing";
       canvas.setPointerCapture(e.pointerId);
     };
     const onPointerMove = (e: PointerEvent) => {
       if (!isDragging) return;
-      const dx = e.clientX - lastX, dy = e.clientY - lastY;
-      rotAngle += dx * 0.35;
-      pitchAngle = Math.max(-65, Math.min(65, pitchAngle - dy * 0.22));
-      velLon = dx * 0.35; velPitch = -dy * 0.22;
-      lastX = e.clientX; lastY = e.clientY;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      // Smooth drag rotation only — no size change
+      rotAngle += dx * 0.32;
+      pitchAngle = Math.max(-55, Math.min(55, pitchAngle - dy * 0.2));
+      velLon = dx * 0.32;
+      velPitch = -dy * 0.2;
+      lastX = e.clientX;
+      lastY = e.clientY;
       inactiveFrames = 0;
     };
     const onPointerUp = () => {
       isDragging = false;
       canvas.style.cursor = "grab";
     };
-    const onWheel = (e: WheelEvent) => {
+
+    /** Block all zoom / pinch / ctrl-wheel gestures */
+    const blockZoom = (e: Event) => {
       e.preventDefault();
-      zoom = Math.max(0.7, Math.min(1.7, zoom + (e.deltaY > 0 ? -0.08 : 0.08)));
+      e.stopPropagation();
     };
 
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
     canvas.addEventListener("pointercancel", onPointerUp);
-    canvas.addEventListener("wheel", onWheel, { passive: false });
+    canvas.addEventListener("wheel", blockZoom, { passive: false });
+    canvas.addEventListener("gesturestart", blockZoom as EventListener, { passive: false } as AddEventListenerOptions);
+    canvas.addEventListener("gesturechange", blockZoom as EventListener, { passive: false } as AddEventListenerOptions);
+    canvas.addEventListener("gestureend", blockZoom as EventListener, { passive: false } as AddEventListenerOptions);
     canvas.style.cursor = "grab";
+    // Prevent browser pinch-zoom on the canvas
+    canvas.style.touchAction = "none";
 
     let time = 0;
 
     const formatClock = (tz: string) => {
       try {
-        return new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date());
-      } catch { return "--:--:--"; }
+        return new Intl.DateTimeFormat("en-GB", {
+          timeZone: tz,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        }).format(new Date());
+      } catch {
+        return "--:--:--";
+      }
     };
 
     const project = (latDeg: number, lonDeg: number, R: number, cx: number, cy: number, camDist: number) => {
@@ -138,24 +165,33 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
 
       if (!isDragging) {
         inactiveFrames++;
-        if (Math.abs(velLon) > 0.01) { rotAngle += velLon; velLon *= 0.95; }
-        if (Math.abs(velPitch) > 0.01) { pitchAngle += velPitch; velPitch *= 0.95; }
-        if (inactiveFrames > 180) {
-          const blend = Math.min(1, (inactiveFrames - 180) / 120);
-          rotAngle += 0.06 * blend;
+        // Soft inertia after drag — rotation only
+        if (Math.abs(velLon) > 0.01) {
+          rotAngle += velLon;
+          velLon *= 0.94;
+        }
+        if (Math.abs(velPitch) > 0.01) {
+          pitchAngle = Math.max(-55, Math.min(55, pitchAngle + velPitch));
+          velPitch *= 0.94;
+        }
+        // Gentle auto-spin when idle (does not change size)
+        if (inactiveFrames > 200) {
+          const blend = Math.min(1, (inactiveFrames - 200) / 140);
+          rotAngle += 0.045 * blend;
         }
       }
 
       ctx.clearRect(0, 0, width, height);
 
-      // ===== Globe centered: middle of page, slightly upper =====
+      // Globe centered in the container
       const cx = width * 0.5;
-      const cy = height * 0.46;
-      const baseR = Math.min(width, height) * 0.34;
-      const R = baseR * zoom;
+      const cy = height * 0.50;
+      // Larger than before (0.34 → 0.40) but leaves room for city labels
+      const baseR = Math.min(width, height) * 0.40;
+      const R = baseR * zoom; // zoom is constant
       const camDist = 4.2 * R;
 
-      // ===== subtle rim light (only around the edge) =====
+      // subtle rim light
       const rim = ctx.createRadialGradient(cx, cy, R * 0.92, cx, cy, R * 1.18);
       rim.addColorStop(0, "rgba(170,170,170,0.0)");
       rim.addColorStop(0.55, "rgba(170,170,170,0.05)");
@@ -166,13 +202,13 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
       ctx.arc(cx, cy, R * 1.18, 0, Math.PI * 2);
       ctx.fill();
 
-      // ===== dark sphere body =====
+      // dark sphere body
       const lx = cx + R * 0.4, ly = cy - R * 0.4;
       const sg = ctx.createRadialGradient(lx, ly, 0, cx, cy, R);
-      sg.addColorStop(0, "#1a150d");
+      sg.addColorStop(0, "#1a1a1a");
       sg.addColorStop(0.4, "#0a0a0a");
-      sg.addColorStop(0.78, "#050403");
-      sg.addColorStop(1, "#020201");
+      sg.addColorStop(0.78, "#050505");
+      sg.addColorStop(1, "#020202");
       ctx.fillStyle = sg;
       ctx.beginPath();
       ctx.arc(cx, cy, R * 0.995, 0, Math.PI * 2);
@@ -181,43 +217,50 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // ===== lat/long grid (very light) =====
+      // lat/long grid
       const pr = (pitchAngle * Math.PI) / 180;
       const cp = Math.cos(pr), sp = Math.sin(pr);
       ctx.strokeStyle = "rgba(100,100,100,0.05)";
       ctx.lineWidth = 0.7;
       for (let latDeg = -75; latDeg <= 75; latDeg += 15) {
-        ctx.beginPath(); let first = true;
+        ctx.beginPath();
+        let first = true;
         const latR = (latDeg * Math.PI) / 180, cosL = Math.cos(latR), sinL = Math.sin(latR);
         for (let lonDeg = -180; lonDeg <= 180; lonDeg += 6) {
           const lonR = ((lonDeg + rotAngle) * Math.PI) / 180;
           const x0 = R * cosL * Math.sin(lonR), y0 = -R * sinL, z0 = R * cosL * Math.cos(lonR);
           const y1 = y0 * cp - z0 * sp, z1 = y0 * sp + z0 * cp;
-          if (z1 > -0.05 * R) { const k = camDist / (camDist - z1); const sx = cx + x0 * k, sy = cy + y1 * k;
-            if (first) { ctx.moveTo(sx, sy); first = false; } else ctx.lineTo(sx, sy); }
-          else first = true;
+          if (z1 > -0.05 * R) {
+            const k = camDist / (camDist - z1);
+            const sx = cx + x0 * k, sy = cy + y1 * k;
+            if (first) { ctx.moveTo(sx, sy); first = false; } else ctx.lineTo(sx, sy);
+          } else first = true;
         }
         ctx.stroke();
       }
       for (let lonBase = 0; lonBase < 360; lonBase += 24) {
-        ctx.beginPath(); let first = true;
+        ctx.beginPath();
+        let first = true;
         for (let latDeg = -90; latDeg <= 90; latDeg += 6) {
           const latR = (latDeg * Math.PI) / 180, cosL = Math.cos(latR), sinL = Math.sin(latR);
           const lonR = ((lonBase + rotAngle) * Math.PI) / 180;
           const x0 = R * cosL * Math.sin(lonR), y0 = -R * sinL, z0 = R * cosL * Math.cos(lonR);
           const y1 = y0 * cp - z0 * sp, z1 = y0 * sp + z0 * cp;
-          if (z1 > -0.05 * R) { const k = camDist / (camDist - z1); const sx = cx + x0 * k, sy = cy + y1 * k;
-            if (first) { ctx.moveTo(sx, sy); first = false; } else ctx.lineTo(sx, sy); }
-          else first = true;
+          if (z1 > -0.05 * R) {
+            const k = camDist / (camDist - z1);
+            const sx = cx + x0 * k, sy = cy + y1 * k;
+            if (first) { ctx.moveTo(sx, sy); first = false; } else ctx.lineTo(sx, sy);
+          } else first = true;
         }
         ctx.stroke();
       }
 
-      // ===== Continents: small dense natural dots =====
+      // Continents
       const lightDirX = 0.5, lightDirY = -0.45, lightDirZ = 0.72;
       for (let i = 0; i < EARTH_LAND_POINTS.length; i++) {
         const [latDeg, lonDeg] = EARTH_LAND_POINTS[i];
-        const latR = (latDeg * Math.PI) / 180, lonR = ((lonDeg + rotAngle) * Math.PI) / 180;
+        const latR = (latDeg * Math.PI) / 180;
+        const lonR = ((lonDeg + rotAngle) * Math.PI) / 180;
         const cosL = Math.cos(latR), sinL = Math.sin(latR);
         const x0 = R * cosL * Math.sin(lonR), y0 = -R * sinL, z0 = R * cosL * Math.cos(lonR);
         const y1 = y0 * cp - z0 * sp, z1 = y0 * sp + z0 * cp;
@@ -232,11 +275,13 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
           if (lAlign > 0.35) ctx.fillStyle = `rgba(170,170,170,${a})`;
           else if (lAlign > -0.1) ctx.fillStyle = `rgba(130,130,130,${a * 0.8})`;
           else ctx.fillStyle = `rgba(40,40,40,${a * 0.5})`;
-          ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath();
+          ctx.arc(sx, sy, r, 0, Math.PI * 2);
+          ctx.fill();
         }
       }
 
-      // ===== City nodes + thin line to small translucent label =====
+      // City nodes + labels
       const drawn: { x: number; y: number; w: number; h: number }[] = [];
 
       OPERATIONAL_CITIES.forEach((city, idx) => {
@@ -247,34 +292,36 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
         const fade = Math.min(1, Math.max(0, (pt.z + 0.1 * R) / (0.35 * R)));
         const isSel = selectedRef.current === city.name;
 
-        // node dot on the surface
         const nodeR = (isSel ? 4.2 : 2.8) + (isSel ? 0 : 0.6 * Math.sin(time * 2.5 + idx));
         ctx.fillStyle = `rgba(${col.main},${0.9 * fade})`;
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, nodeR, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, nodeR, 0, Math.PI * 2);
+        ctx.fill();
         ctx.strokeStyle = `rgba(${col.main},${0.7 * fade})`;
         ctx.lineWidth = isSel ? 1.4 : 1;
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, nodeR + 2.5, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, nodeR + 2.5, 0, Math.PI * 2);
+        ctx.stroke();
 
-        // label anchor
         const def = CITY_LABELS[city.name];
         const aRad = (def.angle * Math.PI) / 180;
         const dist = R * def.dist;
         let tx = cx + dist * Math.cos(aRad);
         let ty = cy + dist * Math.sin(aRad);
 
-        // label size depends on content
         const nameW = city.name.length * 6.4;
         const boxW = isSel ? nameW + 44 : nameW + 30;
         const boxH = isSel ? 44 : 30;
-        tx = Math.max(30 + boxW / 2, Math.min(width - 30 - boxW / 2, tx));
-        ty = Math.max(30 + boxH / 2, Math.min(height - 30 - boxH / 2, ty));
+        // Keep labels inside the container bounds
+        tx = Math.max(16 + boxW / 2, Math.min(width - 16 - boxW / 2, tx));
+        ty = Math.max(16 + boxH / 2, Math.min(height - 16 - boxH / 2, ty));
 
-        // overlap nudge upward
-        let overlaps = drawn.some((d) => tx < d.x + d.w + 6 && tx + boxW + 6 > d.x && ty < d.y + d.h + 6 && ty + boxH + 6 > d.y);
-        if (overlaps) ty = Math.max(30 + boxH / 2, ty - boxH - 8);
+        const overlaps = drawn.some(
+          (d) => tx < d.x + d.w + 6 && tx + boxW + 6 > d.x && ty < d.y + d.h + 6 && ty + boxH + 6 > d.y,
+        );
+        if (overlaps) ty = Math.max(16 + boxH / 2, ty - boxH - 8);
         drawn.push({ x: tx - boxW / 2, y: ty - boxH / 2, w: boxW, h: boxH });
 
-        // thin connector line from dot to label
         ctx.strokeStyle = `rgba(${col.dim},${0.45 * fade})`;
         ctx.lineWidth = 0.8;
         ctx.beginPath();
@@ -282,7 +329,6 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
         ctx.lineTo(tx, ty);
         ctx.stroke();
 
-        // small translucent label
         const bx = tx - boxW / 2, by = ty - boxH / 2;
         ctx.fillStyle = `rgba(8,8,8,${0.8 * fade})`;
         ctx.strokeStyle = `rgba(170,170,170,${0.35 * fade})`;
@@ -292,53 +338,48 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
         ctx.fill();
         ctx.stroke();
 
-        // status dot inside label
         ctx.fillStyle = `rgba(${col.main},${0.95 * fade})`;
-        ctx.beginPath(); ctx.arc(bx + 8, by + boxH / 2, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.arc(bx + 8, by + boxH / 2, 2, 0, Math.PI * 2);
+        ctx.fill();
 
-        // name
-        ctx.fillStyle = `rgba(228,221,204,${fade})`;
+        ctx.fillStyle = `rgba(228,228,228,${fade})`;
         ctx.font = `600 ${isSel ? 10.5 : 9}px var(--font-ibm-mono), monospace`;
         ctx.textAlign = "left";
         ctx.fillText(city.name, bx + 14, by + (isSel ? 14 : 12));
 
-        // clock + status (smaller, below name)
         const tzStr = formatClock(city.tz);
         ctx.font = `500 ${isSel ? 9 : 8}px var(--font-ibm-mono), monospace`;
         if (isSel) {
-          ctx.fillStyle = `rgba(178,170,150,${0.9 * fade})`;
+          ctx.fillStyle = `rgba(178,178,178,${0.9 * fade})`;
           ctx.fillText(tzStr, bx + 14, by + 26);
           ctx.fillStyle = `rgba(${col.main},${0.9 * fade})`;
           ctx.fillText(st, bx + 14, by + 37);
         } else {
-          ctx.fillStyle = `rgba(178,170,150,${0.85 * fade})`;
+          ctx.fillStyle = `rgba(178,178,178,${0.85 * fade})`;
           ctx.fillText(tzStr, bx + 14, by + 22);
         }
       });
-
-      // HUD text — small, not overpowering
-      ctx.fillStyle = "rgba(170,170,170,0.34)";
-      ctx.font = "500 9px var(--font-ibm-mono), monospace";
-      ctx.textAlign = "center";
-      ctx.fillText("GLOBAL COMMAND NETWORK · 5 NODES · DRAG · SCROLL ZOOM", width / 2, 22);
 
       rafId = requestAnimationFrame(render);
     };
 
     render();
 
-    // click to select nearest node
     const onClick = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
       const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-      const cx = width * 0.5, cy = height * 0.46;
-      const baseR = Math.min(width, height) * 0.34;
+      const cx = width * 0.5, cy = height * 0.50;
+      const baseR = Math.min(width, height) * 0.40;
       const R = baseR * zoom, camDist = 4.2 * R;
       let best: string | null = null, bestD = 26;
       OPERATIONAL_CITIES.forEach((city) => {
         const pt = project(city.lat, city.lon, R, cx, cy, camDist);
         const d = Math.hypot(mx - pt.x, my - pt.y);
-        if (d < bestD) { bestD = d; best = city.name; }
+        if (d < bestD) {
+          bestD = d;
+          best = city.name;
+        }
       });
       selectedRef.current = best && selectedRef.current === best ? null : best;
       force((n) => n + 1);
@@ -352,14 +393,25 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("pointercancel", onPointerUp);
-      canvas.removeEventListener("wheel", onWheel);
+      canvas.removeEventListener("wheel", blockZoom);
+      canvas.removeEventListener("gesturestart", blockZoom as EventListener);
+      canvas.removeEventListener("gesturechange", blockZoom as EventListener);
+      canvas.removeEventListener("gestureend", blockZoom as EventListener);
       canvas.removeEventListener("click", onClick);
     };
   }, []);
 
   return (
-    <div className={`relative w-full h-full overflow-hidden ${className}`}>
-      <canvas ref={canvasRef} className="block w-full h-full touch-none" style={{ touchAction: "none" }} />
+    <div
+      data-globe
+      className={`relative h-full w-full overflow-hidden ${className}`}
+      style={{ touchAction: "none", overscrollBehavior: "none" }}
+    >
+      <canvas
+        ref={canvasRef}
+        className="block h-full w-full touch-none"
+        style={{ touchAction: "none", display: "block" }}
+      />
     </div>
   );
 }
