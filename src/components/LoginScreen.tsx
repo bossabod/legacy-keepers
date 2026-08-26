@@ -205,7 +205,7 @@ export default function LoginScreen({
               /* noop */
             }
           }}
-          className="group inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-mono tracking-widest text-[#8b95a5] border border-white/[0.08] bg-black/40 backdrop-blur-md transition-all duration-300 hover:border-[#d4af37]/40 hover:text-[#eaeef5] hover:bg-white/[0.04] cursor-pointer"
+          className="group inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-mono tracking-widest text-[#8b95a5] border border-white/[0.08] bg-black/40 backdrop-blur-md transition-all duration-300 hover:border-[#a8a8a8]/40 hover:text-[#eaeef5] hover:bg-white/[0.04] cursor-pointer"
         >
           <ArrowLeft size={13} className="transition-transform duration-300 group-hover:-translate-x-1" />
           <span>BACK TO GATEWAY</span>
@@ -224,7 +224,7 @@ export default function LoginScreen({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: [0.2, 0.7, 0.2, 1] }}
-          className="relative z-40 w-full max-w-md rounded-2xl p-8 sm:p-10 backdrop-blur-2xl bg-gradient-to-b from-[#0e1118]/90 via-[#080a0e]/92 to-[#040507]/95 border border-[#d4af37]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden pointer-events-auto"
+          className="relative z-40 w-full max-w-md rounded-2xl p-8 sm:p-10 backdrop-blur-2xl bg-gradient-to-b from-[#0e1118]/90 via-[#080a0e]/92 to-[#040507]/95 border border-[#a8a8a8]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden pointer-events-auto"
         >
           <span className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-50" />
 
@@ -232,7 +232,7 @@ export default function LoginScreen({
             <span className="font-mono text-[0.65rem] tracking-[0.3em] uppercase text-[#8b95a5]">
               MEMBER ACCESS
             </span>
-            <span className="h-1.5 w-1.5 rounded-full bg-[#d4af37] shadow-[0_0_8px_#d4af37]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#a8a8a8] shadow-[0_0_8px_#a8a8a8]" />
           </div>
 
           <h2 className="font-luxury text-2xl sm:text-3xl font-semibold tracking-[0.08em] text-[#eaeef5] uppercase mb-2">
@@ -277,7 +277,7 @@ export default function LoginScreen({
                     }
                   }}
                   disabled={verifying}
-                  className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#d4af37]/70 rounded-xl px-4 py-3.5 text-[#eaeef5] font-mono tracking-widest text-sm outline-none transition-all duration-300 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] focus:shadow-[0_0_20px_rgba(212,175,55,0.12),inset_0_2px_6px_rgba(0,0,0,0.9)] focus:bg-[#07090f] disabled:opacity-60 pointer-events-auto cursor-text"
+                  className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#a8a8a8]/70 rounded-xl px-4 py-3.5 text-[#eaeef5] font-mono tracking-widest text-sm outline-none transition-all duration-300 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] focus:shadow-[0_0_20px_rgba(170,170,170,0.12),inset_0_2px_6px_rgba(0,0,0,0.9)] focus:bg-[#07090f] disabled:opacity-60 pointer-events-auto cursor-text"
                 />
               </div>
             </div>
@@ -307,7 +307,7 @@ export default function LoginScreen({
                     }
                   }}
                   disabled={verifying}
-                  className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#d4af37]/70 rounded-xl px-4 py-3.5 pr-12 text-[#eaeef5] font-mono tracking-[0.5em] text-center text-sm outline-none transition-all duration-300 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] focus:shadow-[0_0_20px_rgba(212,175,55,0.12),inset_0_2px_6px_rgba(0,0,0,0.9)] focus:bg-[#07090f] disabled:opacity-60 pointer-events-auto cursor-text"
+                  className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#a8a8a8]/70 rounded-xl px-4 py-3.5 pr-12 text-[#eaeef5] font-mono tracking-[0.5em] text-center text-sm outline-none transition-all duration-300 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] focus:shadow-[0_0_20px_rgba(170,170,170,0.12),inset_0_2px_6px_rgba(0,0,0,0.9)] focus:bg-[#07090f] disabled:opacity-60 pointer-events-auto cursor-text"
                 />
                 {/* Show / hide password */}
                 <button
@@ -340,12 +340,12 @@ export default function LoginScreen({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="flex items-start gap-2 rounded-lg border border-[#6b1e1e]/50 bg-[#6b1e1e]/15 px-3 py-2.5"
+                  className="flex items-start gap-2 rounded-lg border border-[#555555]/40 bg-[#141414] px-3 py-2.5"
                   role="alert"
                   data-testid="login-error"
                 >
-                  <AlertCircle size={14} className="mt-0.5 shrink-0 text-[#a33a3a]" />
-                  <span className="font-mono text-[0.68rem] leading-relaxed tracking-wide text-[#d4a0a0]/90">
+                  <AlertCircle size={14} className="mt-0.5 shrink-0 text-[#888888]" />
+                  <span className="font-mono text-[0.68rem] leading-relaxed tracking-wide text-[#b0b0b0]">
                     {error}
                   </span>
                 </motion.div>
@@ -372,7 +372,7 @@ export default function LoginScreen({
                 className="group relative w-full overflow-hidden rounded-xl py-4 px-6 font-luxury text-sm font-semibold tracking-[0.2em] uppercase text-[#eaeef5] transition-all duration-500 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer pointer-events-auto"
                 style={{
                   background: "linear-gradient(180deg, #1e1e1e 0%, #121212 50%, #0c0c0c 100%)",
-                  border: "1px solid rgba(212,175,55,0.35)",
+                  border: "1px solid rgba(170,170,170,0.35)",
                   boxShadow:
                     "inset 0 1px 0 rgba(255,255,255,0.12), 0 0 0 1px rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.7), 0 0 20px rgba(174,182,194,0.08)",
                 }}
@@ -381,7 +381,7 @@ export default function LoginScreen({
 
                 {verifying ? (
                   <span className="flex items-center justify-center gap-2.5 font-mono text-xs tracking-widest">
-                    <Loader2 className="animate-spin text-[#d4af37]" size={16} />
+                    <Loader2 className="animate-spin text-[#a8a8a8]" size={16} />
                     AUTHENTICATING...
                   </span>
                 ) : (
@@ -411,7 +411,7 @@ export default function LoginScreen({
                   /* noop */
                 }
               }}
-              className="w-full rounded-md border border-white/[0.08] bg-black/30 px-3 py-2.5 text-center transition-all duration-300 hover:border-[#d4af37]/35 hover:bg-white/[0.04] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer pointer-events-auto"
+              className="w-full rounded-md border border-white/[0.08] bg-black/30 px-3 py-2.5 text-center transition-all duration-300 hover:border-[#a8a8a8]/35 hover:bg-white/[0.04] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer pointer-events-auto"
             >
               <span className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#9aa3b1]">
                 DEMO ACCESS
@@ -456,9 +456,9 @@ export default function LoginScreen({
             <div className="relative h-16 w-16">
               <div
                 className="absolute inset-0 rounded-full border-2 border-transparent animate-spin"
-                style={{ borderTopColor: "#d4af37" }}
+                style={{ borderTopColor: "#a8a8a8" }}
               />
-              <Lock className="absolute inset-0 m-auto text-[#d4af37]" size={20} />
+              <Lock className="absolute inset-0 m-auto text-[#a8a8a8]" size={20} />
             </div>
             <p className="font-luxury text-sm tracking-[0.3em] uppercase text-[#eaeef5]">
               Decrypting Inner Circle...

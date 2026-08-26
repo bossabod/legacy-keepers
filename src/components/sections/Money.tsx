@@ -16,9 +16,9 @@ import type { AppData } from "@/lib/types";
 
 const MONO = "var(--font-ibm-mono)";
 const LUX = "var(--font-luxury)";
-const GREEN = "#5fae83";
+const GREEN = "#8a8a8a";
 const RED = "#c05c52";
-const CYAN = "#c9a227";
+const CYAN = "#9a9a9a";
 const BG = "#080808";
 
 /* ───────── Deterministic OHLC (2013 → present) ───────── */
@@ -168,13 +168,13 @@ export default function InvestmentsSection({ data: _data }: { data: AppData }) {
     <div className="mx-auto max-w-6xl px-1" dir={ar ? "rtl" : "ltr"}>
       <header className="mb-8">
         <h1 className="text-[clamp(2rem,4vw,3rem)] font-light uppercase tracking-[0.14em] text-[#e8e8e8]" style={{ fontFamily: LUX }}>{S(lang, "portfolio")}</h1>
-        <div className="mt-5 flex items-center gap-7 border-b border-[#c9a227]/[0.10]">
+        <div className="mt-5 flex items-center gap-7 border-b border-[#9a9a9a]/[0.10]">
           {(["personal", "club"] as const).map((s) => {
             const on = scope === s;
             return (
               <button key={s} onClick={() => switchScope(s)}
                 className="relative pb-2.5 text-[0.78rem] uppercase tracking-[0.25em] transition-colors duration-300"
-                style={{ fontFamily: MONO, color: on ? "#e8c547" : "#4a4a4a" }}>
+                style={{ fontFamily: MONO, color: on ? "#c0c0c0" : "#4a4a4a" }}>
                 {S(lang, s)}
                 {on && <motion.span layoutId="scope-underline" className="absolute inset-x-0 bottom-0 h-px" style={{ background: GREEN, boxShadow: `0 0 8px ${GREEN}` }} />}
               </button>
@@ -199,7 +199,7 @@ export default function InvestmentsSection({ data: _data }: { data: AppData }) {
           </motion.div>
         ) : active ? (
           <motion.div key="big" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-            <button onClick={goBack} className="mb-5 flex items-center gap-2 text-[0.62rem] uppercase tracking-[0.25em] text-[#c9a227] hover:text-[#e8c547]" style={{ fontFamily: MONO }}>← {S(lang, "back")}</button>
+            <button onClick={goBack} className="mb-5 flex items-center gap-2 text-[0.62rem] uppercase tracking-[0.25em] text-[#9a9a9a] hover:text-[#c0c0c0]" style={{ fontFamily: MONO }}>← {S(lang, "back")}</button>
             <AssetChart id={active} lang={lang} />
           </motion.div>
         ) : (
@@ -249,7 +249,7 @@ function MiniCard({ id, lang, onOpen }: { id: string; lang: "en" | "ar"; onOpen:
         grid: { vertLines: { visible: false }, horzLines: { visible: false } },
         rightPriceScale: { visible: false },
         timeScale: { visible: false },
-        crosshair: { mode: 1, vertLine: { color: "rgba(212,175,55,0.5)" }, horzLine: { color: "rgba(212,175,55,0.5)" } },
+        crosshair: { mode: 1, vertLine: { color: "rgba(170,170,170,0.5)" }, horzLine: { color: "rgba(170,170,170,0.5)" } },
         handleScroll: false,
         handleScale: false,
       });
@@ -267,7 +267,7 @@ function MiniCard({ id, lang, onOpen }: { id: string; lang: "en" | "ar"; onOpen:
   return (
     <button
       onClick={onOpen}
-      className="group flex flex-col overflow-hidden border border-[#c9a227]/[0.10] bg-[#080808] text-left transition-all duration-300 hover:border-[#c9a227]/45 hover:bg-[#0d0b06]"
+      className="group flex flex-col overflow-hidden border border-[#9a9a9a]/[0.10] bg-[#080808] text-left transition-all duration-300 hover:border-[#9a9a9a]/45 hover:bg-[#0d0b06]"
     >
       {/* header: name + annual performance */}
       <div className="flex items-center justify-between px-4 pb-2 pt-3">
@@ -308,7 +308,7 @@ function AssetChart({ id, lang }: { id: string; lang: "en" | "ar" }) {
     time: d.t as UTCTimestamp, open: d.o, high: d.h, low: d.l, close: d.c,
   }));
   const volData: HistogramData[] = data.map((d) => ({
-    time: d.t as UTCTimestamp, value: d.v, color: d.c >= d.o ? "rgba(95,174,131,0.35)" : "rgba(192,92,82,0.35)",
+    time: d.t as UTCTimestamp, value: d.v, color: d.c >= d.o ? "rgba(150,150,150,0.35)" : "rgba(192,92,82,0.35)",
   }));
 
   /* last return % */
@@ -323,13 +323,13 @@ function AssetChart({ id, lang }: { id: string; lang: "en" | "ar" }) {
     const chart = createChart(container, {
       autoSize: true,
       layout: { background: { type: ColorType.Solid, color: BG }, textColor: "#8b95a5", fontFamily: "'IBM Plex Mono', monospace", fontSize: 10 },
-      grid: { vertLines: { color: "rgba(212,175,55,0.05)" }, horzLines: { color: "rgba(212,175,55,0.05)" } },
-      rightPriceScale: { borderColor: "rgba(212,175,55,0.12)", mode: PriceScaleMode.Percentage },
-      timeScale: { borderColor: "rgba(212,175,55,0.12)", timeVisible: true, secondsVisible: false },
+      grid: { vertLines: { color: "rgba(170,170,170,0.05)" }, horzLines: { color: "rgba(170,170,170,0.05)" } },
+      rightPriceScale: { borderColor: "rgba(170,170,170,0.12)", mode: PriceScaleMode.Percentage },
+      timeScale: { borderColor: "rgba(170,170,170,0.12)", timeVisible: true, secondsVisible: false },
       crosshair: {
         mode: 1,
-        vertLine: { color: "rgba(212,175,55,0.6)", labelBackgroundColor: "#2a2313" },
-        horzLine: { color: "rgba(212,175,55,0.6)", labelBackgroundColor: "#2a2313" },
+        vertLine: { color: "rgba(170,170,170,0.6)", labelBackgroundColor: "#2a2313" },
+        horzLine: { color: "rgba(170,170,170,0.6)", labelBackgroundColor: "#2a2313" },
       },
     });
     const candle = chart.addSeries(CandlestickSeries, {
@@ -356,7 +356,7 @@ function AssetChart({ id, lang }: { id: string; lang: "en" | "ar" }) {
       const pct = ((cd.close / prevClose - 1) * 100);
       const chg = cd.close >= prevClose;
       tip.innerHTML =
-        `<div style="font-family:var(--font-ibm-mono);color:#8a6b1f;letter-spacing:.12em;font-size:9px;text-transform:uppercase;margin-bottom:4px">${date}</div>` +
+        `<div style="font-family:var(--font-ibm-mono);color:#6a6a6a;letter-spacing:.12em;font-size:9px;text-transform:uppercase;margin-bottom:4px">${date}</div>` +
         `<div style="display:grid;grid-template-columns:auto auto;gap:3px 14px;font-family:var(--font-ibm-mono);font-size:10px;line-height:1.5">` +
         `  <span style="color:#4a4a4a">O</span><span style="color:#e8e8e8;text-align:right">${cd.open.toFixed(2)}</span>` +
         `  <span style="color:#4a4a4a">H</span><span style="color:#e8e8e8;text-align:right">${cd.high.toFixed(2)}</span>` +
@@ -457,11 +457,11 @@ function AssetChart({ id, lang }: { id: string; lang: "en" | "ar" }) {
       </div>
 
       {/* toolbar */}
-      <div className="mb-3 mt-4 flex flex-wrap items-center gap-1 border-b border-[#c9a227]/[0.10] pb-2">
+      <div className="mb-3 mt-4 flex flex-wrap items-center gap-1 border-b border-[#9a9a9a]/[0.10] pb-2">
         {["1Y", "6M", "1M", "1W", "1D"].map((x) => (
           <button key={x} onClick={() => setTf(x)}
             className="rounded px-2.5 py-1 text-[0.62rem] uppercase tracking-[0.12em] transition-colors"
-            style={{ fontFamily: MONO, color: tf === x ? "#e8c547" : "#4a4a4a", background: tf === x ? "rgba(212,175,55,0.12)" : "transparent" }}>
+            style={{ fontFamily: MONO, color: tf === x ? "#c0c0c0" : "#4a4a4a", background: tf === x ? "rgba(170,170,170,0.12)" : "transparent" }}>
             {x}
           </button>
         ))}
@@ -477,18 +477,18 @@ function AssetChart({ id, lang }: { id: string; lang: "en" | "ar" }) {
 
       {/* chart (or fullscreen) */}
       <div
-        className={`relative w-full overflow-hidden border border-[#c9a227]/[0.10] bg-[#080808] ${expanded ? "fixed inset-0 z-50" : ""}`}
+        className={`relative w-full overflow-hidden border border-[#9a9a9a]/[0.10] bg-[#080808] ${expanded ? "fixed inset-0 z-50" : ""}`}
         style={{ height: expanded ? "100vh" : "420px" }}
       >
         <div ref={mountRef} className="h-full w-full" />
         {/* crosshair tooltip */}
         <div
           ref={tipRef}
-          className="pointer-events-none absolute left-3 top-3 z-10 rounded border border-[#c9a227]/20 bg-[#0a0a0a]/92 px-3 py-2 opacity-0 backdrop-blur-sm transition-opacity duration-150"
+          className="pointer-events-none absolute left-3 top-3 z-10 rounded border border-[#9a9a9a]/20 bg-[#0a0a0a]/92 px-3 py-2 opacity-0 backdrop-blur-sm transition-opacity duration-150"
         />
         {expanded && (
           <button onClick={() => setExpanded(false)}
-            className="absolute right-3 top-3 z-10 rounded border border-[#c9a227]/40 px-3 py-1 text-[0.6rem] uppercase tracking-[0.2em] text-[#c9a227] hover:text-[#e8c547]"
+            className="absolute right-3 top-3 z-10 rounded border border-[#9a9a9a]/40 px-3 py-1 text-[0.6rem] uppercase tracking-[0.2em] text-[#9a9a9a] hover:text-[#c0c0c0]"
             style={{ fontFamily: MONO }}>
             × {S(lang, "closeT")}
           </button>
@@ -501,7 +501,7 @@ function AssetChart({ id, lang }: { id: string; lang: "en" | "ar" }) {
 function ToolBtn({ label, onClick, title }: { label: string; onClick: () => void; title?: string }) {
   return (
     <button onClick={onClick} title={title}
-      className="rounded border border-[#c9a227]/[0.16] px-2 py-1 text-[0.62rem] text-[#8a8a8a] transition hover:border-[#c9a227]/50 hover:text-[#e8c547]"
+      className="rounded border border-[#9a9a9a]/[0.16] px-2 py-1 text-[0.62rem] text-[#8a8a8a] transition hover:border-[#9a9a9a]/50 hover:text-[#c0c0c0]"
       style={{ fontFamily: MONO }}>
       {label}
     </button>
