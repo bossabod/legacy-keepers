@@ -79,8 +79,8 @@ export default function MembersSection({ data }: { data: AppData }) {
                 className="glass group flex h-full w-full items-center gap-3 rounded-xl p-4 text-right transition hover:border-white/15"
               >
                 <div
-                  className="mono flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[0.72rem] text-[#c3c9d3]"
-                  style={{ border: "1px solid rgba(195,201,211,0.18)" }}
+                  className="mono flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[0.72rem] text-[#b0b0b0]"
+                  style={{ border: "1px solid rgba(176,176,176,0.18)" }}
                 >
                   {m.visible ? m.initials : <Lock size={15} />}
                 </div>
@@ -106,8 +106,8 @@ export default function MembersSection({ data }: { data: AppData }) {
             <div>
               <div className="flex items-center gap-3">
                 <div
-                  className="mono flex h-14 w-14 items-center justify-center rounded-full text-base text-[#c3c9d3]"
-                  style={{ border: "1px solid rgba(195,201,211,0.2)" }}
+                  className="mono flex h-14 w-14 items-center justify-center rounded-full text-base text-[#b0b0b0]"
+                  style={{ border: "1px solid rgba(176,176,176,0.2)" }}
                 >
                   {selected.initials}
                 </div>
@@ -117,7 +117,7 @@ export default function MembersSection({ data }: { data: AppData }) {
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[0.72rem] text-[#c3c9d3]">
+                <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[0.72rem] text-[#b0b0b0]">
                   {ar ? `الرتبة: ${selected.rank}` : `Rank: ${selected.rank}`}
                 </span>
                 <span className="rounded-full border border-white/10 px-3 py-1 text-[0.72rem] text-[#aeb6c2]">

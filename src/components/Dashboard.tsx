@@ -164,7 +164,7 @@ export default function Dashboard({
 
   return (
     <div
-      className="relative flex min-h-screen w-full flex-col bg-[#05070c]"
+      className="relative flex min-h-screen w-full flex-col bg-[#050505]"
       dir={lang === "ar" ? "rtl" : "ltr"}
       data-demo={demoMode ? "true" : "false"}
       data-screen="dashboard"
@@ -172,13 +172,13 @@ export default function Dashboard({
     >
       {demoMode && (
         <div
-          className="relative z-[50] flex items-center justify-center gap-2 border-b border-[#6b9ac8]/20 bg-[#080c14] px-4 py-1.5"
+          className="relative z-[50] flex items-center justify-center gap-2 border-b border-[#c9a227]/20 bg-[#0a0a0a] px-4 py-1.5"
           role="status"
           style={{ pointerEvents: "none" }}
         >
-          <span className="h-1.5 w-1.5 rounded-full bg-[#6b9ac8]" style={{ boxShadow: "0 0 6px #6b9ac8" }} />
+          <span className="h-1.5 w-1.5 rounded-full bg-[#c9a227]" style={{ boxShadow: "0 0 6px #c9a227" }} />
           <span
-            className="text-[0.55rem] uppercase tracking-[0.28em] text-[#6b9ac8]/90"
+            className="text-[0.55rem] uppercase tracking-[0.28em] text-[#c9a227]/90"
             style={{ fontFamily: "var(--font-ibm-mono)" }}
           >
             {lang === "ar" ? "نسخة تجريبية · DEMO MODE" : "DEMO MODE · READ-ONLY PREVIEW"}
@@ -187,7 +187,7 @@ export default function Dashboard({
       )}
       {/* ===== Top Navigation — discreet, gold-hairline, scroll-aware ===== */}
       <nav
-        className={`sticky top-0 z-[100] w-full transition-all duration-500 ${scrolled ? "border-b border-[#6b9ac8]/10 bg-[#05070c]/85 backdrop-blur-xl" : "border-b border-transparent bg-[#05070c]/70 backdrop-blur-md"}`}
+        className={`sticky top-0 z-[100] w-full transition-all duration-500 ${scrolled ? "border-b border-[#c9a227]/10 bg-[#050505]/85 backdrop-blur-xl" : "border-b border-transparent bg-[#050505]/70 backdrop-blur-md"}`}
         style={{ pointerEvents: "auto" }}
         data-nav="primary"
       >
@@ -197,8 +197,8 @@ export default function Dashboard({
           <button type="button" onClick={() => go("home")} className="group flex items-center gap-3 shrink-0" onMouseEnter={() => play("hover")}>
             <Logo size={22} />
             <div className="text-left leading-none hidden sm:block">
-              <div className="text-[0.9rem] font-semibold tracking-[0.18em] text-[#e6eef8] transition-colors duration-300 group-hover:text-white" style={{ fontFamily: "var(--font-luxury)" }}>OWNERS OF IMPACT</div>
-              <div className="mt-1 text-[0.46rem] uppercase tracking-[0.34em] text-[#6b9ac8]/70" style={{ fontFamily: "var(--font-ibm-mono)" }}>EST. 2012 · MEMBERS ONLY</div>
+              <div className="text-[0.9rem] font-semibold tracking-[0.18em] text-[#e8e8e8] transition-colors duration-300 group-hover:text-white" style={{ fontFamily: "var(--font-luxury)" }}>OWNERS OF IMPACT</div>
+              <div className="mt-1 text-[0.46rem] uppercase tracking-[0.34em] text-[#c9a227]/70" style={{ fontFamily: "var(--font-ibm-mono)" }}>EST. 2012 · MEMBERS ONLY</div>
             </div>
           </button>
 
@@ -209,14 +209,14 @@ export default function Dashboard({
               const restricted = RESTRICTED.has(item.key);
               return (
                 <button type="button" key={item.key} onClick={() => go(item.key)} onMouseEnter={() => play("hover")} className="group relative py-2 shrink-0">
-                  <span className={`text-[0.84rem] uppercase tracking-[0.16em] transition-all duration-300 ${active ? "text-[#a8cfe8]" : "text-[#8b8577] group-hover:text-[#e6eef8]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600, textShadow: active ? "0 0 18px rgba(126,176,216,0.28)" : "none" }}>
+                  <span className={`text-[0.84rem] uppercase tracking-[0.16em] transition-all duration-300 ${active ? "text-[#e8c547]" : "text-[#8b8577] group-hover:text-[#e8e8e8]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600, textShadow: active ? "0 0 18px rgba(212,175,55,0.28)" : "none" }}>
                     {t(item.labelKey, lang)}
                   </span>
                   {restricted && (
-                    <span className="absolute -right-1 -top-0.5 h-1.5 w-1.5 rotate-45" style={{ background: "#6b9ac8", boxShadow: "0 0 6px rgba(107,154,200,0.8)" }} />
+                    <span className="absolute -right-1 -top-0.5 h-1.5 w-1.5 rotate-45" style={{ background: "#6b1e1e", boxShadow: "0 0 8px rgba(139,46,46,0.85)" }} />
                   )}
-                  {active && <span className="absolute bottom-0 left-0 h-px w-full" style={{ background: "linear-gradient(90deg, transparent, #6b9ac8 40%, #a8cfe8 60%, transparent)", boxShadow: "0 0 6px rgba(126,176,216,0.5)" }} />}
-                  {!active && <span className="absolute bottom-0 left-1/2 h-px w-0 -translate-x-1/2 bg-[#6b9ac8]/60 transition-all duration-300 group-hover:w-full group-hover:left-0 group-hover:translate-x-0" />}
+                  {active && <span className="absolute bottom-0 left-0 h-px w-full" style={{ background: "linear-gradient(90deg, transparent, #c9a227 40%, #e8c547 60%, transparent)", boxShadow: "0 0 6px rgba(212,175,55,0.5)" }} />}
+                  {!active && <span className="absolute bottom-0 left-1/2 h-px w-0 -translate-x-1/2 bg-[#c9a227]/60 transition-all duration-300 group-hover:w-full group-hover:left-0 group-hover:translate-x-0" />}
                 </button>
               );
             })}
@@ -224,11 +224,11 @@ export default function Dashboard({
             {/* More dropdown */}
             <div ref={moreRef} className="relative shrink-0">
               <button type="button" onClick={() => { setMoreOpen(!moreOpen); play("click"); }} onMouseEnter={() => play("hover")} className="group relative py-2 flex items-center gap-1.5">
-                <span className={`text-[0.84rem] uppercase tracking-[0.16em] transition-all duration-300 ${SECONDARY_NAV.some((s) => s.key === section) || moreOpen ? "text-[#a8cfe8]" : "text-[#8b8577] group-hover:text-[#e6eef8]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
+                <span className={`text-[0.84rem] uppercase tracking-[0.16em] transition-all duration-300 ${SECONDARY_NAV.some((s) => s.key === section) || moreOpen ? "text-[#e8c547]" : "text-[#8b8577] group-hover:text-[#e8e8e8]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
                   {t("nav.more", lang)}
                 </span>
-                <ChevronDown size={13} className={`text-[#6b9ac8]/70 transition-transform duration-300 ${moreOpen ? "rotate-180" : ""}`} />
-                {(SECONDARY_NAV.some((s) => s.key === section) || moreOpen) && <span className="absolute bottom-0 left-0 h-px w-full" style={{ background: "linear-gradient(90deg, transparent, #6b9ac8 40%, #a8cfe8 60%, transparent)" }} />}
+                <ChevronDown size={13} className={`text-[#c9a227]/70 transition-transform duration-300 ${moreOpen ? "rotate-180" : ""}`} />
+                {(SECONDARY_NAV.some((s) => s.key === section) || moreOpen) && <span className="absolute bottom-0 left-0 h-px w-full" style={{ background: "linear-gradient(90deg, transparent, #c9a227 40%, #e8c547 60%, transparent)" }} />}
               </button>
 
               <AnimatePresence>
@@ -238,23 +238,23 @@ export default function Dashboard({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -6, scale: 0.99 }}
                     transition={{ duration: 0.26, ease: [0.2, 0.7, 0.2, 1] }}
-                    className="absolute left-1/2 -translate-x-1/2 top-full mt-3 min-w-[220px] max-h-[400px] overflow-y-auto scroll-thin rounded-lg border border-[#6b9ac8]/15 bg-[#080c14]/95 backdrop-blur-xl py-2 shadow-[0_24px_60px_rgba(0,0,0,0.85)]"
+                    className="absolute left-1/2 -translate-x-1/2 top-full mt-3 min-w-[220px] max-h-[400px] overflow-y-auto scroll-thin rounded-lg border border-[#c9a227]/15 bg-[#0a0a0a]/95 backdrop-blur-xl py-2 shadow-[0_24px_60px_rgba(0,0,0,0.85)]"
                   >
                     {SECONDARY_NAV.map((item) => {
                       const active = section === item.key;
                       const restricted = RESTRICTED.has(item.key);
                       return (
                         <button type="button" key={item.key} onClick={() => go(item.key)} onMouseEnter={() => play("hover")}
-                          className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-[0.8rem] tracking-[0.08em] transition-colors duration-200 ${active ? "text-[#a8cfe8] bg-[#6b9ac8]/[0.06]" : "text-[#8a97a8] hover:text-[#e6eef8] hover:bg-[#6b9ac8]/[0.03]"}`}
+                          className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-[0.8rem] tracking-[0.08em] transition-colors duration-200 ${active ? "text-[#e8c547] bg-[#c9a227]/[0.06]" : "text-[#8a8a8a] hover:text-[#e8e8e8] hover:bg-[#c9a227]/[0.03]"}`}
                           style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
                           <span>{t(item.labelKey, lang)}</span>
-                          {restricted && <span className="text-[0.44rem] uppercase tracking-[0.18em] text-[#6b9ac8]/60" style={{ fontFamily: "var(--font-ibm-mono)" }}>· · ·</span>}
+                          {restricted && <span className="text-[0.44rem] uppercase tracking-[0.18em] text-[#c9a227]/60" style={{ fontFamily: "var(--font-ibm-mono)" }}>· · ·</span>}
                         </button>
                       );
                     })}
-                    <div className="my-1.5 mx-3 h-px bg-[#6b9ac8]/10" />
+                    <div className="my-1.5 mx-3 h-px bg-[#c9a227]/10" />
                     <button type="button" onClick={() => { play("reject"); onLogout(); }} onMouseEnter={() => play("hover")}
-                      className="block w-full px-4 py-2.5 text-left text-[0.8rem] tracking-[0.08em] text-[#4a5566] hover:text-[#8a97a8] transition-colors duration-200"
+                      className="block w-full px-4 py-2.5 text-left text-[0.8rem] tracking-[0.08em] text-[#4a4a4a] hover:text-[#8a8a8a] transition-colors duration-200"
                       style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
                       {t("nav.logout", lang)}
                     </button>
@@ -269,22 +269,22 @@ export default function Dashboard({
             {MONEY.includes(section) && (
               <div className="hidden sm:flex items-center gap-0.5">
                 {(["CHF", "USD", "BTC"] as const).map((c) => (
-                  <button type="button" key={c} onClick={() => setCurrency(c)} className={`text-[0.66rem] tracking-[0.12em] px-2 py-1 transition-colors duration-250 ${currency === c ? "text-[#a8cfe8]" : "text-[#4a5566] hover:text-[#8a97a8]"}`} style={{ fontFamily: "var(--font-ibm-mono)" }}>{c}</button>
+                  <button type="button" key={c} onClick={() => setCurrency(c)} className={`text-[0.66rem] tracking-[0.12em] px-2 py-1 transition-colors duration-250 ${currency === c ? "text-[#e8c547]" : "text-[#4a4a4a] hover:text-[#8a8a8a]"}`} style={{ fontFamily: "var(--font-ibm-mono)" }}>{c}</button>
                 ))}
               </div>
             )}
 
             {/* Language Switcher */}
-            <button type="button" onClick={() => { setLang(lang === "en" ? "ar" : "en"); play("click"); }} onMouseEnter={() => play("hover")} className="flex items-center gap-1.5 text-[0.7rem] tracking-wide text-[#8b8577] hover:text-[#a8cfe8] transition-colors duration-300 border border-[#6b9ac8]/15 rounded-md px-2.5 py-1.5 hover:border-[#6b9ac8]/40">
+            <button type="button" onClick={() => { setLang(lang === "en" ? "ar" : "en"); play("click"); }} onMouseEnter={() => play("hover")} className="flex items-center gap-1.5 text-[0.7rem] tracking-wide text-[#8b8577] hover:text-[#e8c547] transition-colors duration-300 border border-[#c9a227]/15 rounded-md px-2.5 py-1.5 hover:border-[#c9a227]/40">
               <Globe size={13} />
               <span style={{ fontFamily: "var(--font-ibm-mono)" }}>{lang === "en" ? "EN" : "ع"}</span>
             </button>
 
-            <button type="button" onClick={toggleSound} onMouseEnter={() => play("hover")} className="text-[#8b8577] hover:text-[#a8cfe8] transition-colors duration-300" aria-label="Sound">
+            <button type="button" onClick={toggleSound} onMouseEnter={() => play("hover")} className="text-[#8b8577] hover:text-[#e8c547] transition-colors duration-300" aria-label="Sound">
               {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
             </button>
 
-            <button type="button" onClick={() => { setMobileOpen(!mobileOpen); play("click"); }} className="lg:hidden text-[#8a97a8]" aria-label="Menu">
+            <button type="button" onClick={() => { setMobileOpen(!mobileOpen); play("click"); }} className="lg:hidden text-[#8a8a8a]" aria-label="Menu">
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
@@ -299,24 +299,24 @@ export default function Dashboard({
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-            className="lg:hidden overflow-hidden border-b border-[#6b9ac8]/10 bg-[#070a10]/95 backdrop-blur-xl"
+            className="lg:hidden overflow-hidden border-b border-[#c9a227]/10 bg-[#0a0a0a]/95 backdrop-blur-xl"
           >
             <div className="px-6 py-6">
-              <div className="mb-3 text-[0.46rem] uppercase tracking-[0.32em] text-[#6b9ac8]/60" style={{ fontFamily: "var(--font-ibm-mono)" }}>{lang === "ar" ? "أقسام النادي" : "The House"}</div>
+              <div className="mb-3 text-[0.46rem] uppercase tracking-[0.32em] text-[#c9a227]/60" style={{ fontFamily: "var(--font-ibm-mono)" }}>{lang === "ar" ? "أقسام النادي" : "The House"}</div>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1">
                 {[...PRIMARY_NAV, ...SECONDARY_NAV].map((item) => {
                   const on = section === item.key;
                   const restricted = RESTRICTED.has(item.key);
                   return (
-                    <button type="button" key={item.key} onClick={() => go(item.key)} className={`relative text-left py-2.5 pr-6 text-[0.92rem] tracking-[0.06em] transition-colors ${on ? "text-[#a8cfe8]" : "text-[#8b8577]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
+                    <button type="button" key={item.key} onClick={() => go(item.key)} className={`relative text-left py-2.5 pr-6 text-[0.92rem] tracking-[0.06em] transition-colors ${on ? "text-[#e8c547]" : "text-[#8b8577]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
                       {t(item.labelKey, lang)}
-                      {restricted && <span className="absolute right-1 top-1/2 -translate-y-1/2 h-1 w-1 rotate-45" style={{ background: "#6b9ac8" }} />}
+                      {restricted && <span className="absolute right-1 top-1/2 -translate-y-1/2 h-1 w-1 rotate-45" style={{ background: "#6b1e1e", boxShadow: "0 0 6px rgba(139,46,46,0.7)" }} />}
                     </button>
                   );
                 })}
               </div>
-              <div className="my-4 h-px bg-[#6b9ac8]/10" />
-              <button type="button" onClick={() => { play("reject"); onLogout(); }} className="text-left text-[0.92rem] text-[#4a5566]" style={{ fontFamily: "var(--font-luxury)" }}>{t("nav.logout", lang)}</button>
+              <div className="my-4 h-px bg-[#c9a227]/10" />
+              <button type="button" onClick={() => { play("reject"); onLogout(); }} className="text-left text-[0.92rem] text-[#4a4a4a]" style={{ fontFamily: "var(--font-luxury)" }}>{t("nav.logout", lang)}</button>
             </div>
           </motion.div>
         )}

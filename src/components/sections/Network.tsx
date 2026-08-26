@@ -56,7 +56,7 @@ export default function NetworkSection() {
       <div className="pointer-events-auto absolute left-1/2 top-3 z-20 -translate-x-1/2">
         <button
           onClick={() => { setPanelOpen((v) => !v); setOpenCountry(null); }}
-          className="flex items-center gap-2 rounded-xl border border-[#3a5a86]/50 bg-[#0a0c12]/85 px-4 py-2.5 text-[0.72rem] uppercase tracking-[0.2em] text-[#c3c9d3] backdrop-blur-md shadow-[0_8px_25px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(127,176,255,0.12)] transition hover:border-[#7fb0ff]/60 hover:text-white"
+          className="flex items-center gap-2 rounded-xl border border-[#3a5a86]/50 bg-[#0a0c12]/85 px-4 py-2.5 text-[0.72rem] uppercase tracking-[0.2em] text-[#b0b0b0] backdrop-blur-md shadow-[0_8px_25px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(127,176,255,0.12)] transition hover:border-[#7fb0ff]/60 hover:text-white"
         >
           <Navigation size={14} className="text-[#7fb0ff]" />
           {ar ? "تنقل المدن" : "City Navigation"}
@@ -73,7 +73,7 @@ export default function NetworkSection() {
                   <div key={country.id} className="mb-0.5">
                     <button
                       onClick={() => setOpenCountry(open ? null : country.id)}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[0.78rem] tracking-[0.05em] text-[#c3c9d3] transition-colors hover:bg-white/[0.04] hover:text-white"
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[0.78rem] tracking-[0.05em] text-[#b0b0b0] transition-colors hover:bg-white/[0.04] hover:text-white"
                     >
                       <span className="flex items-center gap-2">
                         <MapPin size={12} className="text-[#7fb0ff]/70" />

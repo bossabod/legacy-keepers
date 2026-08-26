@@ -65,15 +65,15 @@ export default function HomeSection({
       <div className="mx-auto max-w-7xl space-y-12">
         {/* ═══════ The Journey — index into the house ═══════ */}
         <Reveal>
-          <div className="border-b border-[#6b9ac8]/10 pb-2 pt-1">
+          <div className="border-b border-[#c9a227]/10 pb-2 pt-1">
             <div className="mb-7 flex items-end justify-between">
               <div>
-                <div className="eyebrow" style={{ color: "#6b9ac8" }}>{ar ? "رحلتك في النادي" : "Your Passage"}</div>
-                <h2 className="mt-3 text-[clamp(2rem,5vw,3.4rem)] font-light uppercase tracking-[0.14em] text-[#e6eef8]" style={{ fontFamily: "var(--font-luxury)" }}>
+                <div className="eyebrow" style={{ color: "#c9a227" }}>{ar ? "رحلتك في النادي" : "Your Passage"}</div>
+                <h2 className="mt-3 text-[clamp(2rem,5vw,3.4rem)] font-light uppercase tracking-[0.14em] text-[#e8e8e8]" style={{ fontFamily: "var(--font-luxury)" }}>
                   {ar ? "منزل أصحاب الأثر" : "The House"}
                 </h2>
               </div>
-              <span className="hidden sm:block text-[0.46rem] uppercase tracking-[0.3em] text-[#657384]" style={{ fontFamily: "var(--font-ibm-mono)" }}>EST. 2012 · BY COVENANT</span>
+              <span className="hidden sm:block text-[0.46rem] uppercase tracking-[0.3em] text-[#6e6e6e]" style={{ fontFamily: "var(--font-ibm-mono)" }}>EST. 2012 · BY COVENANT</span>
             </div>
             <div className="flex flex-col">
               {JOURNEY.map((j, i) => (
@@ -81,19 +81,19 @@ export default function HomeSection({
                   key={`${j.no}-${i}`}
                   onClick={() => { onNavigate(j.key); try { play("open"); } catch {} }}
                   onMouseEnter={() => play("hover")}
-                  className="group flex w-full items-center gap-6 border-b border-[#6b9ac8]/[0.08] py-5 text-left transition-colors duration-300 hover:bg-[#6b9ac8]/[0.03] sm:gap-10"
+                  className="group flex w-full items-center gap-6 border-b border-[#c9a227]/[0.08] py-5 text-left transition-colors duration-300 hover:bg-[#c9a227]/[0.03] sm:gap-10"
                   style={{ textAlign: ar ? "right" : "left" }}
                 >
-                  <span className="shrink-0 text-[0.62rem] tracking-[0.2em] text-[#3d6a94]" style={{ fontFamily: "var(--font-ibm-mono)" }}>{j.no}</span>
+                  <span className="shrink-0 text-[0.62rem] tracking-[0.2em] text-[#8a6b1f]" style={{ fontFamily: "var(--font-ibm-mono)" }}>{j.no}</span>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[clamp(1.1rem,2.4vw,1.6rem)] font-light uppercase tracking-[0.12em] text-[#e6eef8] transition-colors duration-300 group-hover:text-[#a8cfe8]" style={{ fontFamily: "var(--font-luxury)" }}>
+                    <div className="text-[clamp(1.1rem,2.4vw,1.6rem)] font-light uppercase tracking-[0.12em] text-[#e8e8e8] transition-colors duration-300 group-hover:text-[#e8c547]" style={{ fontFamily: "var(--font-luxury)" }}>
                       {ar ? j.ar : j.en}
                     </div>
-                    <div className="mt-1 text-[0.68rem] tracking-[0.04em] text-[#657384]" style={{ fontFamily: "var(--font-ibm-mono)" }}>
+                    <div className="mt-1 text-[0.68rem] tracking-[0.04em] text-[#6e6e6e]" style={{ fontFamily: "var(--font-ibm-mono)" }}>
                       {ar ? j.subAr : j.subEn}
                     </div>
                   </div>
-                  <span className="shrink-0 text-[#3d6a94] opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" style={{ transform: "translateX(-6px)" }}>
+                  <span className="shrink-0 text-[#8a6b1f] opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" style={{ transform: "translateX(-6px)" }}>
                     {ar ? <ArrowLeft size={16} /> : <ArrowUpRight size={16} />}
                   </span>
                 </button>
@@ -104,7 +104,7 @@ export default function HomeSection({
 
         {/* ═══════ The Rooms ═══════ */}
         <Reveal>
-          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-3 border-b border-[#6b9ac8]/[0.08] pb-5 pt-1">
+          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-3 border-b border-[#c9a227]/[0.08] pb-5 pt-1">
             {TAB_NAV.map((t2) => {
               const on = activeTab === t2.key;
               return (
@@ -116,13 +116,13 @@ export default function HomeSection({
                   className="group relative py-2 text-center"
                 >
                   <span
-                    className={`text-[clamp(0.95rem,1.7vw,1.2rem)] tracking-[0.1em] transition-all duration-300 ${on ? "text-[#a8cfe8]" : "text-[#8b8577] group-hover:text-[#e6eef8]"}`}
-                    style={{ fontFamily: "var(--font-luxury)", fontWeight: 600, textShadow: on ? "0 0 18px rgba(126,176,216,0.3)" : "none" }}
+                    className={`text-[clamp(0.95rem,1.7vw,1.2rem)] tracking-[0.1em] transition-all duration-300 ${on ? "text-[#e8c547]" : "text-[#8b8577] group-hover:text-[#e8e8e8]"}`}
+                    style={{ fontFamily: "var(--font-luxury)", fontWeight: 600, textShadow: on ? "0 0 18px rgba(212,175,55,0.3)" : "none" }}
                   >
                     {ar ? t2.labelAr : t2.labelEn}
                   </span>
                   <span className="absolute inset-x-0 -bottom-[2px] mx-auto h-px transition-all duration-500"
-                    style={{ width: on ? "100%" : "0%", background: "linear-gradient(90deg, transparent, #6b9ac8, transparent)" }} />
+                    style={{ width: on ? "100%" : "0%", background: "linear-gradient(90deg, transparent, #c9a227, transparent)" }} />
                 </button>
               );
             })}
@@ -133,42 +133,42 @@ export default function HomeSection({
         <Reveal>
           <div
             className="relative overflow-hidden min-h-[560px] lg:min-h-[640px]"
-            style={{ background: "radial-gradient(120% 90% at 50% 30%, #0c0a07 0%, #05070c 62%, #030202 100%)", boxShadow: "inset 0 0 160px 40px rgba(126,176,216,0.05)" }}
+            style={{ background: "radial-gradient(120% 90% at 50% 30%, #0c0a07 0%, #050505 62%, #030202 100%)", boxShadow: "inset 0 0 160px 40px rgba(212,175,55,0.05)" }}
           >
             <GlobalCommandGlobe className="absolute inset-0 w-full h-full z-0" />
 
             {/* header row — thin, elegant, over the top */}
             <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-7 pt-6 sm:px-9">
-              <span className="text-[0.72rem] tracking-[0.26em] uppercase text-[#3d6a94]" style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
+              <span className="text-[0.72rem] tracking-[0.26em] uppercase text-[#8a6b1f]" style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
                 {ar ? "شبكة القيادة العالمية" : "Global Command Network"}
               </span>
-              <span className="mono text-[0.66rem] text-[#6b9ac8]/80 bg-black/40 px-3 py-1 rounded-full border border-[#6b9ac8]/15">{me.code}</span>
+              <span className="mono text-[0.66rem] text-[#c9a227]/80 bg-black/40 px-3 py-1 rounded-full border border-[#c9a227]/15">{me.code}</span>
             </div>
 
             {/* member identity — compact, bottom-left (pointer-events only on interactive bits) */}
             <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-end justify-between gap-6 px-7 pb-6 sm:px-9">
               <div className="max-w-md">
                 <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-light tracking-tight text-[#e6eef8] sm:text-4xl" style={{ fontFamily: "var(--font-luxury)", textShadow: "0 2px 12px rgba(0,0,0,0.9)" }}>
+                  <h1 className="text-3xl font-light tracking-tight text-[#e8e8e8] sm:text-4xl" style={{ fontFamily: "var(--font-luxury)", textShadow: "0 2px 12px rgba(0,0,0,0.9)" }}>
                     {nameVisible ? me.name : "****************"}
                   </h1>
                   <button
                     type="button"
                     onClick={() => { setNameVisible(!nameVisible); play("click"); }}
                     onMouseEnter={() => play("hover")}
-                    className="pointer-events-auto shrink-0 rounded-md p-2 text-[#3d6a94] transition-all duration-300 hover:text-[#a8cfe8] border border-transparent hover:border-[#6b9ac8]/20"
+                    className="pointer-events-auto shrink-0 rounded-md p-2 text-[#8a6b1f] transition-all duration-300 hover:text-[#e8c547] border border-transparent hover:border-[#c9a227]/20"
                     aria-label="Toggle name visibility"
                   >
                     {nameVisible ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
-                <p className="mt-2 max-w-md text-sm leading-relaxed text-[#8a97a8]" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}>{me.bio}</p>
+                <p className="mt-2 max-w-md text-sm leading-relaxed text-[#8a8a8a]" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}>{me.bio}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[0.68rem]" style={{ border: "1px solid rgba(126,176,216,0.3)", background: "rgba(8,7,5,0.55)", color: "#a8cfe8" }}>
-                    <span className="h-1.5 w-1.5 rotate-45 bg-[#6b9ac8]" /> {ar ? "الرتبة" : "Rank"}: {me.rank}
+                  <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[0.68rem]" style={{ border: "1px solid rgba(212,175,55,0.3)", background: "rgba(8,7,5,0.55)", color: "#e8c547" }}>
+                    <span className="h-1.5 w-1.5 rotate-45 bg-[#c9a227]" /> {ar ? "الرتبة" : "Rank"}: {me.rank}
                   </span>
-                  <span className="text-[0.68rem] text-[#8a97a8]" style={{ background: "rgba(8,7,5,0.55)", padding: "2px 10px", borderRadius: 999, border: "1px solid rgba(126,176,216,0.1)" }}>{me.role}</span>
-                  <span className="flex items-center gap-1.5 text-[0.68rem] text-[#8b8577]" style={{ background: "rgba(8,7,5,0.55)", padding: "2px 10px", borderRadius: 999, border: "1px solid rgba(126,176,216,0.1)" }}>
+                  <span className="text-[0.68rem] text-[#8a8a8a]" style={{ background: "rgba(8,7,5,0.55)", padding: "2px 10px", borderRadius: 999, border: "1px solid rgba(212,175,55,0.1)" }}>{me.role}</span>
+                  <span className="flex items-center gap-1.5 text-[0.68rem] text-[#8b8577]" style={{ background: "rgba(8,7,5,0.55)", padding: "2px 10px", borderRadius: 999, border: "1px solid rgba(212,175,55,0.1)" }}>
                     <MapPin size={12} /> {me.city} · {me.country}
                   </span>
                 </div>
@@ -188,16 +188,16 @@ export default function HomeSection({
           <Panel className="p-6 sm:p-7">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="eyebrow" style={{ color: "#6b9ac8" }}>{ar ? "لوحة الأداء التشغيلي" : "Operational Performance"}</div>
-                <h3 className="mt-1 text-lg font-light text-[#e6eef8]" style={{ fontFamily: "var(--font-luxury)" }}>
+                <div className="eyebrow" style={{ color: "#c9a227" }}>{ar ? "لوحة الأداء التشغيلي" : "Operational Performance"}</div>
+                <h3 className="mt-1 text-lg font-light text-[#e8e8e8]" style={{ fontFamily: "var(--font-luxury)" }}>
                   {ar ? "الأداء السنوي الحالي" : "Current Yearly Performance"}
                 </h3>
               </div>
-              <div className="flex items-center gap-2 rounded-md border border-[#6b9ac8]/15 bg-black/20 px-4 py-2">
-                <TrendingUp size={15} className="text-[#3d6a94]" />
-                <span className="text-2xl font-medium text-[#a8cfe8]" style={{ fontFamily: "var(--font-mono)" }}>+{growth}%</span>
+              <div className="flex items-center gap-2 rounded-md border border-[#c9a227]/15 bg-black/20 px-4 py-2">
+                <TrendingUp size={15} className="text-[#8a6b1f]" />
+                <span className="text-2xl font-medium text-[#e8c547]" style={{ fontFamily: "var(--font-mono)" }}>+{growth}%</span>
                 <span className="flex items-center gap-1 text-[0.7rem] text-[#8b8577]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#6b9ac8]" style={{ boxShadow: "0 0 6px #6b9ac8" }} />
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#c9a227]" style={{ boxShadow: "0 0 6px #c9a227" }} />
                   {ar ? "نمو" : "Growth"}
                 </span>
               </div>
@@ -205,23 +205,23 @@ export default function HomeSection({
 
             <div className="grid gap-6 lg:grid-cols-3">
               <div className="lg:col-span-2">
-                <div className="rounded-md border border-[#6b9ac8]/10 bg-black/20 p-4">
+                <div className="rounded-md border border-[#c9a227]/10 bg-black/20 p-4">
                   <div className="relative w-full">
                     <svg viewBox={`0 0 ${w} ${h}`} className="w-full" preserveAspectRatio="none" style={{ height: 180 }}>
                       {[0.25, 0.5, 0.75].map((f) => (
-                        <line key={f} x1={pl} x2={w - pr} y1={pt + f * (h - pt - pb)} y2={pt + f * (h - pt - pb)} stroke="rgba(126,176,216,0.05)" strokeWidth="1" />
+                        <line key={f} x1={pl} x2={w - pr} y1={pt + f * (h - pt - pb)} y2={pt + f * (h - pt - pb)} stroke="rgba(212,175,55,0.05)" strokeWidth="1" />
                       ))}
                       <motion.path d={area} fill="url(#perfGrad)" opacity={drawn ? 0.3 : 0} initial={false} animate={{ opacity: drawn ? 0.3 : 0 }} transition={{ duration: 1.4 }} />
                       <defs>
                         <linearGradient id="perfGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#7eb0d8" stopOpacity="0.3" />
-                          <stop offset="100%" stopColor="#7eb0d8" stopOpacity="0" />
+                          <stop offset="0%" stopColor="#d4af37" stopOpacity="0.3" />
+                          <stop offset="100%" stopColor="#d4af37" stopOpacity="0" />
                         </linearGradient>
                       </defs>
-                      <motion.path d={line} fill="none" stroke="#7eb0d8" strokeWidth="1.6" strokeLinecap="round"
+                      <motion.path d={line} fill="none" stroke="#d4af37" strokeWidth="1.6" strokeLinecap="round"
                         initial={{ pathLength: 0 }} animate={{ pathLength: drawn ? 1 : 0 }} transition={{ duration: 1.6, ease: "easeInOut" }} />
                       {pts.map(([x, y], i) => (
-                        <motion.circle key={i} cx={x} cy={y} r="2.4" fill="#a8cfe8"
+                        <motion.circle key={i} cx={x} cy={y} r="2.4" fill="#e8c547"
                           initial={{ opacity: 0, scale: 0 }} animate={{ opacity: drawn ? 1 : 0, scale: drawn ? 1 : 0 }}
                           transition={{ duration: 0.3, delay: 0.1 + i * 0.12 }} />
                       ))}
@@ -232,12 +232,12 @@ export default function HomeSection({
                         <text key={i} x={pl - 5} y={ys(v) + 3} textAnchor="end" fill="rgba(124,118,104,0.5)" fontSize="8" style={{ fontFamily: "var(--font-mono)" }}>{Math.round(v)}</text>
                       ))}
                     </svg>
-                    <div className="pointer-events-none absolute right-2 top-2 rounded border border-[#6b9ac8]/15 bg-black/60 px-2 py-1 text-[0.62rem] text-[#a8cfe8]" style={{ fontFamily: "var(--font-mono)" }}>
+                    <div className="pointer-events-none absolute right-2 top-2 rounded border border-[#c9a227]/15 bg-black/60 px-2 py-1 text-[0.62rem] text-[#e8c547]" style={{ fontFamily: "var(--font-mono)" }}>
                       {ar ? "الحالي" : "Current"}: +{growth}%
                     </div>
                   </div>
                 </div>
-                <p className="mt-2 text-[0.7rem] text-[#4a5566]">
+                <p className="mt-2 text-[0.7rem] text-[#4a4a4a]">
                   {ar ? "منحنى تصاعدي ثابت عبر الأشهر الثمانية — يعكس نمواً سنوياً +31%" : "Steady upward curve across eight months — reflects +31% annual growth."}
                 </p>
               </div>
@@ -247,14 +247,14 @@ export default function HomeSection({
                 <MiniStat label={ar ? "الانطلاق" : "Start"} value="+4%" />
                 <MiniStat label={ar ? "مشاريع نشطة" : "Active Projects"} value={String(data.projects.length)} />
                 <MiniStat label={ar ? "رسائل غير مقروءة" : "Unread Messages"} value={String(unread)} />
-                <div className="rounded-md border border-[#6b9ac8]/10 bg-black/20 p-4">
+                <div className="rounded-md border border-[#c9a227]/10 bg-black/20 p-4">
                   <div className="mb-2 flex items-center gap-2 text-[0.7rem] text-[#8b8577]">
                     <Activity size={13} /> {ar ? "أحداث تشغيلية" : "Operational Events"}
                   </div>
-                  <div className="space-y-2 text-[0.72rem] text-[#8a97a8]">
-                    <div className="flex justify-between"><span>{ar ? "تحديث أرشيف" : "Archive update"}</span><span className="mono text-[#4a5566]">02:14</span></div>
-                    <div className="flex justify-between"><span>{ar ? "إغلاق مشروع" : "Project closed"}</span><span className="mono text-[#4a5566]">09:40</span></div>
-                    <div className="flex justify-between"><span>{ar ? "جلسة مشفّرة" : "Encrypted session"}</span><span className="mono text-[#4a5566]">11:02</span></div>
+                  <div className="space-y-2 text-[0.72rem] text-[#8a8a8a]">
+                    <div className="flex justify-between"><span>{ar ? "تحديث أرشيف" : "Archive update"}</span><span className="mono text-[#4a4a4a]">02:14</span></div>
+                    <div className="flex justify-between"><span>{ar ? "إغلاق مشروع" : "Project closed"}</span><span className="mono text-[#4a4a4a]">09:40</span></div>
+                    <div className="flex justify-between"><span>{ar ? "جلسة مشفّرة" : "Encrypted session"}</span><span className="mono text-[#4a4a4a]">11:02</span></div>
                   </div>
                 </div>
               </div>
@@ -266,7 +266,7 @@ export default function HomeSection({
         <div className="grid gap-7 lg:grid-cols-3">
           <Reveal delay={0.1} className="lg:col-span-2">
             <Panel className="h-full p-6">
-              <div className="eyebrow mb-4" style={{ color: "#6b9ac8" }}>{ar ? "نظرة سريعة" : "Quick Glance"}</div>
+              <div className="eyebrow mb-4" style={{ color: "#c9a227" }}>{ar ? "نظرة سريعة" : "Quick Glance"}</div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <QuickRow icon={Users} label={ar ? "إجمالي الأعضاء" : "Total members"} value={`${data.members.length}`} onClick={() => onNavigate("members")} />
                 <QuickRow icon={MailOpen} label={ar ? "رسائل غير مقروءة" : "Unread messages"} value={`${unread}`} onClick={() => onNavigate("messages")} />
@@ -278,7 +278,7 @@ export default function HomeSection({
 
           <Reveal delay={0.15}>
             <Panel className="h-full p-6">
-              <div className="eyebrow mb-3" style={{ color: "#6b9ac8" }}>{ar ? "الساعات العالمية" : "World Clocks"}</div>
+              <div className="eyebrow mb-3" style={{ color: "#c9a227" }}>{ar ? "الساعات العالمية" : "World Clocks"}</div>
               <WorldClock />
               <div className="divider my-5" />
               <div className="flex items-center gap-2 text-[0.72rem] text-[#8b8577]">
@@ -294,34 +294,34 @@ export default function HomeSection({
 
 function Panel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-lg border border-[#6b9ac8]/[0.10] bg-[#070a10] ${className ?? ""}`}>{children}</div>
+    <div className={`rounded-lg border border-[#c9a227]/[0.10] bg-[#0a0a0a] ${className ?? ""}`}>{children}</div>
   );
 }
 
 function MetaRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <span className="text-[0.62rem] tracking-[0.14em] text-[#4a5566]" style={{ fontFamily: "var(--font-mono)" }}>{label}</span>
-      <span className={`text-[0.82rem] text-[#b8c5d6] ${mono ? "mono" : ""}`}>{value}</span>
+      <span className="text-[0.62rem] tracking-[0.14em] text-[#4a4a4a]" style={{ fontFamily: "var(--font-mono)" }}>{label}</span>
+      <span className={`text-[0.82rem] text-[#b0b0b0] ${mono ? "mono" : ""}`}>{value}</span>
     </div>
   );
 }
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-md border border-[#6b9ac8]/[0.10] bg-black/20 px-4 py-3">
+    <div className="flex items-center justify-between rounded-md border border-[#c9a227]/[0.10] bg-black/20 px-4 py-3">
       <span className="text-[0.7rem] text-[#8b8577]">{label}</span>
-      <span className="text-[0.92rem] text-[#e6eef8]" style={{ fontFamily: "var(--font-mono)" }}>{value}</span>
+      <span className="text-[0.92rem] text-[#e8e8e8]" style={{ fontFamily: "var(--font-mono)" }}>{value}</span>
     </div>
   );
 }
 
 function QuickRow({ icon: Icon, label, value, onClick }: { icon: typeof Users; label: string; value: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-md border border-[#6b9ac8]/[0.08] bg-black/20 p-3 text-right transition hover:border-[#6b9ac8]/25 hover:bg-[#6b9ac8]/[0.03]">
-      <Icon size={15} className="text-[#3d6a94]" />
-      <span className="flex-1 text-[0.8rem] text-[#8a97a8]">{label}</span>
-      <span className="mono text-[0.78rem] text-[#e6eef8]">{value}</span>
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-md border border-[#c9a227]/[0.08] bg-black/20 p-3 text-right transition hover:border-[#c9a227]/25 hover:bg-[#c9a227]/[0.03]">
+      <Icon size={15} className="text-[#8a6b1f]" />
+      <span className="flex-1 text-[0.8rem] text-[#8a8a8a]">{label}</span>
+      <span className="mono text-[0.78rem] text-[#e8e8e8]">{value}</span>
     </button>
   );
 }
