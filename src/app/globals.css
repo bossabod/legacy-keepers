@@ -2,35 +2,35 @@
 
 /* ============================================
    THEME SYSTEM — Private Club · Quiet Luxury
-   Dark charcoal base · Champagne / Antique Gold ·
+   Cool night navy base · Sapphire / Ice Blue ·
    Deep Emerald · Cinematic, editorial, discreet.
    ============================================ */
 
 @theme {
   /* Backgrounds — warm near-black charcoal */
-  --color-void: #060604;
-  --color-abyss: #0a0a08;
-  --color-graphite: #0e0e0b;
-  --color-charcoal: #12120e;
-  --color-slate: #161613;
-  --color-panel: #191916;
-  --color-surface: #1d1d18;
-  --color-elevated: #24241d;
+  --color-void: #05070c;
+  --color-abyss: #070a10;
+  --color-graphite: #0a0e14;
+  --color-charcoal: #0d1219;
+  --color-slate: #111720;
+  --color-panel: #141b26;
+  --color-surface: #182230;
+  --color-elevated: #1e2a3a;
 
   /* Text Hierarchy — warm ivory */
-  --color-ink: #ece9e0;
-  --color-silver: #cdc8b9;
-  --color-steel: #a39d8e;
-  --color-muted: #7c7668;
-  --color-dim: #57534a;
-  --color-faint: #3a3730;
+  --color-ink: #e6eef8;
+  --color-silver: #b8c5d6;
+  --color-steel: #8a97a8;
+  --color-muted: #657384;
+  --color-dim: #4a5566;
+  --color-faint: #2e3848;
 
-  /* Accents — champagne / antique gold (used sparingly) */
-  --color-accent: #c8a76b;
-  --color-platinum: #e2d9c3;
-  --color-gold: #d8b478;
-  --color-gold-bright: #e8c992;
-  --color-gold-dim: #8a7044;
+  /* Accents — sapphire / ice blue (used sparingly) */
+  --color-accent: #6b9ac8;
+  --color-platinum: #c3d4e2;
+  --color-gold: #7eb0d8;          /* alias kept — now ice sapphire */
+  --color-gold-bright: #a8cfe8;
+  --color-gold-dim: #3d6a94;
 
   /* Deep emerald (secondary, computed) */
   --color-emerald: #2f6b4f;
@@ -38,18 +38,18 @@
   --color-emerald-dim: #1c3f30;
 
   /* Semantic */
-  --color-online: #c8a76b;
+  --color-online: #6b9ac8;
   --color-away: #6a6457;
-  --color-offline: #3a3730;
+  --color-offline: #2e3848;
 
   /* Borders — hairline, warm */
-  --color-border: #1d1b15;
-  --color-border-light: #272419;
-  --color-border-active: #3a3323;
+  --color-border: #151c28;
+  --color-border-light: #1c2533;
+  --color-border-active: #2a3a4e;
 
   /* Legacy aliases (backward compatibility) */
-  --color-base: #0a0a08;
-  --color-silver-dim: #a39d8e;
+  --color-base: #070a10;
+  --color-silver-dim: #8a97a8;
   --color-muted-2: #2e2b22;
 
   /* Fonts */
@@ -143,14 +143,14 @@ body {
   color: var(--color-ink);
   cursor: pointer;
   background: linear-gradient(180deg, #211d14 0%, #12100a 100%);
-  border: 1px solid rgba(216,180,120,0.20);
+  border: 1px solid rgba(126,176,216,0.20);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 22px rgba(0,0,0,0.5);
   transition: all var(--dur-2) var(--ease-out);
 }
 .btn-metal:hover {
   background: linear-gradient(180deg, #2b2517 0%, #16130c 100%);
-  border-color: rgba(216,180,120,0.42);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 0 22px rgba(216,180,120,0.14), 0 8px 22px rgba(0,0,0,0.55);
+  border-color: rgba(126,176,216,0.42);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 0 22px rgba(126,176,216,0.14), 0 8px 22px rgba(0,0,0,0.55);
 }
 .btn-metal:active { transform: translateY(1px); }
 .btn-metal:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -164,22 +164,22 @@ body {
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
   color: var(--color-silver-dim);
-  border: 1px solid rgba(216,180,120,0.16);
+  border: 1px solid rgba(126,176,216,0.16);
   background: rgba(12,11,7,0.4);
   cursor: pointer;
   transition: all var(--dur-1) ease;
 }
 .btn-ghost:hover {
   color: var(--color-ink);
-  border-color: rgba(216,180,120,0.34);
-  background: rgba(216,180,120,0.06);
+  border-color: rgba(126,176,216,0.34);
+  background: rgba(126,176,216,0.06);
 }
 
 /* Input Field */
 .field {
   width: 100%;
   background: rgba(26,24,17,0.55);
-  border: 1px solid rgba(216,180,120,0.14);
+  border: 1px solid rgba(126,176,216,0.14);
   border-radius: var(--radius-sm);
   padding: 0.75rem 0.9rem;
   color: var(--color-ink);
@@ -189,22 +189,22 @@ body {
 }
 .field::placeholder { color: var(--color-faint); }
 .field:focus {
-  border-color: rgba(216,180,120,0.42);
+  border-color: rgba(126,176,216,0.42);
   background: rgba(20,18,12,0.85);
-  box-shadow: 0 0 0 3px rgba(216,180,120,0.08);
+  box-shadow: 0 0 0 3px rgba(126,176,216,0.08);
 }
 
 /* Glass Panels */
 .glass {
   background: rgba(14,13,9,0.55);
-  border: 1px solid rgba(216,180,120,0.10);
+  border: 1px solid rgba(126,176,216,0.10);
   border-radius: var(--radius-lg);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
 .glass-strong {
   background: rgba(10,9,6,0.82);
-  border: 1px solid rgba(216,180,120,0.18);
+  border: 1px solid rgba(126,176,216,0.18);
   border-radius: var(--radius-xl);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -213,8 +213,8 @@ body {
 .edge {
   border: 1px solid transparent;
   background:
-    linear-gradient(#0c0b08, #0c0b08) padding-box,
-    linear-gradient(160deg, rgba(216,180,120,0.5), rgba(216,180,120,0.05) 40%, rgba(216,180,120,0.22)) border-box;
+    linear-gradient(#080c14, #080c14) padding-box,
+    linear-gradient(160deg, rgba(126,176,216,0.5), rgba(126,176,216,0.05) 40%, rgba(126,176,216,0.22)) border-box;
 }
 /* Unified surface card — the one card used across the OS */
 .card {
@@ -228,7 +228,7 @@ body {
 
 /* Typography Utilities */
 .etched {
-  text-shadow: 0 1px 0 rgba(0,0,0,0.6), 0 0 26px rgba(216,180,120,0.16);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6), 0 0 26px rgba(126,176,216,0.16);
 }
 .eyebrow {
   font-size: 0.62rem;
@@ -242,12 +242,12 @@ body {
 /* Dividers */
 .divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(216,180,120,0.16), transparent);
+  background: linear-gradient(90deg, transparent, rgba(126,176,216,0.16), transparent);
 }
 
 /* Scrollbar */
 .scroll-thin::-webkit-scrollbar { width: 5px; height: 5px; }
-.scroll-thin::-webkit-scrollbar-thumb { background: rgba(216,180,120,0.18); border-radius: 99px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: rgba(126,176,216,0.18); border-radius: 99px; }
 .scroll-thin::-webkit-scrollbar-track { background: transparent; }
 
 /* ============================================
@@ -298,14 +298,14 @@ body {
   position: absolute;
   inset: -55% -12%;
   opacity: 0.55;
-  background: radial-gradient(ellipse at center, rgba(216,180,120,0.14), transparent 65%);
+  background: radial-gradient(ellipse at center, rgba(126,176,216,0.14), transparent 65%);
   pointer-events: none;
   z-index: 0;
 }
 .entry-line {
   height: 1px;
   width: 250px;
-  background: linear-gradient(90deg, transparent, rgba(216,180,120,0.45), transparent);
+  background: linear-gradient(90deg, transparent, rgba(126,176,216,0.45), transparent);
   z-index: 1;
 }
 .entry-text-wrap {
@@ -327,7 +327,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(105deg, transparent 38%, rgba(232,201,146,0.5) 50%, transparent 62%);
+  background: linear-gradient(105deg, transparent 38%, rgba(168,207,232,0.5) 50%, transparent 62%);
   background-size: 260% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -347,19 +347,19 @@ body {
 /* Decorative wash only — NEVER set pointer-events here (applied on <body>). */
 .stage-glow {
   background:
-    radial-gradient(58% 42% at 50% -6%, rgba(200,167,107,0.10), transparent 70%),
+    radial-gradient(58% 42% at 50% -6%, rgba(107,154,200,0.10), transparent 70%),
     radial-gradient(44% 36% at 50% 110%, rgba(47,107,79,0.12), transparent 70%);
 }
 .stage-glow-layer {
   pointer-events: none !important;
   background:
-    radial-gradient(58% 42% at 50% -6%, rgba(200,167,107,0.10), transparent 70%),
+    radial-gradient(58% 42% at 50% -6%, rgba(107,154,200,0.10), transparent 70%),
     radial-gradient(44% 36% at 50% 110%, rgba(47,107,79,0.12), transparent 70%);
 }
 
 /* hairlines that catch the light */
-.hairline-t { border-top: 1px solid rgba(216,180,120,0.14); }
-.hairline-b { border-bottom: 1px solid rgba(216,180,120,0.14); }
+.hairline-t { border-top: 1px solid rgba(126,176,216,0.14); }
+.hairline-b { border-bottom: 1px solid rgba(126,176,216,0.14); }
 .gold-text { color: var(--color-gold); }
 .gold-text-soft { color: var(--color-gold-dim); }
 .emerald-text { color: var(--color-emerald-light); }

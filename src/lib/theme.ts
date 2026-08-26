@@ -5,52 +5,52 @@
  * Color Palette:
  * - Primary background: Deep charcoal, graphite, near black
  * - Surface panels: Dark gray, soft gradients, low contrast
- * - Accent: Silver, white, soft blue, muted cyan
+ * - Accent: Sapphire blue, ice blue, cool platinum
  */
 
 export const theme = {
   colors: {
-    // Backgrounds
-    void: "#020203",
-    abyss: "#050608",
-    graphite: "#08090c",
-    charcoal: "#0a0b0e",
-    slate: "#0d0f13",
-    panel: "#101218",
-    surface: "#14171c",
-    elevated: "#1a1d22",
+    // Backgrounds — cool night navy
+    void: "#05070c",
+    abyss: "#070a10",
+    graphite: "#0a0e14",
+    charcoal: "#0d1219",
+    slate: "#111720",
+    panel: "#141b26",
+    surface: "#182230",
+    elevated: "#1e2a3a",
 
-    // Text
-    ink: "#eaeef5",         // Primary text — near white
-    silver: "#c3c9d3",       // Secondary text — silver
-    steel: "#9aa3b2",        // Tertiary text — steel gray
-    muted: "#6b7383",        // Quaternary — muted gray
-    dim: "#4a515d",          // Dim labels
-    faint: "#2e333c",        // Faint separators
+    // Text — cool ivory
+    ink: "#e6eef8",
+    silver: "#b8c5d6",
+    steel: "#8a97a8",
+    muted: "#657384",
+    dim: "#4a5566",
+    faint: "#2e3848",
 
-    // Accents (use sparingly)
-    accent: "#8fa0b8",       // Soft blue-silver
-    accentDim: "#5a6a80",    // Dimmer accent
-    platinum: "#d4dae3",     // Platinum highlight
-    cyan: "#6a8fa0",         // Muted cyan
-    iceBlue: "#7a95b5",      // Ice blue for subtle highlights
+    // Accents — sapphire / ice blue
+    accent: "#6b9ac8",
+    accentDim: "#3d6a94",
+    platinum: "#c3d4e2",
+    cyan: "#6a9fb8",
+    iceBlue: "#7eb0d8",
 
     // Semantic
-    online: "#8fa0b8",
-    away: "#5a6270",
-    offline: "#2e333c",
-    success: "#7a9a7a",      // Muted green
-    warning: "#a09070",      // Muted amber
-    danger: "#9a6a6a",       // Muted red
+    online: "#6b9ac8",
+    away: "#5a6a7c",
+    offline: "#2e3848",
+    success: "#5fae83",
+    warning: "#c4a46a",
+    danger: "#9a6a6a",
 
     // Borders
-    border: "#16191e",
-    borderLight: "#1e2228",
-    borderActive: "#2a2f38",
+    border: "#151c28",
+    borderLight: "#1c2533",
+    borderActive: "#2a3a4e",
 
     // Overlays
     scrim: "rgba(0, 0, 0, 0.75)",
-    glass: "rgba(10, 11, 14, 0.85)",
+    glass: "rgba(8, 12, 20, 0.85)",
   },
 
   typography: {
@@ -117,7 +117,7 @@ export const theme = {
     lg: "0 20px 50px rgba(0,0,0,0.6)",
     xl: "0 30px 80px rgba(0,0,0,0.8)",
     inset: "inset 0 1px 0 rgba(255,255,255,0.04)",
-    glow: "0 0 20px rgba(143,160,184,0.15)",
+    glow: "0 0 20px rgba(107,154,200,0.18)",
   },
 
   animation: {
