@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  MapPin, Users, MailOpen, Layers, ArrowUpRight, ArrowLeft, Eye, EyeOff, TrendingUp, Activity,
+  MapPin, Users, MailOpen, Layers, ArrowUpRight, Eye, EyeOff, TrendingUp, Activity,
 } from "lucide-react";
 import { Reveal, Pulse } from "@/components/ui";
 import { WorldClock } from "@/components/brand";
@@ -16,16 +16,6 @@ const TAB_NAV: { key: SectionKey; labelEn: string; labelAr: string }[] = [
   { key: "rules", labelEn: "Rules", labelAr: "القواعد" },
   { key: "goals", labelEn: "Objectives", labelAr: "الأهداف" },
   { key: "identity", labelEn: "Who Are the People of Impact", labelAr: "من هم أصحاب الأثر" },
-];
-
-/* Journey through the house — each chapter opens a room */
-const JOURNEY: { key: SectionKey; no: string; en: string; subEn: string; ar: string; subAr: string }[] = [
-  { key: "home", no: "01", en: "The House", subEn: "Where the circle began — the covenant, the rooms, the rules.", ar: "البيت", subAr: "حيث بدأت الدائرة — الميثاق، والغرف، والقواعد." },
-  { key: "network", no: "02", en: "The Network", subEn: "Five nodes, five cities, one quiet command.", ar: "الشبكة", subAr: "خمس عقد، خمس مدن، قيادة واحدة هادئة." },
-  { key: "investments", no: "03", en: "Investments", subEn: "The long game — equity, land, metal, digital.", ar: "الاستثمارات", subAr: "اللعبة الطويلة — أسهم، وعقار، ومعادن، ورقمي." },
-  { key: "vip", no: "04", en: "Experiences", subEn: "Private dining, aviation, the yacht, the concierge.", ar: "التجارب", subAr: "مأدبة خاصة، وطيران، ويخت، وخدمة كونسيرج." },
-  { key: "archive", no: "05", en: "The Archive", subEn: "Every record, every year, kept sealed.", ar: "الأرشيف", subAr: "كل سجلّ، وكل سنة، محفوظ ومختوم." },
-  { key: "vip", no: "06", en: "The Elite", subEn: "Access granted only to those the house admits.", ar: "النخبة", subAr: "دخول لا يُمنح إلا لمن يعرفه البيت." },
 ];
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"];
@@ -63,45 +53,6 @@ export default function HomeSection({
   return (
     <>
       <div className="mx-auto max-w-7xl space-y-12">
-        {/* ═══════ The Journey — index into the house ═══════ */}
-        <Reveal>
-          <div className="border-b border-[#c9a227]/10 pb-2 pt-1">
-            <div className="mb-7 flex items-end justify-between">
-              <div>
-                <div className="eyebrow" style={{ color: "#c9a227" }}>{ar ? "رحلتك في النادي" : "Your Passage"}</div>
-                <h2 className="mt-3 text-[clamp(2rem,5vw,3.4rem)] font-light uppercase tracking-[0.14em] text-[#e8e8e8]" style={{ fontFamily: "var(--font-luxury)" }}>
-                  {ar ? "منزل أصحاب الأثر" : "The House"}
-                </h2>
-              </div>
-              <span className="hidden sm:block text-[0.46rem] uppercase tracking-[0.3em] text-[#6e6e6e]" style={{ fontFamily: "var(--font-ibm-mono)" }}>EST. 2012 · BY COVENANT</span>
-            </div>
-            <div className="flex flex-col">
-              {JOURNEY.map((j, i) => (
-                <button type="button"
-                  key={`${j.no}-${i}`}
-                  onClick={() => { onNavigate(j.key); try { play("open"); } catch {} }}
-                  onMouseEnter={() => play("hover")}
-                  className="group flex w-full items-center gap-6 border-b border-[#c9a227]/[0.08] py-5 text-left transition-colors duration-300 hover:bg-[#c9a227]/[0.03] sm:gap-10"
-                  style={{ textAlign: ar ? "right" : "left" }}
-                >
-                  <span className="shrink-0 text-[0.62rem] tracking-[0.2em] text-[#8a6b1f]" style={{ fontFamily: "var(--font-ibm-mono)" }}>{j.no}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[clamp(1.1rem,2.4vw,1.6rem)] font-light uppercase tracking-[0.12em] text-[#e8e8e8] transition-colors duration-300 group-hover:text-[#e8c547]" style={{ fontFamily: "var(--font-luxury)" }}>
-                      {ar ? j.ar : j.en}
-                    </div>
-                    <div className="mt-1 text-[0.68rem] tracking-[0.04em] text-[#6e6e6e]" style={{ fontFamily: "var(--font-ibm-mono)" }}>
-                      {ar ? j.subAr : j.subEn}
-                    </div>
-                  </div>
-                  <span className="shrink-0 text-[#8a6b1f] opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" style={{ transform: "translateX(-6px)" }}>
-                    {ar ? <ArrowLeft size={16} /> : <ArrowUpRight size={16} />}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </Reveal>
-
         {/* ═══════ The Rooms ═══════ */}
         <Reveal>
           <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-3 border-b border-[#c9a227]/[0.08] pb-5 pt-1">
