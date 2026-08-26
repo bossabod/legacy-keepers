@@ -28,6 +28,7 @@ import FeaturesSection from "@/components/sections/Features";
 import PaymentsSection from "@/components/sections/Payments";
 import ActivitySection from "@/components/sections/Activity";
 import VipSection from "@/components/sections/Vip";
+import ObservatorySection from "@/components/sections/Observatory";
 
 export type SectionKey =
   | "home" | "network" | "log"
@@ -36,12 +37,14 @@ export type SectionKey =
   | "members" | "messages"
   | "archive" | "ladder"
   | "identity" | "goals" | "rules"
-  | "features" | "payments" | "activity" | "vip";
+  | "features" | "payments" | "activity" | "vip"
+  | "observatory";
 
 // Primary nav — most important pages, always visible and centered
 const PRIMARY_NAV: { key: SectionKey; labelKey: string }[] = [
   { key: "home", labelKey: "nav.home" },
   { key: "network", labelKey: "nav.network" },
+  { key: "observatory", labelKey: "nav.observatory" },
   { key: "projects", labelKey: "nav.projects" },
   { key: "investments", labelKey: "nav.investments" },
   { key: "messages", labelKey: "nav.messages" },
@@ -67,8 +70,7 @@ const SECONDARY_NAV: { key: SectionKey; labelKey: string }[] = [
 const MONEY: SectionKey[] = ["projects", "investments", "vault", "invoices", "payments"];
 
 // Sections that carry a discreet "members only" hint in the navigation
-const RESTRICTED: Set<SectionKey> = new Set(["archive", "vip", "vault", "invoices", "ladder", "payments", "members"]);
-
+const RESTRICTED: Set<SectionKey> = new Set(["archive", "vip", "vault", "invoices", "ladder", "payments", "members", "observatory"]);
 export default function Dashboard({
   onLogout,
   demoMode = false,
@@ -159,6 +161,7 @@ export default function Dashboard({
       case "payments": return <PaymentsSection />;
       case "activity": return <ActivitySection data={data} />;
       case "vip": return <VipSection />;
+      case "observatory": return <ObservatorySection />;
     }
   };
 
