@@ -22,9 +22,9 @@ export function StatusBar({ coordinates, zoom, altitude, fps, entities, connecti
   items.push({ label: "SOURCE", value: dataSource });
 
   return (
-    <div className="flex h-7 w-full max-w-[100vw] shrink-0 items-center gap-3 overflow-x-auto scroll-thin border-t border-[var(--color-border)] bg-[var(--color-charcoal)] px-2 sm:gap-4 sm:px-4">
+    <div className="flex h-7 shrink-0 items-center gap-4 border-t border-[var(--color-border)] bg-[var(--color-charcoal)] px-4 overflow-x-auto scroll-thin">
       {items.map((item, i) => (
-        <div key={i} className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+        <div key={i} className="flex shrink-0 items-center gap-1.5">
           <span className="text-[0.46rem] uppercase tracking-[0.14em] text-[var(--color-faint)]" style={{ fontFamily: theme.typography.mono }}>
             {item.label}
           </span>

@@ -8,7 +8,6 @@ import type { AppData } from "@/lib/types";
 import ImpactPyramid from "@/components/ladder/ImpactPyramid";
 import { LADDER } from "@/components/ladder/pyramid-data";
 
-/* responsive container handled by page-shell parent */
 export default function LadderSection({ data }: { data: AppData }) {
   const { lang } = useApp();
   const [opened, setOpened] = useState(false);
@@ -85,7 +84,7 @@ export default function LadderSection({ data }: { data: AppData }) {
                 className="pyramid-fog"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                exit={{ opacity: 0, filter: "blur(8px)" }}
                 transition={{ duration: 1.4, ease: "easeInOut" }}
               >
                 <motion.button
@@ -93,7 +92,7 @@ export default function LadderSection({ data }: { data: AppData }) {
                   onClick={open}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  exit={{ opacity: 0, scale: 0.97 }}
+                  exit={{ opacity: 0, scale: 0.97, filter: "blur(8px)" }}
                   transition={{ duration: 1.6, delay: 0.4 }}
                   aria-label={ar ? "فتح المسرح الهرمي" : "Open the pyramid"}
                 >
@@ -111,9 +110,9 @@ export default function LadderSection({ data }: { data: AppData }) {
             {sel && active !== null ? (
               <motion.article
                 key={active}
-                initial={{ opacity: 0, x: 24 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -16 }}
+                initial={{ opacity: 0, x: 24, filter: "blur(5px)" }}
+                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, x: -16, filter: "blur(4px)" }}
                 transition={{ duration: 0.42, ease: [0.2, 0.7, 0.2, 1] }}
                 className="info-record"
               >

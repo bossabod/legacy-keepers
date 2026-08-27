@@ -14,7 +14,6 @@ const translations: Record<string, { en: string; ar: string }> = {
   "nav.reports": { en: "Reports", ar: "التقارير" },
   "nav.ladder": { en: "Rank Ladder", ar: "سلم الأثر" },
   "nav.vip": { en: "VIP / Elite", ar: "كبار الشخصيات" },
-  "nav.observatory": { en: "Observatory", ar: "المرصد" },
   "nav.identity": { en: "People of Impact", ar: "أصحاب الأثر" },
   "nav.organizations": { en: "Organizations", ar: "المنظمات" },
   "nav.rules": { en: "Rules", ar: "القواعد" },

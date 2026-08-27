@@ -51,7 +51,7 @@ export default function VaultSection({ data }: { data: AppData }) {
           >
             <div
               className="relative w-full max-w-md overflow-hidden rounded-2xl"
-              style={{ border: "1px solid rgba(176,176,176,0.14)", background: "rgba(8,10,14,0.6)" }}
+              style={{ border: "1px solid rgba(195,201,211,0.14)", background: "rgba(8,10,14,0.6)" }}
             >
               <div
                 className="absolute inset-0 opacity-[0.16]"
@@ -65,12 +65,12 @@ export default function VaultSection({ data }: { data: AppData }) {
                 <div className="eyebrow">منطقة عالية الحساسية</div>
                 {/* القرص */}
                 <div className="relative" style={{ width: 176, height: 176 }}>
-                  <div className="absolute inset-0 rounded-full" style={{ border: "1px solid rgba(176,176,176,0.1)" }} />
-                  <div className="absolute inset-4 rounded-full" style={{ border: "1px solid rgba(176,176,176,0.18)" }} />
+                  <div className="absolute inset-0 rounded-full" style={{ border: "1px solid rgba(195,201,211,0.1)" }} />
+                  <div className="absolute inset-4 rounded-full" style={{ border: "1px solid rgba(195,201,211,0.18)" }} />
                   <motion.div
                     className="absolute inset-8 rounded-full"
                     style={{
-                      border: "1px solid rgba(176,176,176,0.3)",
+                      border: "1px solid rgba(195,201,211,0.3)",
                       background:
                         "radial-gradient(circle at 35% 30%, rgba(174,182,194,0.25), rgba(20,24,30,0.9) 70%)",
                     }}
@@ -79,7 +79,7 @@ export default function VaultSection({ data }: { data: AppData }) {
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
                     {opening ? (
-                      <ShieldCheck size={34} className="text-[#b0b0b0]" />
+                      <ShieldCheck size={34} className="text-[#c3c9d3]" />
                     ) : (
                       <Lock size={30} className="text-[#aeb6c2]" />
                     )}

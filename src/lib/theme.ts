@@ -1,52 +1,56 @@
 /**
- * Monochrome Theme — Black + Gray only
+ * Centralized Theme System
+ * Master Specification: Intelligence Platform Design Language
+ *
+ * Color Palette:
+ * - Primary background: Deep charcoal, graphite, near black
+ * - Surface panels: Dark gray, soft gradients, low contrast
+ * - Accent: Silver, white, soft blue, muted cyan
  */
 
 export const theme = {
   colors: {
-    void: "#050505",
-    abyss: "#0a0a0a",
-    graphite: "#0e0e0e",
-    charcoal: "#141414",
-    slate: "#1a1a1a",
-    panel: "#1c1c1c",
-    surface: "#222222",
-    elevated: "#2a2a2a",
+    // Backgrounds
+    void: "#020203",
+    abyss: "#050608",
+    graphite: "#08090c",
+    charcoal: "#0a0b0e",
+    slate: "#0d0f13",
+    panel: "#101218",
+    surface: "#14171c",
+    elevated: "#1a1d22",
 
-    ink: "#e8e8e8",
-    silver: "#b0b0b0",
-    steel: "#8a8a8a",
-    muted: "#6e6e6e",
-    dim: "#4a4a4a",
-    faint: "#2e2e2e",
+    // Text
+    ink: "#eaeef5",         // Primary text — near white
+    silver: "#c3c9d3",       // Secondary text — silver
+    steel: "#9aa3b2",        // Tertiary text — steel gray
+    muted: "#6b7383",        // Quaternary — muted gray
+    dim: "#4a515d",          // Dim labels
+    faint: "#2e333c",        // Faint separators
 
-    accent: "#9a9a9a",
-    accentDim: "#6a6a6a",
-    platinum: "#c8c8c8",
-    gold: "#a8a8a8",
-    goldBright: "#c0c0c0",
-    goldDim: "#6a6a6a",
-    cyan: "#8a8a8a",
-    iceBlue: "#b0b0b0",
+    // Accents (use sparingly)
+    accent: "#8fa0b8",       // Soft blue-silver
+    accentDim: "#5a6a80",    // Dimmer accent
+    platinum: "#d4dae3",     // Platinum highlight
+    cyan: "#6a8fa0",         // Muted cyan
+    iceBlue: "#7a95b5",      // Ice blue for subtle highlights
 
-    crimson: "#3a3a3a",
-    crimsonBright: "#555555",
-    crimsonDim: "#2a2a2a",
-    crimsonGlow: "#6a6a6a",
+    // Semantic
+    online: "#8fa0b8",
+    away: "#5a6270",
+    offline: "#2e333c",
+    success: "#7a9a7a",      // Muted green
+    warning: "#a09070",      // Muted amber
+    danger: "#9a6a6a",       // Muted red
 
-    online: "#9a9a9a",
-    away: "#6e6e6e",
-    offline: "#2e2e2e",
-    success: "#8a8a8a",
-    warning: "#a8a8a8",
-    danger: "#555555",
+    // Borders
+    border: "#16191e",
+    borderLight: "#1e2228",
+    borderActive: "#2a2f38",
 
-    border: "#1a1a1a",
-    borderLight: "#242424",
-    borderActive: "#3a3a3a",
-
-    scrim: "rgba(0, 0, 0, 0.85)",
-    glass: "rgba(10, 10, 10, 0.90)",
+    // Overlays
+    scrim: "rgba(0, 0, 0, 0.75)",
+    glass: "rgba(10, 11, 14, 0.85)",
   },
 
   typography: {
@@ -54,18 +58,23 @@ export const theme = {
     mono: "var(--font-ibm-mono), ui-monospace, monospace",
     luxury: "var(--font-luxury), Georgia, serif",
     sizes: {
-      micro: "0.5rem",
-      tiny: "0.56rem",
-      xs: "0.64rem",
-      sm: "0.72rem",
-      base: "0.82rem",
-      md: "0.92rem",
-      lg: "1.05rem",
-      xl: "1.25rem",
-      "2xl": "1.6rem",
-      "3xl": "2.2rem",
+      micro: "0.5rem",     // 8px — labels, tags
+      tiny: "0.56rem",     // 9px — metadata
+      xs: "0.64rem",       // 10px — captions
+      sm: "0.72rem",       // 11.5px — secondary text
+      base: "0.82rem",     // 13px — body text
+      md: "0.92rem",       // 14.5px — emphasized
+      lg: "1.05rem",       // 17px — section headers
+      xl: "1.25rem",       // 20px — page titles
+      "2xl": "1.6rem",     // 25px — display
+      "3xl": "2.2rem",     // 35px — hero
     },
-    weights: { normal: 400, medium: 500, semibold: 600, bold: 700 },
+    weights: {
+      normal: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700,
+    },
     tracking: {
       tight: "0.02em",
       normal: "0.06em",
@@ -76,25 +85,39 @@ export const theme = {
   },
 
   spacing: {
-    px: "1px", 0.5: "2px", 1: "4px", 1.5: "6px", 2: "8px",
-    2.5: "10px", 3: "12px", 4: "16px", 5: "20px", 6: "24px",
-    8: "32px", 10: "40px", 12: "48px",
+    px: "1px",
+    0.5: "2px",
+    1: "4px",
+    1.5: "6px",
+    2: "8px",
+    2.5: "10px",
+    3: "12px",
+    4: "16px",
+    5: "20px",
+    6: "24px",
+    8: "32px",
+    10: "40px",
+    12: "48px",
   },
 
   radius: {
-    none: "0px", sm: "4px", md: "8px", lg: "12px",
-    xl: "16px", "2xl": "20px", full: "9999px",
+    none: "0px",
+    sm: "4px",
+    md: "8px",
+    lg: "12px",
+    xl: "16px",
+    "2xl": "20px",
+    full: "9999px",
   },
 
   shadows: {
     none: "none",
-    sm: "0 2px 8px rgba(0,0,0,0.55)",
-    md: "0 8px 24px rgba(0,0,0,0.65)",
-    lg: "0 20px 50px rgba(0,0,0,0.75)",
-    xl: "0 30px 80px rgba(0,0,0,0.88)",
+    sm: "0 2px 8px rgba(0,0,0,0.4)",
+    md: "0 8px 24px rgba(0,0,0,0.5)",
+    lg: "0 20px 50px rgba(0,0,0,0.6)",
+    xl: "0 30px 80px rgba(0,0,0,0.8)",
     inset: "inset 0 1px 0 rgba(255,255,255,0.04)",
-    glow: "0 0 20px rgba(255,255,255,0.08)",
-    crimsonGlow: "0 0 18px rgba(0,0,0,0.4)",
+    glow: "0 0 20px rgba(143,160,184,0.15)",
   },
 
   animation: {

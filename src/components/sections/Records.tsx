@@ -5,7 +5,7 @@ import type { AppData } from "@/lib/types";
 
 const ACTION_COLOR: Record<string, string> = {
   "دخول": "#aeb6c2",
-  "فتح": "#b0b0b0",
+  "فتح": "#c3c9d3",
   "تحديث": "#7f8896",
   "معاينة": "#7f8896",
   "إنشاء": "#eaeef5",
@@ -26,7 +26,7 @@ export default function LogSection({ data }: { data: AppData }) {
           <div className="mb-5 flex items-center gap-3">
             <div
               className="flex h-10 w-10 items-center justify-center rounded-full"
-              style={{ border: "1px solid rgba(176,176,176,0.2)" }}
+              style={{ border: "1px solid rgba(195,201,211,0.2)" }}
             >
               <ScrollText size={17} className="text-[#aeb6c2]" />
             </div>

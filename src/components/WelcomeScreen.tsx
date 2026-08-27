@@ -1,5 +1,4 @@
 "use client";
-import { publicPath } from "@/lib/public-path";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Cursor } from "@/components/brand";
@@ -43,30 +42,25 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
   const [exitStage, setExitStage] = useState<ExitStage>("idle");
 
   const handleEnter = () => {
-    if (exitStage !== "idle") return; // prevent double-fire during exit
-    // If intro still playing, skip straight to login path
-    if (introStage !== "done") {
-      setIntroStage("done");
-    }
-    try { play("select"); } catch { /* noop */ }
+    if (exitStage !== "idle" || introStage !== "done") return; // منع النقرات المتعددة أثناء التمهيد أو الخروج
+    play("select");
     setExitStage("fading-out-site");
-    // Never leave a blocking layer if user double-taps during exit
 
     // المرحلة الأولى: خلال 1.2 ثانية تتلاشى عناصر الموقع للخلفية السوداء ويبقى الشعار الفارس ثابتاً في المنتصف
     // يستمر عرض الشعار منفرداً على الشاشة السوداء لمدة 0.9 ثانية (حتى t = 2100ms)
     setTimeout(() => {
       setExitStage("holding-emblem");
-    }, 600);
+    }, 1200);
 
     // المرحلة الثانية: عند t = 2100ms يبدأ الشعار بالتلاشي ببطء للظلام الدامس خلال 1.2 ثانية
     setTimeout(() => {
       setExitStage("fading-out-emblem");
-    }, 1000);
+    }, 2100);
 
     // المرحلة الثالثة: فور اكتمال تلاشي الشعار (عند t = 3300ms) ننتقل بسلاسة للصفحة التالية
     setTimeout(() => {
       onEnter();
-    }, 1600);
+    }, 3300);
   };
 
   const getEmblemOpacity = () => {
@@ -99,20 +93,21 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
 
   return (
     <motion.div
-      className="relative min-h-[100dvh] w-full max-w-[100vw] overflow-x-clip overflow-y-hidden bg-black"
-      style={{ zIndex: 20 }}
+      className="relative min-h-screen w-full overflow-hidden bg-black"
       initial={{ opacity: hasPlayedIntroThisSession ? 0 : 1 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.01 }, pointerEvents: "none" }}
-      transition={{ duration: exitStage !== "idle" ? 0.1 : 0.6, ease: "easeInOut" }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: exitStage !== "idle" ? 0.1 : 1.2, ease: "easeInOut" }}
     >
       <Cursor />
 
       {/* ====== طبقة الوجه — صورة الوجه فقط (خلفية سوداء + وجه فضي في المنتصف) ====== */}
       <motion.div
-        className="absolute inset-0 z-50 bg-black bg-cover bg-center pointer-events-none"
+        className={`absolute inset-0 z-50 bg-black bg-cover bg-center ${
+          introStage !== "done" || exitStage !== "idle" ? "pointer-events-auto" : "pointer-events-none"
+        }`}
         style={{
-          backgroundImage: `url(${publicPath("/images/BD60D113-2836-48F0-A78C-CD8269081B2A.png")})`,
+          backgroundImage: "url(/images/BD60D113-2836-48F0-A78C-CD8269081B2A.png)",
         }}
         initial={{ opacity: 0, scale: 1 }}
         animate={{
@@ -148,7 +143,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
         {/* صورة اللوحة الفضية الكاملة (الخلفية) */}
         <motion.div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${publicPath("/images/bilinmeyen.jpg")})` }}
+          style={{ backgroundImage: "url(/images/bilinmeyen.jpg)" }}
           initial={{ scale: 1 }}
           animate={{ scale: 1.03 }}
           transition={{ duration: 30, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
@@ -170,7 +165,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.3, ease: [0.2, 0.7, 0.2, 1] }}
-            className="px-4 pt-[max(3rem,8vh)] text-center sm:px-6 sm:pt-[11vh] md:pt-[13vh]"
+            className="pt-[11vh] text-center sm:pt-[13vh]"
           >
             <h1
               style={{
@@ -178,7 +173,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
                 fontWeight: 600,
                 fontSize: "clamp(2rem, 4.6vw, 4rem)",
                 lineHeight: 1.05,
-                letterSpacing: "0.08em",
+                letterSpacing: "0.14em",
                 textTransform: "uppercase",
                 color: "#191b1f",
                 textShadow: "0 1px 3px rgba(0,0,0,0.75), 0 0 1px rgba(0,0,0,0.9)",
@@ -196,20 +191,12 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.55, ease: [0.2, 0.7, 0.2, 1] }}
-            className="flex w-full max-w-[100vw] flex-col items-center px-4 pb-[max(2rem,6vh)] sm:px-6 sm:pb-[8vh]"
+            className="flex w-full flex-col items-center pb-[8vh]"
           >
             <div
-              role="button"
-              tabIndex={0}
               className="entry-zone"
               onClick={handleEnter}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleEnter();
-                }
-              }}
-              onMouseEnter={() => { try { play("hover"); } catch { /* noop */ } }}
+              onMouseEnter={() => play("hover")}
             >
               {/* توهج سينمائي دائم */}
               <div className="entry-glow" />
@@ -225,7 +212,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
                     fontFamily: "var(--font-luxury)",
                     fontWeight: 600,
                     fontSize: "clamp(1.2rem, 1.8vw, 1.6rem)",
-                    letterSpacing: "0.18em",
+                    letterSpacing: "0.42em",
                     textTransform: "uppercase",
                   }}
                 >
@@ -237,7 +224,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
                     fontFamily: "var(--font-luxury)",
                     fontWeight: 600,
                     fontSize: "clamp(1.2rem, 1.8vw, 1.6rem)",
-                    letterSpacing: "0.18em",
+                    letterSpacing: "0.42em",
                     textTransform: "uppercase",
                   }}
                 >
@@ -255,7 +242,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
                 fontFamily: "var(--font-luxury)",
                 fontWeight: 400,
                 fontSize: "clamp(0.75rem, 1.06vw, 0.98rem)",
-                letterSpacing: "0.18em",
+                letterSpacing: "0.42em",
                 textTransform: "uppercase",
                 color: "#0c0e12",
                 textShadow: "0 1px 2px rgba(0,0,0,0.75), 0 0 1px rgba(0,0,0,0.9)",

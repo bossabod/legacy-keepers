@@ -98,13 +98,13 @@ export function Cursor() {
         style={{
           width: 26,
           height: 26,
-          borderColor: "rgba(176,176,176,0.4)",
+          borderColor: "rgba(195,201,211,0.4)",
           boxShadow: "0 0 14px rgba(174,182,194,0.25)",
         }}
       />
       <div
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{ width: 4, height: 4, background: "#b0b0b0" }}
+        style={{ width: 4, height: 4, background: "#c3c9d3" }}
       />
     </motion.div>
   );

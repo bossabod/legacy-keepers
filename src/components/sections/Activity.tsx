@@ -48,7 +48,7 @@ export default function ActivitySection({ data }: { data: AppData }) {
       />
 
       <Reveal>
-        <div className="rounded-2xl border border-[#b0b0b0]/15 bg-gradient-to-b from-[#0e1118]/90 to-[#06080c] overflow-hidden">
+        <div className="rounded-2xl border border-[#c3c9d3]/15 bg-gradient-to-b from-[#0e1118]/90 to-[#06080c] overflow-hidden">
           {/* Table header */}
           <div className="grid grid-cols-[1fr_1fr_1.5fr_1fr_1fr] gap-3 px-5 py-3 border-b border-white/[0.06] text-[0.6rem] uppercase tracking-[0.15em] text-[#565d68]" style={{ fontFamily: "var(--font-ibm-mono)" }}>
             <span>Time</span>
@@ -68,8 +68,8 @@ export default function ActivitySection({ data }: { data: AppData }) {
                   <span className="text-[#7f8896]">{e.action}</span>
                   <span className="text-[#565d68]"> — {e.detail}</span>
                 </span>
-                <span className={`text-[0.68rem] ${e.status === "Completed" ? "text-[#aeb6c2]" : "text-[#b0b0b0]"}`}>
-                  <span className="inline-block h-1.5 w-1.5 rounded-full mr-1.5" style={{ background: e.status === "Completed" ? "#7f8896" : "#b0b0b0" }} />
+                <span className={`text-[0.68rem] ${e.status === "Completed" ? "text-[#aeb6c2]" : "text-[#c3c9d3]"}`}>
+                  <span className="inline-block h-1.5 w-1.5 rounded-full mr-1.5" style={{ background: e.status === "Completed" ? "#7f8896" : "#c3c9d3" }} />
                   {e.status}
                 </span>
                 <span className="text-[0.68rem] text-[#565d68]">{e.category}</span>

@@ -16,10 +16,10 @@ import type { AppData } from "@/lib/types";
 
 const MONO = "var(--font-ibm-mono)";
 const LUX = "var(--font-luxury)";
-const GREEN = "#8a8a8a";
+const GREEN = "#5fae83";
 const RED = "#c05c52";
-const CYAN = "#9a9a9a";
-const BG = "#080808";
+const CYAN = "#c8a76b";
+const BG = "#0a0906";
 
 /* ───────── Deterministic OHLC (2013 → present) ───────── */
 function mulberry(seed: number) {
@@ -165,16 +165,16 @@ export default function InvestmentsSection({ data: _data }: { data: AppData }) {
   const goBack = () => { setActive(null); play("click"); };
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-6xl px-1" dir={ar ? "rtl" : "ltr"}>
+    <div className="mx-auto max-w-6xl px-1" dir={ar ? "rtl" : "ltr"}>
       <header className="mb-8">
-        <h1 className="text-[clamp(2rem,4vw,3rem)] font-light uppercase tracking-[0.14em] text-[#e8e8e8]" style={{ fontFamily: LUX }}>{S(lang, "portfolio")}</h1>
-        <div className="mt-5 flex items-center gap-7 border-b border-[#9a9a9a]/[0.10]">
+        <h1 className="text-[clamp(2rem,4vw,3rem)] font-light uppercase tracking-[0.14em] text-[#ece9e0]" style={{ fontFamily: LUX }}>{S(lang, "portfolio")}</h1>
+        <div className="mt-5 flex items-center gap-7 border-b border-[#c8a76b]/[0.10]">
           {(["personal", "club"] as const).map((s) => {
             const on = scope === s;
             return (
               <button key={s} onClick={() => switchScope(s)}
                 className="relative pb-2.5 text-[0.78rem] uppercase tracking-[0.25em] transition-colors duration-300"
-                style={{ fontFamily: MONO, color: on ? "#c0c0c0" : "#4a4a4a" }}>
+                style={{ fontFamily: MONO, color: on ? "#e8c992" : "#57534a" }}>
                 {S(lang, s)}
                 {on && <motion.span layoutId="scope-underline" className="absolute inset-x-0 bottom-0 h-px" style={{ background: GREEN, boxShadow: `0 0 8px ${GREEN}` }} />}
               </button>
@@ -199,7 +199,7 @@ export default function InvestmentsSection({ data: _data }: { data: AppData }) {
           </motion.div>
         ) : active ? (
           <motion.div key="big" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-            <button onClick={goBack} className="mb-5 flex items-center gap-2 text-[0.62rem] uppercase tracking-[0.25em] text-[#9a9a9a] hover:text-[#c0c0c0]" style={{ fontFamily: MONO }}>← {S(lang, "back")}</button>
+            <button onClick={goBack} className="mb-5 flex items-center gap-2 text-[0.62rem] uppercase tracking-[0.25em] text-[#c8a76b] hover:text-[#e8c992]" style={{ fontFamily: MONO }}>← {S(lang, "back")}</button>
             <AssetChart id={active} lang={lang} />
           </motion.div>
         ) : (
@@ -224,9 +224,9 @@ export default function InvestmentsSection({ data: _data }: { data: AppData }) {
 
 function Metric({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="bg-[#080808] px-4 py-5">
+    <div className="bg-[#0a0906] px-4 py-5">
       <div className="text-[0.52rem] uppercase tracking-[0.24em] text-[#5d6675]" style={{ fontFamily: MONO }}>{label}</div>
-      <div className="mt-1.5 text-[1.5rem] leading-none" style={{ fontFamily: MONO, color: highlight ? GREEN : "#e8e8e8" }}>{value}</div>
+      <div className="mt-1.5 text-[1.5rem] leading-none" style={{ fontFamily: MONO, color: highlight ? GREEN : "#ece9e0" }}>{value}</div>
     </div>
   );
 }
@@ -249,7 +249,7 @@ function MiniCard({ id, lang, onOpen }: { id: string; lang: "en" | "ar"; onOpen:
         grid: { vertLines: { visible: false }, horzLines: { visible: false } },
         rightPriceScale: { visible: false },
         timeScale: { visible: false },
-        crosshair: { mode: 1, vertLine: { color: "rgba(170,170,170,0.5)" }, horzLine: { color: "rgba(170,170,170,0.5)" } },
+        crosshair: { mode: 1, vertLine: { color: "rgba(216,180,120,0.5)" }, horzLine: { color: "rgba(216,180,120,0.5)" } },
         handleScroll: false,
         handleScale: false,
       });
@@ -267,11 +267,11 @@ function MiniCard({ id, lang, onOpen }: { id: string; lang: "en" | "ar"; onOpen:
   return (
     <button
       onClick={onOpen}
-      className="group flex flex-col overflow-hidden border border-[#9a9a9a]/[0.10] bg-[#080808] text-left transition-all duration-300 hover:border-[#9a9a9a]/45 hover:bg-[#0d0b06]"
+      className="group flex flex-col overflow-hidden border border-[#c8a76b]/[0.10] bg-[#0a0906] text-left transition-all duration-300 hover:border-[#c8a76b]/45 hover:bg-[#0d0b06]"
     >
       {/* header: name + annual performance */}
       <div className="flex items-center justify-between px-4 pb-2 pt-3">
-        <span className="text-[0.8rem] uppercase tracking-[0.12em] text-[#e8e8e8]" style={{ fontFamily: LUX }}>{ar ? a.labelAr : a.label}</span>
+        <span className="text-[0.8rem] uppercase tracking-[0.12em] text-[#ece9e0]" style={{ fontFamily: LUX }}>{ar ? a.labelAr : a.label}</span>
         <span className="text-[0.72rem]" style={{ fontFamily: MONO, color: GREEN }}>
           +{PERF[id]}%
         </span>
@@ -308,7 +308,7 @@ function AssetChart({ id, lang }: { id: string; lang: "en" | "ar" }) {
     time: d.t as UTCTimestamp, open: d.o, high: d.h, low: d.l, close: d.c,
   }));
   const volData: HistogramData[] = data.map((d) => ({
-    time: d.t as UTCTimestamp, value: d.v, color: d.c >= d.o ? "rgba(150,150,150,0.35)" : "rgba(192,92,82,0.35)",
+    time: d.t as UTCTimestamp, value: d.v, color: d.c >= d.o ? "rgba(95,174,131,0.35)" : "rgba(192,92,82,0.35)",
   }));
 
   /* last return % */
@@ -323,13 +323,13 @@ function AssetChart({ id, lang }: { id: string; lang: "en" | "ar" }) {
     const chart = createChart(container, {
       autoSize: true,
       layout: { background: { type: ColorType.Solid, color: BG }, textColor: "#8b95a5", fontFamily: "'IBM Plex Mono', monospace", fontSize: 10 },
-      grid: { vertLines: { color: "rgba(170,170,170,0.05)" }, horzLines: { color: "rgba(170,170,170,0.05)" } },
-      rightPriceScale: { borderColor: "rgba(170,170,170,0.12)", mode: PriceScaleMode.Percentage },
-      timeScale: { borderColor: "rgba(170,170,170,0.12)", timeVisible: true, secondsVisible: false },
+      grid: { vertLines: { color: "rgba(216,180,120,0.05)" }, horzLines: { color: "rgba(216,180,120,0.05)" } },
+      rightPriceScale: { borderColor: "rgba(216,180,120,0.12)", mode: PriceScaleMode.Percentage },
+      timeScale: { borderColor: "rgba(216,180,120,0.12)", timeVisible: true, secondsVisible: false },
       crosshair: {
         mode: 1,
-        vertLine: { color: "rgba(170,170,170,0.6)", labelBackgroundColor: "#2a2313" },
-        horzLine: { color: "rgba(170,170,170,0.6)", labelBackgroundColor: "#2a2313" },
+        vertLine: { color: "rgba(216,180,120,0.6)", labelBackgroundColor: "#2a2313" },
+        horzLine: { color: "rgba(216,180,120,0.6)", labelBackgroundColor: "#2a2313" },
       },
     });
     const candle = chart.addSeries(CandlestickSeries, {
@@ -356,13 +356,13 @@ function AssetChart({ id, lang }: { id: string; lang: "en" | "ar" }) {
       const pct = ((cd.close / prevClose - 1) * 100);
       const chg = cd.close >= prevClose;
       tip.innerHTML =
-        `<div style="font-family:var(--font-ibm-mono);color:#6a6a6a;letter-spacing:.12em;font-size:9px;text-transform:uppercase;margin-bottom:4px">${date}</div>` +
+        `<div style="font-family:var(--font-ibm-mono);color:#8a7044;letter-spacing:.12em;font-size:9px;text-transform:uppercase;margin-bottom:4px">${date}</div>` +
         `<div style="display:grid;grid-template-columns:auto auto;gap:3px 14px;font-family:var(--font-ibm-mono);font-size:10px;line-height:1.5">` +
-        `  <span style="color:#4a4a4a">O</span><span style="color:#e8e8e8;text-align:right">${cd.open.toFixed(2)}</span>` +
-        `  <span style="color:#4a4a4a">H</span><span style="color:#e8e8e8;text-align:right">${cd.high.toFixed(2)}</span>` +
-        `  <span style="color:#4a4a4a">L</span><span style="color:#e8e8e8;text-align:right">${cd.low.toFixed(2)}</span>` +
-        `  <span style="color:#4a4a4a">C</span><span style="color:${chg ? GREEN : RED};text-align:right">${cd.close.toFixed(2)}</span>` +
-        `  <span style="color:#4a4a4a">Δ</span><span style="color:${chg ? GREEN : RED};text-align:right">${(pct >= 0 ? "+" : "")}${pct.toFixed(2)}%</span>` +
+        `  <span style="color:#57534a">O</span><span style="color:#ece9e0;text-align:right">${cd.open.toFixed(2)}</span>` +
+        `  <span style="color:#57534a">H</span><span style="color:#ece9e0;text-align:right">${cd.high.toFixed(2)}</span>` +
+        `  <span style="color:#57534a">L</span><span style="color:#ece9e0;text-align:right">${cd.low.toFixed(2)}</span>` +
+        `  <span style="color:#57534a">C</span><span style="color:${chg ? GREEN : RED};text-align:right">${cd.close.toFixed(2)}</span>` +
+        `  <span style="color:#57534a">Δ</span><span style="color:${chg ? GREEN : RED};text-align:right">${(pct >= 0 ? "+" : "")}${pct.toFixed(2)}%</span>` +
         `</div>`;
       tip.style.opacity = "1";
     });
@@ -440,7 +440,7 @@ function AssetChart({ id, lang }: { id: string; lang: "en" | "ar" }) {
         <div className="text-[0.62rem] uppercase tracking-[0.3em] text-[#5d6675]" style={{ fontFamily: MONO }}>{ar ? a.labelAr : a.label}</div>
         <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h2 className="text-[clamp(1.4rem,3vw,2.2rem)] font-light uppercase tracking-[0.12em] text-[#e8e8e8]" style={{ fontFamily: LUX }}>
+            <h2 className="text-[clamp(1.4rem,3vw,2.2rem)] font-light uppercase tracking-[0.12em] text-[#ece9e0]" style={{ fontFamily: LUX }}>
               {ar ? a.perfAr : a.perf}
             </h2>
             <div className="mt-1 flex items-center gap-3 text-[0.5rem] uppercase tracking-[0.2em] text-[#454d5a]" style={{ fontFamily: MONO }}>
@@ -457,11 +457,11 @@ function AssetChart({ id, lang }: { id: string; lang: "en" | "ar" }) {
       </div>
 
       {/* toolbar */}
-      <div className="mb-3 mt-4 flex flex-wrap items-center gap-1 border-b border-[#9a9a9a]/[0.10] pb-2">
+      <div className="mb-3 mt-4 flex flex-wrap items-center gap-1 border-b border-[#c8a76b]/[0.10] pb-2">
         {["1Y", "6M", "1M", "1W", "1D"].map((x) => (
           <button key={x} onClick={() => setTf(x)}
             className="rounded px-2.5 py-1 text-[0.62rem] uppercase tracking-[0.12em] transition-colors"
-            style={{ fontFamily: MONO, color: tf === x ? "#c0c0c0" : "#4a4a4a", background: tf === x ? "rgba(170,170,170,0.12)" : "transparent" }}>
+            style={{ fontFamily: MONO, color: tf === x ? "#e8c992" : "#57534a", background: tf === x ? "rgba(216,180,120,0.12)" : "transparent" }}>
             {x}
           </button>
         ))}
@@ -477,18 +477,18 @@ function AssetChart({ id, lang }: { id: string; lang: "en" | "ar" }) {
 
       {/* chart (or fullscreen) */}
       <div
-        className={`relative w-full overflow-hidden border border-[#9a9a9a]/[0.10] bg-[#080808] ${expanded ? "fixed inset-0 z-50" : ""}`}
+        className={`relative w-full overflow-hidden border border-[#c8a76b]/[0.10] bg-[#0a0906] ${expanded ? "fixed inset-0 z-50" : ""}`}
         style={{ height: expanded ? "100vh" : "420px" }}
       >
         <div ref={mountRef} className="h-full w-full" />
         {/* crosshair tooltip */}
         <div
           ref={tipRef}
-          className="pointer-events-none absolute left-3 top-3 z-10 rounded border border-[#9a9a9a]/20 bg-[#0a0a0a]/92 px-3 py-2 opacity-0 backdrop-blur-sm transition-opacity duration-150"
+          className="pointer-events-none absolute left-3 top-3 z-10 rounded border border-[#c8a76b]/20 bg-[#0c0b08]/92 px-3 py-2 opacity-0 backdrop-blur-sm transition-opacity duration-150"
         />
         {expanded && (
           <button onClick={() => setExpanded(false)}
-            className="absolute right-3 top-3 z-10 rounded border border-[#9a9a9a]/40 px-3 py-1 text-[0.6rem] uppercase tracking-[0.2em] text-[#9a9a9a] hover:text-[#c0c0c0]"
+            className="absolute right-3 top-3 z-10 rounded border border-[#c8a76b]/40 px-3 py-1 text-[0.6rem] uppercase tracking-[0.2em] text-[#c8a76b] hover:text-[#e8c992]"
             style={{ fontFamily: MONO }}>
             × {S(lang, "closeT")}
           </button>
@@ -501,7 +501,7 @@ function AssetChart({ id, lang }: { id: string; lang: "en" | "ar" }) {
 function ToolBtn({ label, onClick, title }: { label: string; onClick: () => void; title?: string }) {
   return (
     <button onClick={onClick} title={title}
-      className="rounded border border-[#9a9a9a]/[0.16] px-2 py-1 text-[0.62rem] text-[#8a8a8a] transition hover:border-[#9a9a9a]/50 hover:text-[#c0c0c0]"
+      className="rounded border border-[#c8a76b]/[0.16] px-2 py-1 text-[0.62rem] text-[#a39d8e] transition hover:border-[#c8a76b]/50 hover:text-[#e8c992]"
       style={{ fontFamily: MONO }}>
       {label}
     </button>

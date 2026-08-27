@@ -123,9 +123,9 @@ export function SectionHeading({
 
 /* ===== وسم تصنيف السرية ===== */
 const TAG_STYLE: Record<number, { border: string; bg: string; text: string; dot: string }> = {
-  0: { border: "rgba(176,176,176,0.14)", bg: "rgba(86,93,104,0.12)", text: "#7f8896", dot: "#565d68" },
+  0: { border: "rgba(195,201,211,0.14)", bg: "rgba(86,93,104,0.12)", text: "#7f8896", dot: "#565d68" },
   1: { border: "rgba(174,182,194,0.22)", bg: "rgba(174,182,194,0.08)", text: "#aeb6c2", dot: "#aeb6c2" },
-  2: { border: "rgba(176,176,176,0.4)", bg: "rgba(176,176,176,0.1)", text: "#d6dbe3", dot: "#b0b0b0" },
+  2: { border: "rgba(195,201,211,0.4)", bg: "rgba(195,201,211,0.1)", text: "#d6dbe3", dot: "#c3c9d3" },
   3: { border: "rgba(234,238,245,0.55)", bg: "rgba(234,238,245,0.12)", text: "#eef1f6", dot: "#eef1f6" },
 };
 export function Tag({ level }: { level: Classification }) {
@@ -189,10 +189,9 @@ export function Reveal({
 }) {
   return (
     <motion.div
-      // Avoid CSS `filter` — it creates a containing block and can swallow pointer events
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55, delay, ease: [0.2, 0.7, 0.2, 1] }}
+      initial={{ opacity: 0, y: 18, filter: "blur(8px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.7, delay, ease: [0.2, 0.7, 0.2, 1] }}
       className={className}
     >
       {children}

@@ -419,7 +419,7 @@ const styles = `
   .inv-sidebar-head { display:flex; align-items:center; justify-content:space-between; padding-bottom:16px; border-bottom:1px solid rgba(255,255,255,.06); }
   .inv-years { margin-top:14px; display:flex; flex-direction:column; gap:2px; overflow-y:auto; }
   .inv-year { display:flex; align-items:center; gap:10px; padding:7px 8px; background:none; border:0; cursor:pointer; transition:background .3s, color .3s; }
-  .inv-year-num { font-family:${MONO}; font-size:.74rem; color:#b0b0b0; letter-spacing:.06em; }
+  .inv-year-num { font-family:${MONO}; font-size:.74rem; color:#c3c9d3; letter-spacing:.06em; }
   .inv-year.is-locked .inv-year-num { color:#4a515e; }
   .inv-year.is-locked .inv-year-state { color:#3f4752; }
   .inv-year.is-active { background:rgba(255,255,255,.04); }
@@ -465,7 +465,7 @@ const styles = `
   /* locked year */
   .inv-locked { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; text-align:center; }
   .inv-locked-back { position:absolute; top:0; inset-inline-start:0; background:none; border:0; color:#5d6675; font-family:${MONO}; font-size:.5rem; letter-spacing:.14em; cursor:pointer; }
-  .inv-locked-seal { font-family:${MONO}; font-size:3rem; letter-spacing:.1em; color:#0e1014; text-shadow:0 0 30px rgba(176,176,176,.15); border:1px solid rgba(255,255,255,.12); padding:18px 26px; }
+  .inv-locked-seal { font-family:${MONO}; font-size:3rem; letter-spacing:.1em; color:#0e1014; text-shadow:0 0 30px rgba(195,201,211,.15); border:1px solid rgba(255,255,255,.12); padding:18px 26px; }
   .inv-locked-title { margin:26px 0 0; font-family:${LUX}; font-size:clamp(1.2rem,2.4vw,1.7rem); letter-spacing:.12em; color:#e6ecf3; }
   .inv-locked-body { margin:14px 0 0; font-family:${MONO}; font-size:.6rem; letter-spacing:.06em; color:#7b8494; max-width:40ch; line-height:1.9; }
   .inv-locked-cta { margin-top:28px; background:none; border:1px solid rgba(255,255,255,.16); color:#e6ecf3; font-family:${MONO}; font-size:.6rem; letter-spacing:.2em; padding:13px 26px; cursor:pointer; transition:border-color .3s, background .3s; }
@@ -497,7 +497,7 @@ const styles = `
   .inv-det-id { margin:14px 0 0; font-family:${MONO}; font-size:1.5rem; letter-spacing:.06em; color:#eef2f7; }
   .inv-det-title { margin:6px 0 0; font-family:${LUX}; font-size:1.05rem; color:#aeb8c5; }
   .inv-det-stamp { text-align:center; }
-  .inv-det-stamp-ring { display:block; width:58px; height:58px; border-radius:50%; border:1px solid rgba(255,255,255,.2); color:#9aa5b3; font-family:${MONO}; font-size:.55rem; display:flex; align-items:center; justify-content:center; letter-spacing:.1em; box-shadow:0 0 18px rgba(176,176,176,.12), inset 0 0 12px rgba(176,176,176,.06); }
+  .inv-det-stamp-ring { display:block; width:58px; height:58px; border-radius:50%; border:1px solid rgba(255,255,255,.2); color:#9aa5b3; font-family:${MONO}; font-size:.55rem; display:flex; align-items:center; justify-content:center; letter-spacing:.1em; box-shadow:0 0 18px rgba(195,201,211,.12), inset 0 0 12px rgba(195,201,211,.06); }
   .inv-det-stamp-verified { display:block; margin-top:8px; font-family:${MONO}; font-size:.42rem; letter-spacing:.16em; color:#4a515e; }
   .inv-det-rule { height:1px; background:linear-gradient(90deg,rgba(255,255,255,.14),transparent); margin:4px 0 18px; }
   .inv-det-grid { display:grid; grid-template-columns:1fr 1fr; gap:40px; }
