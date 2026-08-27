@@ -4,8 +4,8 @@ import { OPERATIONAL_CITIES, EARTH_LAND_POINTS } from "@/lib/earth-data";
 
 /* ==================================================================
    GlobalCommandGlobe — command-center globe.
-   • Fixed size (no zoom / no pinch / no scroll-zoom / no drag)
-   • Slow elegant auto-rotation only — user cannot move or resize
+   • Fixed size (no zoom / no pinch / no scroll-zoom)
+   • Drag-only rotation (smooth inertia)
    • Stable initial camera: Europe · Africa · Asia in view
    • City nodes + connector labels unchanged
    ================================================================== */
@@ -43,7 +43,7 @@ const CITY_LABELS: Record<string, { angle: number; dist: number }> = {
 const INITIAL_ROT = -20;   // centers Afro-Eurasia
 const INITIAL_PITCH = 12;  // slight north tilt, global overview
 /** Fixed scale — never modified by user input */
-const FIXED_ZOOM = 1.18;
+const FIXED_ZOOM = 1.12;
 
 export default function GlobalCommandGlobe({ className = "" }: { className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -77,20 +77,56 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
     let pitchAngle = INITIAL_PITCH;
     const zoom = FIXED_ZOOM; // const — size never changes
 
-    // No user drag / zoom — locked elegant auto-rotation only
-    const blockInput = (e: Event) => {
+    let isDragging = false;
+    let lastX = 0, lastY = 0;
+    let velLon = 0, velPitch = 0;
+    let inactiveFrames = 9999;
+
+    const onPointerDown = (e: PointerEvent) => {
+      isDragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      velLon = 0;
+      velPitch = 0;
+      inactiveFrames = 0;
+      canvas.style.cursor = "grabbing";
+      canvas.setPointerCapture(e.pointerId);
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isDragging) return;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      // Smooth drag rotation only — no size change
+      rotAngle += dx * 0.32;
+      pitchAngle = Math.max(-55, Math.min(55, pitchAngle - dy * 0.2));
+      velLon = dx * 0.32;
+      velPitch = -dy * 0.2;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      inactiveFrames = 0;
+    };
+    const onPointerUp = () => {
+      isDragging = false;
+      canvas.style.cursor = "grab";
+    };
+
+    /** Block all zoom / pinch / ctrl-wheel gestures */
+    const blockZoom = (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
     };
-    canvas.addEventListener("wheel", blockInput, { passive: false });
-    canvas.addEventListener("pointerdown", blockInput, { passive: false });
-    canvas.addEventListener("touchstart", blockInput, { passive: false });
-    canvas.addEventListener("gesturestart", blockInput as EventListener, { passive: false } as AddEventListenerOptions);
-    canvas.addEventListener("gesturechange", blockInput as EventListener, { passive: false } as AddEventListenerOptions);
-    canvas.addEventListener("gestureend", blockInput as EventListener, { passive: false } as AddEventListenerOptions);
-    canvas.style.cursor = "default";
+
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerup", onPointerUp);
+    canvas.addEventListener("pointercancel", onPointerUp);
+    canvas.addEventListener("wheel", blockZoom, { passive: false });
+    canvas.addEventListener("gesturestart", blockZoom as EventListener, { passive: false } as AddEventListenerOptions);
+    canvas.addEventListener("gesturechange", blockZoom as EventListener, { passive: false } as AddEventListenerOptions);
+    canvas.addEventListener("gestureend", blockZoom as EventListener, { passive: false } as AddEventListenerOptions);
+    canvas.style.cursor = "grab";
+    // Prevent browser pinch-zoom on the canvas
     canvas.style.touchAction = "none";
-    canvas.style.userSelect = "none";
 
     let time = 0;
 
@@ -127,8 +163,23 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
     const render = () => {
       time += 0.016;
 
-      // Continuous slow, elegant auto-rotation (pitch stays fixed)
-      rotAngle += 0.028;
+      if (!isDragging) {
+        inactiveFrames++;
+        // Soft inertia after drag — rotation only
+        if (Math.abs(velLon) > 0.01) {
+          rotAngle += velLon;
+          velLon *= 0.94;
+        }
+        if (Math.abs(velPitch) > 0.01) {
+          pitchAngle = Math.max(-55, Math.min(55, pitchAngle + velPitch));
+          velPitch *= 0.94;
+        }
+        // Gentle auto-spin when idle (does not change size)
+        if (inactiveFrames > 200) {
+          const blend = Math.min(1, (inactiveFrames - 200) / 140);
+          rotAngle += 0.045 * blend;
+        }
+      }
 
       ctx.clearRect(0, 0, width, height);
 
@@ -138,10 +189,10 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
       const short = Math.min(width, height);
       // Narrow phones: smaller sphere; wide desktops: up to 0.40
       const scale =
-        short < 360 ? 0.34 :
-        short < 520 ? 0.38 :
-        short < 720 ? 0.42 :
-        0.46;
+        short < 360 ? 0.30 :
+        short < 520 ? 0.34 :
+        short < 720 ? 0.37 :
+        0.40;
       const baseR = short * scale;
       const R = baseR * zoom; // zoom is constant
       const camDist = 4.2 * R;
@@ -330,7 +381,7 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
       const mx = e.clientX - rect.left, my = e.clientY - rect.top;
       const cx = width * 0.5, cy = height * 0.50;
       const short = Math.min(width, height);
-      const scale = short < 360 ? 0.34 : short < 520 ? 0.38 : short < 720 ? 0.42 : 0.46;
+      const scale = short < 360 ? 0.30 : short < 520 ? 0.34 : short < 720 ? 0.37 : 0.40;
       const baseR = short * scale;
       const R = baseR * zoom, camDist = 4.2 * R;
       let best: string | null = null, bestD = 26;
@@ -350,12 +401,14 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", resize);
-      canvas.removeEventListener("wheel", blockInput);
-      canvas.removeEventListener("pointerdown", blockInput);
-      canvas.removeEventListener("touchstart", blockInput);
-      canvas.removeEventListener("gesturestart", blockInput as EventListener);
-      canvas.removeEventListener("gesturechange", blockInput as EventListener);
-      canvas.removeEventListener("gestureend", blockInput as EventListener);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointercancel", onPointerUp);
+      canvas.removeEventListener("wheel", blockZoom);
+      canvas.removeEventListener("gesturestart", blockZoom as EventListener);
+      canvas.removeEventListener("gesturechange", blockZoom as EventListener);
+      canvas.removeEventListener("gestureend", blockZoom as EventListener);
       canvas.removeEventListener("click", onClick);
     };
   }, []);
