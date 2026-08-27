@@ -46,63 +46,121 @@ export default function HomeSection({
   return (
     <>
       <div className="page-shell space-y-8 sm:space-y-10 lg:space-y-12">
-        {/* ═══════ Global Command Globe — full container, complete edges ═══════ */}
+        {/* ═══════ Global Command Network — original interactive globe (restored) ═══════ */}
         <Reveal>
           <div
             className="relative w-full min-w-0 overflow-hidden rounded-xl border border-[#2a2a2a]"
             style={{
-              height: "clamp(360px, 62dvh, 680px)",
-              minHeight: "min(360px, 70dvh)",
-              background: "radial-gradient(120% 90% at 50% 40%, #0e0e0e 0%, #080808 55%, #050505 100%)",
-              boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04), 0 24px 60px rgba(0,0,0,0.55)",
+              /* Full rectangular stage — tall enough for globe + city labels */
+              minHeight: "clamp(520px, 70dvh, 720px)",
+              height: "clamp(520px, 70dvh, 720px)",
+              background:
+                "radial-gradient(120% 90% at 50% 30%, #0e0e0e 0%, #080808 55%, #050505 100%)",
+              boxShadow:
+                "inset 0 0 160px 40px rgba(170,170,170,0.04), inset 0 0 0 1px rgba(255,255,255,0.04)",
             }}
           >
-            {/* header inside container */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-2 border-b border-[#1a1a1a]/80 px-3 py-2.5 sm:px-6 sm:py-3.5 md:px-8">
-              <span className="min-w-0 truncate text-[0.62rem] uppercase tracking-[0.12em] text-[#8a8a8a] sm:text-[0.72rem] sm:tracking-[0.2em]" style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
+            {/* Globe fills the ENTIRE box — same as original embedding */}
+            <GlobalCommandGlobe className="absolute inset-0 z-0 h-full w-full" />
+
+            {/* Header overlay (does not shrink the globe canvas) */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-2 px-4 pt-5 sm:px-7 sm:pt-6 md:px-9">
+              <span
+                className="min-w-0 truncate text-[0.62rem] uppercase tracking-[0.16em] text-[#8a8a8a] sm:text-[0.72rem] sm:tracking-[0.22em]"
+                style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}
+              >
                 {ar ? "شبكة القيادة العالمية" : "Global Command Network"}
               </span>
-              <span className="mono shrink-0 rounded-full border border-[#9a9a9a]/15 bg-black/40 px-2 py-1 text-[0.55rem] text-[#9a9a9a]/80 sm:px-3 sm:text-[0.66rem]">{me.code}</span>
+              <span className="mono shrink-0 rounded-full border border-[#9a9a9a]/15 bg-black/40 px-2 py-1 text-[0.55rem] text-[#9a9a9a]/80 sm:px-3 sm:text-[0.66rem]">
+                {me.code}
+              </span>
             </div>
 
-            {/* globe fills the box — centered, no overflow */}
-            <div className="absolute inset-0 z-0 pb-[min(38%,11rem)] pt-11 sm:pb-28 sm:pt-12">
-              <GlobalCommandGlobe className="h-full w-full" />
-            </div>
-
-            {/* member identity — bottom overlay */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-end justify-between gap-3 border-t border-[#1a1a1a]/80 px-3 pb-3 pt-3 sm:gap-6 sm:px-6 sm:pb-5 sm:pt-4 md:px-8">
+            {/* Member identity — bottom overlay only (pointer-events on controls) */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-end justify-between gap-3 px-4 pb-5 sm:gap-6 sm:px-7 sm:pb-6 md:px-9">
               <div className="min-w-0 max-w-full sm:max-w-md">
                 <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                  <h1 className="min-w-0 truncate text-xl font-light tracking-tight text-[#e8e8e8] sm:text-3xl md:text-4xl" style={{ fontFamily: "var(--font-luxury)", textShadow: "0 2px 12px rgba(0,0,0,0.9)" }}>
+                  <h1
+                    className="min-w-0 truncate text-xl font-light tracking-tight text-[#e8e8e8] sm:text-3xl md:text-4xl"
+                    style={{
+                      fontFamily: "var(--font-luxury)",
+                      textShadow: "0 2px 12px rgba(0,0,0,0.9)",
+                    }}
+                  >
                     {nameVisible ? me.name : "****************"}
                   </h1>
                   <button
                     type="button"
-                    onClick={() => { setNameVisible(!nameVisible); play("click"); }}
+                    onClick={() => {
+                      setNameVisible(!nameVisible);
+                      play("click");
+                    }}
                     onMouseEnter={() => play("hover")}
-                    className="pointer-events-auto shrink-0 rounded-md p-2 text-[#6a6a6a] transition-all duration-300 hover:text-[#c0c0c0] border border-transparent hover:border-[#9a9a9a]/20"
+                    className="pointer-events-auto shrink-0 rounded-md border border-transparent p-2 text-[#6a6a6a] transition-all duration-300 hover:border-[#9a9a9a]/20 hover:text-[#c0c0c0]"
                     aria-label="Toggle name visibility"
                   >
                     {nameVisible ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
-                <p className="mt-2 max-w-md text-sm leading-relaxed text-[#8a8a8a]" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}>{me.bio}</p>
+                <p
+                  className="mt-2 max-w-md text-sm leading-relaxed text-[#8a8a8a]"
+                  style={{ textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}
+                >
+                  {me.bio}
+                </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[0.68rem]" style={{ border: "1px solid rgba(170,170,170,0.3)", background: "rgba(8,8,8,0.55)", color: "#c0c0c0" }}>
-                    <span className="h-1.5 w-1.5 rotate-45 bg-[#9a9a9a]" /> {ar ? "الرتبة" : "Rank"}: {me.rank}
+                  <span
+                    className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[0.68rem]"
+                    style={{
+                      border: "1px solid rgba(170,170,170,0.3)",
+                      background: "rgba(8,8,8,0.55)",
+                      color: "#c0c0c0",
+                    }}
+                  >
+                    <span className="h-1.5 w-1.5 rotate-45 bg-[#9a9a9a]" />{" "}
+                    {ar ? "الرتبة" : "Rank"}: {me.rank}
                   </span>
-                  <span className="text-[0.68rem] text-[#8a8a8a]" style={{ background: "rgba(8,8,8,0.55)", padding: "2px 10px", borderRadius: 999, border: "1px solid rgba(170,170,170,0.1)" }}>{me.role}</span>
-                  <span className="flex items-center gap-1.5 text-[0.68rem] text-[#8b8577]" style={{ background: "rgba(8,8,8,0.55)", padding: "2px 10px", borderRadius: 999, border: "1px solid rgba(170,170,170,0.1)" }}>
+                  <span
+                    className="text-[0.68rem] text-[#8a8a8a]"
+                    style={{
+                      background: "rgba(8,8,8,0.55)",
+                      padding: "2px 10px",
+                      borderRadius: 999,
+                      border: "1px solid rgba(170,170,170,0.1)",
+                    }}
+                  >
+                    {me.role}
+                  </span>
+                  <span
+                    className="flex items-center gap-1.5 text-[0.68rem] text-[#8b8577]"
+                    style={{
+                      background: "rgba(8,8,8,0.55)",
+                      padding: "2px 10px",
+                      borderRadius: 999,
+                      border: "1px solid rgba(170,170,170,0.1)",
+                    }}
+                  >
                     <MapPin size={12} /> {me.city} · {me.country}
                   </span>
                 </div>
               </div>
 
-              <div className="hidden lg:block space-y-1.5 text-right">
-                <MetaRow label={ar ? "رقم العضوية" : "Membership No."} value={me.code} mono />
-                <MetaRow label={ar ? "سنة الانضمام" : "Join Year"} value={String(me.memberSince)} mono />
-                <MetaRow label={ar ? "مشاريع مرتبطة" : "Related Projects"} value={String(data.projects.length)} mono />
+              <div className="hidden space-y-1.5 text-end lg:block">
+                <MetaRow
+                  label={ar ? "رقم العضوية" : "Membership No."}
+                  value={me.code}
+                  mono
+                />
+                <MetaRow
+                  label={ar ? "سنة الانضمام" : "Join Year"}
+                  value={String(me.memberSince)}
+                  mono
+                />
+                <MetaRow
+                  label={ar ? "مشاريع مرتبطة" : "Related Projects"}
+                  value={String(data.projects.length)}
+                  mono
+                />
               </div>
             </div>
           </div>
