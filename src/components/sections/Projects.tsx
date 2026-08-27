@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ProjectsGate from "@/components/projects/ProjectsGate";
 import ProjectsDashboard from "@/components/projects/ProjectsDashboard";
@@ -8,6 +8,7 @@ import SubmitProject from "@/components/projects/SubmitProject";
 import { useApp } from "@/lib/store";
 import { t } from "@/lib/i18n";
 import type { AppData } from "@/lib/types";
+import type { DeepLink } from "@/lib/destinations";
 
 type Tab = "digital" | "physical" | "submit" | null;
 
@@ -78,15 +79,25 @@ function CardStagger({
 export default function ProjectsSection({
   data: _data,
   onNavigate,
+  deepLink,
 }: {
   data: AppData;
   onNavigate?: (section: string) => void;
+  deepLink?: DeepLink;
 }) {
   const { lang } = useApp();
   const ar = lang === "ar";
 
   const [entered, setEntered] = useState(false);
   const [tab, setTab] = useState<Tab>(null);
+
+  // Honor destination deep-links from the hub portal
+  useEffect(() => {
+    if (!deepLink || deepLink.kind !== "projects") return;
+    setEntered(true);
+    if (deepLink.tab === "overview") setTab(null);
+    else setTab(deepLink.tab);
+  }, [deepLink]);
 
   const TABS: { key: Exclude<Tab, null>; label: string }[] = [
     { key: "digital", label: t("pj.digital", lang) },

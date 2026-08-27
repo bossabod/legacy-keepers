@@ -13,6 +13,7 @@ import {
   Globe2,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
+import type { DeepLink } from "@/lib/destinations";
 import {
   type ApodData,
   type EpicFrame,
@@ -79,7 +80,7 @@ function fmtUtc(ms: number) {
   );
 }
 
-export default function ObservatorySection() {
+export default function ObservatorySection({ deepLink }: { deepLink?: DeepLink }) {
   const { lang } = useApp();
   const ar = lang === "ar";
 
@@ -97,6 +98,20 @@ export default function ObservatorySection() {
   const [refreshing, setRefreshing] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
+
+  // Deep-link from hub: scroll to the requested observation panel
+  useEffect(() => {
+    if (!deepLink || deepLink.kind !== "observatory") return;
+    const id =
+      deepLink.view === "earth" ? "obs-earth" :
+      deepLink.view === "sky" ? "obs-sky" :
+      deepLink.view === "satellites" ? "obs-sat" :
+      "obs-data";
+    const t = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [deepLink]);
   const issTimer = useRef<number | null>(null);
 
   // Local clock
@@ -314,6 +329,7 @@ export default function ObservatorySection() {
       <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(240px,0.9fr)]">
         {/* MAIN: EPIC Earth disk */}
         <section
+          id="obs-earth"
           className="overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#050505]"
           style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04), 0 24px 60px rgba(0,0,0,0.55)" }}
         >
@@ -449,7 +465,7 @@ export default function ObservatorySection() {
         {/* Side column */}
         <div className="space-y-4">
           {/* ISS live track */}
-          <section className="rounded-xl border border-[#2a2a2a] bg-[#0a0a0a] p-4">
+          <section id="obs-sat" className="rounded-xl border border-[#2a2a2a] bg-[#0a0a0a] p-4">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2 text-[0.5rem] uppercase tracking-[0.22em] text-[#6e6e6e]" style={{ fontFamily: "var(--font-mono)" }}>
                 <Satellite size={12} />
@@ -504,7 +520,7 @@ export default function ObservatorySection() {
           </section>
 
           {/* APOD */}
-          <section className="overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#0a0a0a]">
+          <section id="obs-sky" className="overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#0a0a0a]">
             <div className="flex items-center gap-2 border-b border-[#1a1a1a] px-4 py-2.5 text-[0.5rem] uppercase tracking-[0.22em] text-[#6e6e6e]" style={{ fontFamily: "var(--font-mono)" }}>
               <ImageIcon size={12} />
               {ar ? "صورة ناسا الفلكية لليوم" : "NASA APOD"}
@@ -556,7 +572,7 @@ export default function ObservatorySection() {
           </section>
 
           {/* Solar flares */}
-          <section className="rounded-xl border border-[#2a2a2a] bg-[#0a0a0a] p-4">
+          <section id="obs-data" className="rounded-xl border border-[#2a2a2a] bg-[#0a0a0a] p-4">
             <div className="mb-3 flex items-center gap-2 text-[0.5rem] uppercase tracking-[0.22em] text-[#6e6e6e]" style={{ fontFamily: "var(--font-mono)" }}>
               <Activity size={12} />
               {ar ? "انفجارات شمسية · DONKI" : "SOLAR FLARES · DONKI"}

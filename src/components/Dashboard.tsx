@@ -29,6 +29,8 @@ import PaymentsSection from "@/components/sections/Payments";
 import ActivitySection from "@/components/sections/Activity";
 import VipSection from "@/components/sections/Vip";
 import ObservatorySection from "@/components/sections/Observatory";
+import DestinationPortal from "@/components/DestinationPortal";
+import type { DeepLink } from "@/lib/destinations";
 
 export type SectionKey =
   | "home" | "network" | "log"
@@ -84,6 +86,11 @@ export default function Dashboard({
   const [moreOpen, setMoreOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+  /** Hub = first screen after login: no header chrome, command globe only */
+  const [hubMode, setHubMode] = useState(true);
+  const [portalOpen, setPortalOpen] = useState(false);
+  const [deepLink, setDeepLink] = useState<DeepLink | undefined>(undefined);
+
   const { currency, setCurrency, soundOn, toggleSound, lang, setLang, camera, fps, setFps } = useApp();
 
   // FPS monitor
@@ -133,20 +140,36 @@ export default function Dashboard({
     return () => { active = false; clearTimeout(timer); };
   }, []);
 
-  const go = (k: SectionKey) => {
+  const go = (k: SectionKey, deep?: DeepLink) => {
+    setDeepLink(deep);
     setSection(k);
+    setHubMode(false);
+    setPortalOpen(false);
     setMobileOpen(false);
     setMoreOpen(false);
     try { play("open"); } catch { /* never block navigation */ }
   };
 
+  const openPortal = () => {
+    setPortalOpen(true);
+  };
+
+  const returnToHub = () => {
+    setPortalOpen(false);
+    setHubMode(true);
+    setSection("home");
+    setDeepLink(undefined);
+    setMobileOpen(false);
+    setMoreOpen(false);
+  };
+
   const renderSection = () => {
     if (!data) return <LoadingBlock />;
     switch (section) {
-      case "home": return <HomeSection data={data} onNavigate={go} />;
+      case "home": return <HomeSection data={data} onNavigate={go} onOpenDestinations={openPortal} hubMode={hubMode} />;
       case "network": return <NetworkSection />;
       case "log": return <LogSection data={data} />;
-      case "projects": return <ProjectsSection data={data} onNavigate={(k) => go(k as SectionKey)} />;
+      case "projects": return <ProjectsSection data={data} onNavigate={(k) => go(k as SectionKey)} deepLink={deepLink} />;
       case "investments": return <InvestmentsSection data={data} />;
       case "vault": return <VaultSection data={data} />;
       case "invoices": return <InvoicesSection data={data} onNavigate={(k) => go(k as SectionKey)} />;
@@ -161,7 +184,7 @@ export default function Dashboard({
       case "payments": return <PaymentsSection />;
       case "activity": return <ActivitySection data={data} />;
       case "vip": return <VipSection />;
-      case "observatory": return <ObservatorySection />;
+      case "observatory": return <ObservatorySection deepLink={deepLink} />;
     }
   };
 
@@ -188,7 +211,9 @@ export default function Dashboard({
           </span>
         </div>
       )}
-      {/* ===== Top Navigation ===== */}
+      {/* ===== Top Navigation — hidden on hub (first screen after login) ===== */}
+      {!hubMode && (
+      <>
       <nav
         className={`sticky top-0 z-[100] w-full max-w-[100vw] transition-all duration-500 ${scrolled ? "border-b border-[#9a9a9a]/10 bg-[#050505]/85 backdrop-blur-xl" : "border-b border-transparent bg-[#050505]/70 backdrop-blur-md"}`}
         style={{ pointerEvents: "auto" }}
@@ -197,7 +222,7 @@ export default function Dashboard({
         <div className="relative z-[101] mx-auto flex w-full max-w-[100rem] items-center gap-2 px-3 py-3 sm:gap-3 sm:px-5 sm:py-3.5 lg:px-6 xl:px-8" style={{ pointerEvents: "auto" }}>
 
           {/* Logo / Mark */}
-          <button type="button" onClick={() => go("home")} className="group flex min-w-0 shrink-0 items-center gap-2 sm:gap-3" onMouseEnter={() => play("hover")}>
+          <button type="button" onClick={() => returnToHub()} className="group flex min-w-0 shrink-0 items-center gap-2 sm:gap-3" onMouseEnter={() => play("hover")}>
             <Logo size={22} />
             <div className="hidden min-w-0 text-start leading-none md:block">
               <div className="truncate text-[0.72rem] font-semibold tracking-[0.12em] text-[#e8e8e8] transition-colors duration-300 group-hover:text-white lg:text-[0.82rem] lg:tracking-[0.14em] xl:text-[0.9rem] xl:tracking-[0.16em]" style={{ fontFamily: "var(--font-luxury)" }}>OWNERS OF IMPACT</div>
@@ -323,15 +348,30 @@ export default function Dashboard({
           </motion.div>
         )}
       </AnimatePresence>
+      </>
+      )}
 
       {/* Main Content */}
-      <main className="relative z-10 w-full min-w-0 flex-1 px-3 py-5 sm:px-5 sm:py-7 md:px-6 lg:px-8 xl:px-10" style={{ pointerEvents: "auto" }}>
+      <main className={`relative z-10 w-full min-w-0 flex-1 ${hubMode ? "px-3 py-4 sm:px-5 sm:py-5 md:px-6" : "px-3 py-5 sm:px-5 sm:py-7 md:px-6 lg:px-8 xl:px-10"}`} style={{ pointerEvents: "auto" }}>
         <div key={section} className="relative z-10 mx-auto w-full min-w-0 max-w-[100rem]" style={{ pointerEvents: "auto" }}>
           {renderSection()}
         </div>
       </main>
 
-      {/* Status Bar */}
+      {/* Destination portal overlay */}
+      <DestinationPortal
+        open={portalOpen}
+        lang={lang === "ar" ? "ar" : "en"}
+        onClose={() => {
+          setPortalOpen(false);
+          // stay on hub if user backs out without choosing
+          if (hubMode) return;
+        }}
+        onSelect={(section, deep) => go(section as SectionKey, deep)}
+      />
+
+      {/* Status Bar — hidden on hub */}
+      {!hubMode && (
       <StatusBar
         coordinates={{ lat: camera.lat, lon: camera.lon }}
         zoom={camera.zoom}
@@ -339,6 +379,7 @@ export default function Dashboard({
         connections={data?.members.reduce((s, m) => s + (m.visible ? 1 : 0), 0)}
         fps={fps}
       />
+      )}
     </div>
   );
 }
