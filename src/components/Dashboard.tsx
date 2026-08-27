@@ -27,7 +27,6 @@ import FeaturesSection from "@/components/sections/Features";
 import PaymentsSection from "@/components/sections/Payments";
 import ActivitySection from "@/components/sections/Activity";
 import VipSection from "@/components/sections/Vip";
-import ObservatorySection from "@/components/sections/Observatory";
 
 export type SectionKey =
   | "home" | "log"
@@ -36,21 +35,19 @@ export type SectionKey =
   | "members" | "messages"
   | "archive" | "ladder"
   | "identity" | "goals" | "rules"
-  | "features" | "payments" | "activity" | "vip"
-  | "observatory";
+  | "features" | "payments" | "activity" | "vip";
 
 // Primary nav — keep short so labels never collide on laptop widths
 const PRIMARY_NAV: { key: SectionKey; labelKey: string }[] = [
   { key: "home", labelKey: "nav.home" },
-  { key: "observatory", labelKey: "nav.observatory" },
   { key: "projects", labelKey: "nav.projects" },
   { key: "messages", labelKey: "nav.messages" },
   { key: "archive", labelKey: "nav.archive" },
+  { key: "investments", labelKey: "nav.investments" },
 ];
 
 // Secondary nav — everything else goes into the "More" dropdown
 const SECONDARY_NAV: { key: SectionKey; labelKey: string }[] = [
-  { key: "investments", labelKey: "nav.investments" },
   { key: "ladder", labelKey: "nav.ladder" },
   { key: "vip", labelKey: "nav.vip" },
   { key: "features", labelKey: "nav.features" },
@@ -68,7 +65,7 @@ const SECONDARY_NAV: { key: SectionKey; labelKey: string }[] = [
 const MONEY: SectionKey[] = ["projects", "investments", "vault", "invoices", "payments"];
 
 // Sections that carry a discreet "members only" hint in the navigation
-const RESTRICTED: Set<SectionKey> = new Set(["archive", "vip", "vault", "invoices", "ladder", "payments", "members", "observatory"]);
+const RESTRICTED: Set<SectionKey> = new Set(["archive", "vip", "vault", "invoices", "ladder", "payments", "members"]);
 export default function Dashboard({
   onLogout,
   demoMode = false,
@@ -158,7 +155,6 @@ export default function Dashboard({
       case "payments": return <PaymentsSection />;
       case "activity": return <ActivitySection data={data} />;
       case "vip": return <VipSection />;
-      case "observatory": return <ObservatorySection />;
     }
   };
 
