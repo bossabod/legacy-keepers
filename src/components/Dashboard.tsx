@@ -11,7 +11,6 @@ import { t, type Lang } from "@/lib/i18n";
 import { StatusBar } from "@/components/design-system";
 
 import HomeSection from "@/components/sections/Home";
-import NetworkSection from "@/components/sections/Network";
 import LogSection from "@/components/sections/Records";
 import ProjectsSection from "@/components/sections/Projects";
 import InvestmentsSection from "@/components/sections/Money";
@@ -31,7 +30,7 @@ import VipSection from "@/components/sections/Vip";
 import ObservatorySection from "@/components/sections/Observatory";
 
 export type SectionKey =
-  | "home" | "network" | "log"
+  | "home" | "log"
   | "projects" | "investments"
   | "vault" | "invoices"
   | "members" | "messages"
@@ -43,7 +42,6 @@ export type SectionKey =
 // Primary nav — keep short so labels never collide on laptop widths
 const PRIMARY_NAV: { key: SectionKey; labelKey: string }[] = [
   { key: "home", labelKey: "nav.home" },
-  { key: "network", labelKey: "nav.network" },
   { key: "observatory", labelKey: "nav.observatory" },
   { key: "projects", labelKey: "nav.projects" },
   { key: "messages", labelKey: "nav.messages" },
@@ -144,7 +142,6 @@ export default function Dashboard({
     if (!data) return <LoadingBlock />;
     switch (section) {
       case "home": return <HomeSection data={data} onNavigate={go} />;
-      case "network": return <NetworkSection />;
       case "log": return <LogSection data={data} />;
       case "projects": return <ProjectsSection data={data} onNavigate={(k) => go(k as SectionKey)} />;
       case "investments": return <InvestmentsSection data={data} />;

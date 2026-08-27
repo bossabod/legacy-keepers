@@ -2,7 +2,6 @@ export type Lang = "en" | "ar";
 
 const translations: Record<string, { en: string; ar: string }> = {
   "nav.home": { en: "Home", ar: "الرئيسية" },
-  "nav.network": { en: "Network", ar: "الشبكة" },
   "nav.projects": { en: "Projects", ar: "المشاريع" },
   "nav.messages": { en: "Messages", ar: "الرسائل" },
   "nav.archive": { en: "Archive", ar: "الأرشيف" },
