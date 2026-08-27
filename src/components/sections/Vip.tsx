@@ -152,7 +152,7 @@ export default function VipSection() {
   const svc = SERVICES.find((s) => s.id === open);
 
   return (
-    <div className="mx-auto max-w-6xl px-1" dir={ar ? "rtl" : "ltr"}>
+    <div className="mx-auto w-full min-w-0 max-w-6xl px-1" dir={ar ? "rtl" : "ltr"}>
       <AnimatePresence mode="wait">
         {!svc ? (
           <motion.div key="vip" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
@@ -329,7 +329,7 @@ function Detail({ s, ar, sent, onSent }: { s: Service; ar: boolean; sent: boolea
         </div>
 
         {isSpecial ? (
-          <div className="space-y-4">
+          <div className="w-full min-w-0 space-y-4">
             <Field label={t("Request Type", "نوع الطلب")} val={type} set={setType} ph={t("e.g. Private charter", "مثال: استئجار خاص")} />
             <Field label={t("City", "المدينة")} val={city} set={setCity} />
             <Field label={t("Date", "التاريخ")} val={date} set={setDate} type="date" />
@@ -337,7 +337,7 @@ function Detail({ s, ar, sent, onSent }: { s: Service; ar: boolean; sent: boolea
             <Field label={t("Details", "التفاصيل")} val={details} set={setDetails} area />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="w-full min-w-0 space-y-4">
             {s.hasCity && <Field label={t("City / Destination", "المدينة / الوجهة")} val={city} set={setCity} />}
             {s.hasDate && <Field label={t("Date", "التاريخ")} val={date} set={setDate} type="date" />}
             {s.hasGuests && <Field label={t("Number of People", "عدد الأشخاص")} val={guests} set={setGuests} type="number" />}

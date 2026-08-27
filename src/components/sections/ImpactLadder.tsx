@@ -8,6 +8,7 @@ import type { AppData } from "@/lib/types";
 import ImpactPyramid from "@/components/ladder/ImpactPyramid";
 import { LADDER } from "@/components/ladder/pyramid-data";
 
+/* responsive container handled by page-shell parent */
 export default function LadderSection({ data }: { data: AppData }) {
   const { lang } = useApp();
   const [opened, setOpened] = useState(false);

@@ -45,36 +45,36 @@ export default function HomeSection({
 
   return (
     <>
-      <div className="mx-auto max-w-7xl space-y-12">
+      <div className="page-shell space-y-8 sm:space-y-10 lg:space-y-12">
         {/* ═══════ Global Command Globe — full container, complete edges ═══════ */}
         <Reveal>
           <div
-            className="relative w-full overflow-hidden rounded-xl border border-[#2a2a2a]"
+            className="relative w-full min-w-0 overflow-hidden rounded-xl border border-[#2a2a2a]"
             style={{
-              height: "min(72vh, 680px)",
-              minHeight: 520,
+              height: "clamp(360px, 62dvh, 680px)",
+              minHeight: "min(360px, 70dvh)",
               background: "radial-gradient(120% 90% at 50% 40%, #0e0e0e 0%, #080808 55%, #050505 100%)",
               boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04), 0 24px 60px rgba(0,0,0,0.55)",
             }}
           >
             {/* header inside container */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between border-b border-[#1a1a1a]/80 px-6 py-3.5 sm:px-8">
-              <span className="text-[0.72rem] tracking-[0.26em] uppercase text-[#8a8a8a]" style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-2 border-b border-[#1a1a1a]/80 px-3 py-2.5 sm:px-6 sm:py-3.5 md:px-8">
+              <span className="min-w-0 truncate text-[0.62rem] uppercase tracking-[0.12em] text-[#8a8a8a] sm:text-[0.72rem] sm:tracking-[0.2em]" style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
                 {ar ? "شبكة القيادة العالمية" : "Global Command Network"}
               </span>
-              <span className="mono text-[0.66rem] text-[#9a9a9a]/80 bg-black/40 px-3 py-1 rounded-full border border-[#9a9a9a]/15">{me.code}</span>
+              <span className="mono shrink-0 rounded-full border border-[#9a9a9a]/15 bg-black/40 px-2 py-1 text-[0.55rem] text-[#9a9a9a]/80 sm:px-3 sm:text-[0.66rem]">{me.code}</span>
             </div>
 
             {/* globe fills the box — centered, no overflow */}
-            <div className="absolute inset-0 z-0 pt-12 pb-28">
+            <div className="absolute inset-0 z-0 pb-[min(38%,11rem)] pt-11 sm:pb-28 sm:pt-12">
               <GlobalCommandGlobe className="h-full w-full" />
             </div>
 
-            {/* member identity — bottom overlay, pointer-events only on controls */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-end justify-between gap-6 border-t border-[#1a1a1a]/80 px-6 pb-5 pt-4 sm:px-8">
-              <div className="max-w-md">
-                <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-light tracking-tight text-[#e8e8e8] sm:text-4xl" style={{ fontFamily: "var(--font-luxury)", textShadow: "0 2px 12px rgba(0,0,0,0.9)" }}>
+            {/* member identity — bottom overlay */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-end justify-between gap-3 border-t border-[#1a1a1a]/80 px-3 pb-3 pt-3 sm:gap-6 sm:px-6 sm:pb-5 sm:pt-4 md:px-8">
+              <div className="min-w-0 max-w-full sm:max-w-md">
+                <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                  <h1 className="min-w-0 truncate text-xl font-light tracking-tight text-[#e8e8e8] sm:text-3xl md:text-4xl" style={{ fontFamily: "var(--font-luxury)", textShadow: "0 2px 12px rgba(0,0,0,0.9)" }}>
                     {nameVisible ? me.name : "****************"}
                   </h1>
                   <button

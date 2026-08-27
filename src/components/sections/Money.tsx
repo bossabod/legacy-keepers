@@ -165,7 +165,7 @@ export default function InvestmentsSection({ data: _data }: { data: AppData }) {
   const goBack = () => { setActive(null); play("click"); };
 
   return (
-    <div className="mx-auto max-w-6xl px-1" dir={ar ? "rtl" : "ltr"}>
+    <div className="mx-auto w-full min-w-0 max-w-6xl px-1" dir={ar ? "rtl" : "ltr"}>
       <header className="mb-8">
         <h1 className="text-[clamp(2rem,4vw,3rem)] font-light uppercase tracking-[0.14em] text-[#e8e8e8]" style={{ fontFamily: LUX }}>{S(lang, "portfolio")}</h1>
         <div className="mt-5 flex items-center gap-7 border-b border-[#9a9a9a]/[0.10]">

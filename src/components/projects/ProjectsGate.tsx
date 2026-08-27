@@ -22,12 +22,11 @@ export default function ProjectsGate({ onEnter }: { onEnter: () => void }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
       /* ملء الشاشة تحت شريط التنقل، ويكسر حشوة <main> بهوامش سالبة */
-      className="relative -mb-7 -mt-7 flex h-[calc(100vh-4.2rem)] w-screen flex-col items-center justify-between overflow-hidden"
+      className="relative flex w-full max-w-[100vw] flex-col items-center justify-between overflow-hidden"
       style={{
         backgroundColor: "#141416",
-        // نخرج من حشوة <main> دون الاعتماد على اتجاه الكتابة
-        marginInlineStart: "calc(50% - 50vw)",
-        marginInlineEnd: "calc(50% - 50vw)",
+        height: "clamp(420px, calc(100dvh - 6.5rem), 900px)",
+        marginInline: 0,
       }}
       dir="ltr"
     >
@@ -59,7 +58,7 @@ export default function ProjectsGate({ onEnter }: { onEnter: () => void }) {
         style={{
           insetInline: 0,
           aspectRatio: "1023 / 1537",
-          maxWidth: "100vw",
+          maxWidth: "100%",
           WebkitMaskImage:
             "linear-gradient(to right, transparent 0%, #000 14%, #000 86%, transparent 100%)",
           maskImage:
@@ -85,8 +84,8 @@ export default function ProjectsGate({ onEnter }: { onEnter: () => void }) {
 
       {/* ===== العنوان العلوي ===== */}
       <motion.h1
-        initial={{ opacity: 0, y: -14, letterSpacing: "0.55em" }}
-        animate={{ opacity: 1, y: 0, letterSpacing: "0.40em" }}
+        initial={{ opacity: 0, y: -14, letterSpacing: "0.28em" }}
+        animate={{ opacity: 1, y: 0, letterSpacing: "0.22em" }}
         transition={{ delay: 0.45, duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 mt-[7vh] px-6 text-center text-[clamp(0.95rem,2.6vw,2rem)] font-extralight uppercase text-white"
         style={{

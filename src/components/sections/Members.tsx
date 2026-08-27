@@ -23,7 +23,7 @@ export default function MembersSection({ data }: { data: AppData }) {
   );
 
   return (
-    <div className="mx-auto max-w-6xl" dir={ar ? "rtl" : "ltr"}>
+    <div className="mx-auto w-full min-w-0 max-w-6xl" dir={ar ? "rtl" : "ltr"}>
       <SectionHeading
         eyebrow={ar ? "المجتمع · الأعضاء" : "Community · Members"}
         title={ar ? "دليل الدائرة المغلقة" : "The Closed Circle Directory"}
@@ -143,7 +143,7 @@ export default function MembersSection({ data }: { data: AppData }) {
                 <div className="text-base font-semibold text-[#eaeef5]">
                   {ar ? "ملف محدود الوصول" : "Restricted Record"}
                 </div>
-                <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-[#7f8896]">
+                <p className="mx-auto w-full min-w-0 mt-2 max-w-xs text-sm leading-relaxed text-[#7f8896]">
                   {ar
                     ? `هذا الملف سريّ ولا يُفتح إلا بصلاحية خاصة من مجلس الميثاق. الرتبة: ${selected.rank} — ${selected.country}.`
                     : `This record is confidential and opens only with special clearance from the Covenant Council. Rank: ${selected.rank} — ${selected.country}.`}

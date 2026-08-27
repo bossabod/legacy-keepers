@@ -99,7 +99,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
 
   return (
     <motion.div
-      className="relative min-h-screen w-full overflow-hidden bg-black"
+      className="relative min-h-[100dvh] w-full max-w-[100vw] overflow-x-clip overflow-y-hidden bg-black"
       style={{ zIndex: 20 }}
       initial={{ opacity: hasPlayedIntroThisSession ? 0 : 1 }}
       animate={{ opacity: 1 }}
@@ -170,7 +170,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.3, ease: [0.2, 0.7, 0.2, 1] }}
-            className="pt-[11vh] text-center sm:pt-[13vh]"
+            className="px-4 pt-[max(3rem,8vh)] text-center sm:px-6 sm:pt-[11vh] md:pt-[13vh]"
           >
             <h1
               style={{
@@ -178,7 +178,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
                 fontWeight: 600,
                 fontSize: "clamp(2rem, 4.6vw, 4rem)",
                 lineHeight: 1.05,
-                letterSpacing: "0.14em",
+                letterSpacing: "0.08em",
                 textTransform: "uppercase",
                 color: "#191b1f",
                 textShadow: "0 1px 3px rgba(0,0,0,0.75), 0 0 1px rgba(0,0,0,0.9)",
@@ -196,7 +196,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.55, ease: [0.2, 0.7, 0.2, 1] }}
-            className="flex w-full flex-col items-center pb-[8vh]"
+            className="flex w-full max-w-[100vw] flex-col items-center px-4 pb-[max(2rem,6vh)] sm:px-6 sm:pb-[8vh]"
           >
             <div
               role="button"
@@ -225,7 +225,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
                     fontFamily: "var(--font-luxury)",
                     fontWeight: 600,
                     fontSize: "clamp(1.2rem, 1.8vw, 1.6rem)",
-                    letterSpacing: "0.42em",
+                    letterSpacing: "0.18em",
                     textTransform: "uppercase",
                   }}
                 >
@@ -237,7 +237,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
                     fontFamily: "var(--font-luxury)",
                     fontWeight: 600,
                     fontSize: "clamp(1.2rem, 1.8vw, 1.6rem)",
-                    letterSpacing: "0.42em",
+                    letterSpacing: "0.18em",
                     textTransform: "uppercase",
                   }}
                 >
@@ -255,7 +255,7 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
                 fontFamily: "var(--font-luxury)",
                 fontWeight: 400,
                 fontSize: "clamp(0.75rem, 1.06vw, 0.98rem)",
-                letterSpacing: "0.42em",
+                letterSpacing: "0.18em",
                 textTransform: "uppercase",
                 color: "#0c0e12",
                 textShadow: "0 1px 2px rgba(0,0,0,0.75), 0 0 1px rgba(0,0,0,0.9)",

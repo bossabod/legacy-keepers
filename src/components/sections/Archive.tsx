@@ -367,7 +367,7 @@ export default function ArchiveSection(_props: { data: AppData }) {
                 </div>
 
                 {/* عرض الجوال (بطاقات مكدّسة) */}
-                <div className="space-y-2 md:hidden">
+                <div className="w-full min-w-0 space-y-2 md:hidden">
                   <AnimatePresence initial={false}>
                     {files.map((f) => {
                       const mode = modeOf(f.rec.gradeEn);
@@ -518,7 +518,7 @@ function ArchiveDetail({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="mx-auto w-full max-w-5xl"
+      className="mx-auto w-full min-w-0 w-full max-w-5xl"
       dir={ar ? "rtl" : "ltr"}
     >
       <div className="mb-5">
@@ -591,7 +591,7 @@ function ArchiveDetail({
 
           <div className="mt-5">
             <Panel title={t("ar.entries", lang)}>
-              <ul className="space-y-2.5">
+              <ul className="w-full min-w-0 space-y-2.5">
                 {entries.map((e, i) => (
                   <motion.li
                     key={i}
@@ -611,7 +611,7 @@ function ArchiveDetail({
 
         <div>
           <Panel title={t("ar.chain", lang)}>
-            <div className="space-y-4">
+            <div className="w-full min-w-0 space-y-4">
               {chain.map((c, i) => (
                 <div key={i} className="flex gap-3">
                   <span className="w-[68px] shrink-0 pt-0.5 text-[0.42rem] uppercase tracking-[0.14em] text-[#6a7280]" style={{ fontFamily: MONO }}>

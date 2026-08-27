@@ -150,7 +150,7 @@ export default function LoginScreen({
 
   return (
     <motion.div
-      className="relative min-h-screen w-full overflow-x-hidden bg-[#020203] flex flex-col justify-between"
+      className="relative flex min-h-[100dvh] w-full max-w-[100vw] flex-col justify-between overflow-x-clip bg-[#020203]"
       style={{ pointerEvents: verifying ? "none" : "auto", zIndex: 20 }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -187,7 +187,7 @@ export default function LoginScreen({
       </div>
 
       {/* ====== Top Navigation ====== */}
-      <header className="relative z-40 flex items-center justify-between px-6 py-6 sm:px-12 lg:px-16 w-full pointer-events-auto">
+      <header className="relative z-40 flex w-full max-w-[100vw] items-center justify-between gap-3 px-4 py-4 pointer-events-auto sm:px-8 sm:py-6 lg:px-12 xl:px-16">
         <button
           type="button"
           onClick={() => {
@@ -219,12 +219,12 @@ export default function LoginScreen({
       </header>
 
       {/* ====== Main: Member Login ====== */}
-      <main className="relative z-40 flex-1 flex items-center justify-center px-4 sm:px-8 py-10 pointer-events-auto">
+      <main className="relative z-40 flex flex-1 items-center justify-center px-3 py-6 pointer-events-auto sm:px-6 sm:py-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: [0.2, 0.7, 0.2, 1] }}
-          className="relative z-40 w-full max-w-md rounded-2xl p-8 sm:p-10 backdrop-blur-2xl bg-gradient-to-b from-[#0e1118]/90 via-[#080a0e]/92 to-[#040507]/95 border border-[#a8a8a8]/20 shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden pointer-events-auto"
+          className="relative z-40 w-full max-w-md min-w-0 rounded-2xl border border-[#a8a8a8]/20 bg-gradient-to-b from-[#0e1118]/90 via-[#080a0e]/92 to-[#040507]/95 p-5 pointer-events-auto shadow-[0_30px_70px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl sm:p-8 md:p-10 overflow-hidden"
         >
           <span className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-50" />
 
@@ -235,7 +235,7 @@ export default function LoginScreen({
             <span className="h-1.5 w-1.5 rounded-full bg-[#a8a8a8] shadow-[0_0_8px_#a8a8a8]" />
           </div>
 
-          <h2 className="font-luxury text-2xl sm:text-3xl font-semibold tracking-[0.08em] text-[#eaeef5] uppercase mb-2">
+          <h2 className="mb-2 font-luxury text-xl font-semibold uppercase tracking-[0.06em] text-[#eaeef5] sm:text-2xl sm:tracking-[0.08em] md:text-3xl">
             Member Login
           </h2>
           <p className="font-sans text-xs sm:text-sm text-[#7f8896] leading-relaxed mb-7">
@@ -307,7 +307,7 @@ export default function LoginScreen({
                     }
                   }}
                   disabled={verifying}
-                  className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#a8a8a8]/70 rounded-xl px-4 py-3.5 pr-12 text-[#eaeef5] font-mono tracking-[0.5em] text-center text-sm outline-none transition-all duration-300 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] focus:shadow-[0_0_20px_rgba(170,170,170,0.12),inset_0_2px_6px_rgba(0,0,0,0.9)] focus:bg-[#07090f] disabled:opacity-60 pointer-events-auto cursor-text"
+                  className="w-full bg-[#050609]/85 border border-[#383f4d]/80 focus:border-[#a8a8a8]/70 rounded-xl px-4 py-3.5 pr-12 text-[#eaeef5] font-mono tracking-[0.2em] text-center sm:tracking-[0.35em] text-sm outline-none transition-all duration-300 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] focus:shadow-[0_0_20px_rgba(170,170,170,0.12),inset_0_2px_6px_rgba(0,0,0,0.9)] focus:bg-[#07090f] disabled:opacity-60 pointer-events-auto cursor-text"
                 />
                 {/* Show / hide password */}
                 <button
@@ -434,7 +434,7 @@ export default function LoginScreen({
 
       {/* ====== Footer ====== */}
       <footer className="relative z-20 pb-6 pt-8 flex flex-col items-center justify-center gap-1.5 text-center pointer-events-none">
-        <p className="font-luxury text-xs sm:text-sm tracking-[0.35em] uppercase text-[#8b95a5] text-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+        <p className="font-luxury text-[0.65rem] uppercase tracking-[0.18em] text-[#8b95a5] text-shadow-[0_1px_3px_rgba(0,0,0,0.9)] sm:text-xs sm:tracking-[0.28em] md:text-sm md:tracking-[0.32em]">
           Legal &amp; Authorized Club
         </p>
         <p className="font-mono text-[0.58rem] sm:text-[0.65rem] tracking-[0.28em] uppercase text-[#4a515d]">

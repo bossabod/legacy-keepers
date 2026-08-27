@@ -183,13 +183,21 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
 
       ctx.clearRect(0, 0, width, height);
 
-      // Globe centered in the container
+      // Globe centered — scale with the shorter side, leave room for labels
       const cx = width * 0.5;
       const cy = height * 0.50;
-      // Larger than before (0.34 → 0.40) but leaves room for city labels
-      const baseR = Math.min(width, height) * 0.40;
+      const short = Math.min(width, height);
+      // Narrow phones: smaller sphere; wide desktops: up to 0.40
+      const scale =
+        short < 360 ? 0.30 :
+        short < 520 ? 0.34 :
+        short < 720 ? 0.37 :
+        0.40;
+      const baseR = short * scale;
       const R = baseR * zoom; // zoom is constant
       const camDist = 4.2 * R;
+      // Label padding scales with viewport so names never clip the frame
+      const edgePad = Math.max(10, Math.min(28, short * 0.04));
 
       // subtle rim light
       const rim = ctx.createRadialGradient(cx, cy, R * 0.92, cx, cy, R * 1.18);
@@ -313,13 +321,13 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
         const boxW = isSel ? nameW + 44 : nameW + 30;
         const boxH = isSel ? 44 : 30;
         // Keep labels inside the container bounds
-        tx = Math.max(16 + boxW / 2, Math.min(width - 16 - boxW / 2, tx));
-        ty = Math.max(16 + boxH / 2, Math.min(height - 16 - boxH / 2, ty));
+        tx = Math.max(edgePad + boxW / 2, Math.min(width - edgePad - boxW / 2, tx));
+        ty = Math.max(edgePad + boxH / 2, Math.min(height - edgePad - boxH / 2, ty));
 
         const overlaps = drawn.some(
           (d) => tx < d.x + d.w + 6 && tx + boxW + 6 > d.x && ty < d.y + d.h + 6 && ty + boxH + 6 > d.y,
         );
-        if (overlaps) ty = Math.max(16 + boxH / 2, ty - boxH - 8);
+        if (overlaps) ty = Math.max(edgePad + boxH / 2, ty - boxH - 8);
         drawn.push({ x: tx - boxW / 2, y: ty - boxH / 2, w: boxW, h: boxH });
 
         ctx.strokeStyle = `rgba(${col.dim},${0.45 * fade})`;
@@ -344,12 +352,14 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
         ctx.fill();
 
         ctx.fillStyle = `rgba(228,228,228,${fade})`;
-        ctx.font = `600 ${isSel ? 10.5 : 9}px var(--font-ibm-mono), monospace`;
+        const fName = short < 400 ? (isSel ? 9 : 8) : (isSel ? 10.5 : 9);
+        ctx.font = `600 ${fName}px var(--font-ibm-mono), monospace`;
         ctx.textAlign = "left";
         ctx.fillText(city.name, bx + 14, by + (isSel ? 14 : 12));
 
         const tzStr = formatClock(city.tz);
-        ctx.font = `500 ${isSel ? 9 : 8}px var(--font-ibm-mono), monospace`;
+        const fSub = short < 400 ? (isSel ? 8 : 7) : (isSel ? 9 : 8);
+        ctx.font = `500 ${fSub}px var(--font-ibm-mono), monospace`;
         if (isSel) {
           ctx.fillStyle = `rgba(178,178,178,${0.9 * fade})`;
           ctx.fillText(tzStr, bx + 14, by + 26);
@@ -370,7 +380,9 @@ export default function GlobalCommandGlobe({ className = "" }: { className?: str
       const rect = canvas.getBoundingClientRect();
       const mx = e.clientX - rect.left, my = e.clientY - rect.top;
       const cx = width * 0.5, cy = height * 0.50;
-      const baseR = Math.min(width, height) * 0.40;
+      const short = Math.min(width, height);
+      const scale = short < 360 ? 0.30 : short < 520 ? 0.34 : short < 720 ? 0.37 : 0.40;
+      const baseR = short * scale;
       const R = baseR * zoom, camDist = 4.2 * R;
       let best: string | null = null, bestD = 26;
       OPERATIONAL_CITIES.forEach((city) => {

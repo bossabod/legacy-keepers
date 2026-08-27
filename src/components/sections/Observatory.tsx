@@ -226,7 +226,7 @@ export default function ObservatorySection() {
   })();
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-5" dir={ar ? "rtl" : "ltr"}>
+    <div className="page-shell space-y-4 sm:space-y-5" dir={ar ? "rtl" : "ltr"}>
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[#1a1a1a] pb-4">
         <div>
@@ -292,7 +292,7 @@ export default function ObservatorySection() {
 
       {/* Status strip */}
       <div
-        className="grid gap-2 rounded-xl border border-[#1a1a1a] bg-[#080808] px-4 py-3 sm:grid-cols-4"
+        className="grid grid-cols-2 gap-2 rounded-xl border border-[#1a1a1a] bg-[#080808] px-3 py-3 sm:grid-cols-4 sm:px-4"
         style={{ fontFamily: "var(--font-mono)" }}
       >
         <StripItem label="STATUS" value={statusBadge.text} />
@@ -311,7 +311,7 @@ export default function ObservatorySection() {
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.9fr)]">
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(240px,0.9fr)]">
         {/* MAIN: EPIC Earth disk */}
         <section
           className="overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#050505]"
@@ -341,7 +341,7 @@ export default function ObservatorySection() {
 
           <div
             className="relative flex w-full items-center justify-center bg-[#030303]"
-            style={{ minHeight: 420, aspectRatio: "1 / 1", maxHeight: 640 }}
+            style={{ minHeight: "min(320px, 70dvh)", aspectRatio: "1 / 1", maxHeight: "min(640px, 80dvh)" }}
           >
             {status === "loading" && epic.length === 0 ? (
               <div className="flex flex-col items-center gap-3">
