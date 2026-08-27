@@ -1,3 +1,3 @@
-:HL["/legacy-keepers/_next/static/chunks/0fxoyiuto2lb6.css","style"]
+:HL["/legacy-keepers/_next/static/chunks/0wb-_kohf53id.css","style"]
 :HL["/legacy-keepers/images/emblem-intro-aligned.png","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}},"staleTime":300,"buildId":"VLK1gv3JjrkK6eMgn14Iw"}
+0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}},"staleTime":300,"buildId":"vXx5W6BDMBui0GzRTnjzt"}
