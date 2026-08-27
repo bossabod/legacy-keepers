@@ -1,4 +1,5 @@
 "use client";
+import { publicPath } from "@/lib/public-path";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
@@ -36,7 +37,7 @@ const SERVICES: Service[] = [
     id: "dining",
     title: "Private Dining",
     titleAr: "المطاعم الخاصة",
-    img: "/images/vip-dining.jpg",
+    img: publicPath("/images/vip-dining.jpg"),
     blurb: "Access to exclusive restaurants and reserved tables.",
     blurbAr: "وصول إلى مطاعم راقية وحجوزات مميزة.",
     desc: "We secure reservations at some of the most sought-after dining rooms, where a table is rarely available to the public. Your concierge handles the arrangement and any special requests privately.",
@@ -49,7 +50,7 @@ const SERVICES: Service[] = [
     id: "realestate",
     title: "Luxury Real Estate",
     titleAr: "العقارات الفاخرة",
-    img: "/images/vip-realestate.jpg",
+    img: publicPath("/images/vip-realestate.jpg"),
     blurb: "Private viewings of exclusive villas and residences.",
     blurbAr: "معاينات خاصة لفلل ومساكن حصرية.",
     desc: "Private access to a curated portfolio of villas, penthouses and exclusive residences. Arrange a discreet viewing at a time that suits you.",
@@ -62,7 +63,7 @@ const SERVICES: Service[] = [
     id: "travel",
     title: "Luxury Travel",
     titleAr: "السفر الفاخر",
-    img: "/images/vip-travel.jpg",
+    img: publicPath("/images/vip-travel.jpg"),
     blurb: "Private jets, five-star stays and dedicated transfers.",
     blurbAr: "طائرات خاصة، فنادق فاخرة، ونقل مخصص.",
     desc: "End-to-end travel orchestration — private aviation, the finest hotels and dedicated ground transport, tailored to your schedule.",
@@ -75,7 +76,7 @@ const SERVICES: Service[] = [
     id: "yacht",
     title: "Private Yacht Charter",
     titleAr: "تأجير اليخوت الخاصة",
-    img: "/images/vip-yacht.jpg",
+    img: publicPath("/images/vip-yacht.jpg"),
     blurb: "Crewed yachts for private cruises and occasions.",
     blurbAr: "يخوت بطاقم كامل لرحلات ومناسبات خاصة.",
     desc: "Charter a fully crewed yacht for private cruises and celebrations. Choose your destination, duration and the level of service on board.",
@@ -88,7 +89,7 @@ const SERVICES: Service[] = [
     id: "car",
     title: "Luxury Cars",
     titleAr: "السيارات الفاخرة",
-    img: "/images/vip-car.jpg",
+    img: publicPath("/images/vip-car.jpg"),
     blurb: "Exotic and sports cars, with chauffeur when needed.",
     blurbAr: "سيارات فاخرة ورياضية، مع سائق عند الحاجة.",
     desc: "Access to a fleet of luxury and performance vehicles, delivered where you need them, with a professional chauffeur on request.",
@@ -101,7 +102,7 @@ const SERVICES: Service[] = [
     id: "event",
     title: "Private Events",
     titleAr: "المناسبات الخاصة",
-    img: "/images/vip-event.jpg",
+    img: publicPath("/images/vip-event.jpg"),
     blurb: "VIP access to exclusive events and limited-seat experiences.",
     blurbAr: "وصول VIP لفعاليات حصرية وتجارب محدودة المقاعد.",
     desc: "Reserved access to private events, galas and limited-seat experiences across selected cities, arranged discreetly on your behalf.",
@@ -114,7 +115,7 @@ const SERVICES: Service[] = [
     id: "concierge",
     title: "Concierge Access",
     titleAr: "الدخول إلى كبار الشخصيات",
-    img: "/images/vip-concierge.jpg",
+    img: publicPath("/images/vip-concierge.jpg"),
     blurb: "A personal assistant for every request and booking.",
     blurbAr: "مساعد شخصي لترتيب كل طلب وحجز.",
     desc: "A dedicated personal assistant manages your requests, reservations and special arrangements with priority handling throughout.",
@@ -127,7 +128,7 @@ const SERVICES: Service[] = [
     id: "shopping",
     title: "Private Shopping",
     titleAr: "التسوق الخاص",
-    img: "/images/vip-shopping.jpg",
+    img: publicPath("/images/vip-shopping.jpg"),
     blurb: "Private access to luxury stores and appointments.",
     blurbAr: "وصول خاص لمتاجر فاخرة ومواعيد حصرية.",
     desc: "Arrange private shopping sessions at luxury houses, with dedicated appointments and a personal stylist when available.",
@@ -151,7 +152,7 @@ export default function VipSection() {
   const svc = SERVICES.find((s) => s.id === open);
 
   return (
-    <div className="mx-auto max-w-6xl px-1" dir={ar ? "rtl" : "ltr"}>
+    <div className="mx-auto w-full min-w-0 max-w-6xl px-1" dir={ar ? "rtl" : "ltr"}>
       <AnimatePresence mode="wait">
         {!svc ? (
           <motion.div key="vip" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
@@ -328,7 +329,7 @@ function Detail({ s, ar, sent, onSent }: { s: Service; ar: boolean; sent: boolea
         </div>
 
         {isSpecial ? (
-          <div className="space-y-4">
+          <div className="w-full min-w-0 space-y-4">
             <Field label={t("Request Type", "نوع الطلب")} val={type} set={setType} ph={t("e.g. Private charter", "مثال: استئجار خاص")} />
             <Field label={t("City", "المدينة")} val={city} set={setCity} />
             <Field label={t("Date", "التاريخ")} val={date} set={setDate} type="date" />
@@ -336,7 +337,7 @@ function Detail({ s, ar, sent, onSent }: { s: Service; ar: boolean; sent: boolea
             <Field label={t("Details", "التفاصيل")} val={details} set={setDetails} area />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="w-full min-w-0 space-y-4">
             {s.hasCity && <Field label={t("City / Destination", "المدينة / الوجهة")} val={city} set={setCity} />}
             {s.hasDate && <Field label={t("Date", "التاريخ")} val={date} set={setDate} type="date" />}
             {s.hasGuests && <Field label={t("Number of People", "عدد الأشخاص")} val={guests} set={setGuests} type="number" />}

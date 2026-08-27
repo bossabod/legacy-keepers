@@ -1,4 +1,5 @@
 "use client";
+import { publicPath } from "@/lib/public-path";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OPERATIONAL_CITIES } from "@/lib/earth-data";
@@ -17,9 +18,7 @@ const R = 6.5; // large radius so the globe fills the whole screen
 /* Resolve the correct public path for the Earth texture, accounting for
    the gh-pages base path (/legacy-keepers) vs local dev (/). */
 function earthTexturePath(): string {
-  const p = typeof window !== "undefined" ? window.location.pathname : "";
-  if (p.startsWith("/legacy-keepers")) return "/legacy-keepers/textures/earth.png";
-  return "/textures/earth.png";
+  return publicPath("/textures/earth.png");
 }
 
 export default function Globe3D({ className = "" }: { className?: string }) {

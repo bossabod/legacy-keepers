@@ -28,6 +28,7 @@ import FeaturesSection from "@/components/sections/Features";
 import PaymentsSection from "@/components/sections/Payments";
 import ActivitySection from "@/components/sections/Activity";
 import VipSection from "@/components/sections/Vip";
+import ObservatorySection from "@/components/sections/Observatory";
 
 export type SectionKey =
   | "home" | "network" | "log"
@@ -36,22 +37,24 @@ export type SectionKey =
   | "members" | "messages"
   | "archive" | "ladder"
   | "identity" | "goals" | "rules"
-  | "features" | "payments" | "activity" | "vip";
+  | "features" | "payments" | "activity" | "vip"
+  | "observatory";
 
-// Primary nav — most important pages, always visible and centered
+// Primary nav — keep short so labels never collide on laptop widths
 const PRIMARY_NAV: { key: SectionKey; labelKey: string }[] = [
   { key: "home", labelKey: "nav.home" },
   { key: "network", labelKey: "nav.network" },
+  { key: "observatory", labelKey: "nav.observatory" },
   { key: "projects", labelKey: "nav.projects" },
-  { key: "investments", labelKey: "nav.investments" },
   { key: "messages", labelKey: "nav.messages" },
-  { key: "ladder", labelKey: "nav.ladder" },
   { key: "archive", labelKey: "nav.archive" },
-  { key: "vip", labelKey: "nav.vip" },
 ];
 
 // Secondary nav — everything else goes into the "More" dropdown
 const SECONDARY_NAV: { key: SectionKey; labelKey: string }[] = [
+  { key: "investments", labelKey: "nav.investments" },
+  { key: "ladder", labelKey: "nav.ladder" },
+  { key: "vip", labelKey: "nav.vip" },
   { key: "features", labelKey: "nav.features" },
   { key: "members", labelKey: "nav.members" },
   { key: "payments", labelKey: "nav.payments" },
@@ -67,9 +70,14 @@ const SECONDARY_NAV: { key: SectionKey; labelKey: string }[] = [
 const MONEY: SectionKey[] = ["projects", "investments", "vault", "invoices", "payments"];
 
 // Sections that carry a discreet "members only" hint in the navigation
-const RESTRICTED: Set<SectionKey> = new Set(["archive", "vip", "vault", "invoices", "ladder", "payments", "members"]);
-
-export default function Dashboard({ onLogout }: { onLogout: () => void }) {
+const RESTRICTED: Set<SectionKey> = new Set(["archive", "vip", "vault", "invoices", "ladder", "payments", "members", "observatory"]);
+export default function Dashboard({
+  onLogout,
+  demoMode = false,
+}: {
+  onLogout: () => void;
+  demoMode?: boolean;
+}) {
   const [section, setSection] = useState<SectionKey>("home");
   const [data, setData] = useState<AppData | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -125,7 +133,12 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     return () => { active = false; clearTimeout(timer); };
   }, []);
 
-  const go = (k: SectionKey) => { setSection(k); setMobileOpen(false); setMoreOpen(false); play("open"); };
+  const go = (k: SectionKey) => {
+    setSection(k);
+    setMobileOpen(false);
+    setMoreOpen(false);
+    try { play("open"); } catch { /* never block navigation */ }
+  };
 
   const renderSection = () => {
     if (!data) return <LoadingBlock />;
@@ -148,51 +161,77 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
       case "payments": return <PaymentsSection />;
       case "activity": return <ActivitySection data={data} />;
       case "vip": return <VipSection />;
+      case "observatory": return <ObservatorySection />;
     }
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col bg-[#060604]" dir={lang === "ar" ? "rtl" : "ltr"}>
-      {/* ===== Top Navigation — discreet, gold-hairline, scroll-aware ===== */}
-      <nav className={`sticky top-0 z-50 w-full transition-all duration-500 ${scrolled ? "border-b border-[#c8a76b]/10 bg-[#060604]/85 backdrop-blur-xl" : "border-b border-transparent"}`}>
-        <div className="flex items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
+    <div
+      className="relative flex min-h-screen w-full max-w-[100vw] flex-col overflow-x-clip bg-[#050505]"
+      dir={lang === "ar" ? "rtl" : "ltr"}
+      data-demo={demoMode ? "true" : "false"}
+      data-screen="dashboard"
+      style={{ pointerEvents: "auto", position: "relative", zIndex: 10 }}
+    >
+      {demoMode && (
+        <div
+          className="relative z-[50] flex items-center justify-center gap-2 border-b border-[#9a9a9a]/20 bg-[#0a0a0a] px-3 py-1.5 sm:px-4"
+          role="status"
+          style={{ pointerEvents: "none" }}
+        >
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#9a9a9a]" style={{ boxShadow: "0 0 6px #9a9a9a" }} />
+          <span
+            className="max-w-full truncate text-[0.5rem] uppercase tracking-[0.16em] text-[#9a9a9a]/90 sm:text-[0.55rem] sm:tracking-[0.22em]"
+            style={{ fontFamily: "var(--font-ibm-mono)" }}
+          >
+            {lang === "ar" ? "نسخة تجريبية · DEMO MODE" : "DEMO MODE · READ-ONLY PREVIEW"}
+          </span>
+        </div>
+      )}
+      {/* ===== Top Navigation ===== */}
+      <nav
+        className={`sticky top-0 z-[100] w-full max-w-[100vw] transition-all duration-500 ${scrolled ? "border-b border-[#9a9a9a]/10 bg-[#050505]/85 backdrop-blur-xl" : "border-b border-transparent bg-[#050505]/70 backdrop-blur-md"}`}
+        style={{ pointerEvents: "auto" }}
+        data-nav="primary"
+      >
+        <div className="relative z-[101] mx-auto flex w-full max-w-[100rem] items-center gap-2 px-3 py-3 sm:gap-3 sm:px-5 sm:py-3.5 lg:px-6 xl:px-8" style={{ pointerEvents: "auto" }}>
 
           {/* Logo / Mark */}
-          <button onClick={() => go("home")} className="group flex items-center gap-3 shrink-0" onMouseEnter={() => play("hover")}>
+          <button type="button" onClick={() => go("home")} className="group flex min-w-0 shrink-0 items-center gap-2 sm:gap-3" onMouseEnter={() => play("hover")}>
             <Logo size={22} />
-            <div className="text-left leading-none hidden sm:block">
-              <div className="text-[0.9rem] font-semibold tracking-[0.18em] text-[#ece9e0] transition-colors duration-300 group-hover:text-white" style={{ fontFamily: "var(--font-luxury)" }}>OWNERS OF IMPACT</div>
-              <div className="mt-1 text-[0.46rem] uppercase tracking-[0.34em] text-[#c8a76b]/70" style={{ fontFamily: "var(--font-ibm-mono)" }}>EST. 2012 · MEMBERS ONLY</div>
+            <div className="hidden min-w-0 text-start leading-none md:block">
+              <div className="truncate text-[0.72rem] font-semibold tracking-[0.12em] text-[#e8e8e8] transition-colors duration-300 group-hover:text-white lg:text-[0.82rem] lg:tracking-[0.14em] xl:text-[0.9rem] xl:tracking-[0.16em]" style={{ fontFamily: "var(--font-luxury)" }}>OWNERS OF IMPACT</div>
+              <div className="mt-1 truncate text-[0.42rem] uppercase tracking-[0.2em] text-[#9a9a9a]/70 lg:tracking-[0.28em]" style={{ fontFamily: "var(--font-ibm-mono)" }}>EST. 2012 · MEMBERS ONLY</div>
             </div>
           </button>
 
-          {/* Center nav */}
-          <div className="hidden lg:flex items-center gap-7 xl:gap-9">
+          {/* Center nav — desktop only; shrink gaps so labels never collide */}
+          <div className="hidden min-w-0 flex-1 items-center justify-center gap-3 lg:flex xl:gap-5 2xl:gap-7">
             {PRIMARY_NAV.map((item) => {
               const active = section === item.key;
               const restricted = RESTRICTED.has(item.key);
               return (
-                <button key={item.key} onClick={() => go(item.key)} onMouseEnter={() => play("hover")} className="group relative py-2 shrink-0">
-                  <span className={`text-[0.84rem] uppercase tracking-[0.16em] transition-all duration-300 ${active ? "text-[#e8c992]" : "text-[#8b8577] group-hover:text-[#ece9e0]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600, textShadow: active ? "0 0 18px rgba(216,180,120,0.28)" : "none" }}>
+                <button type="button" key={item.key} onClick={() => go(item.key)} onMouseEnter={() => play("hover")} className="group relative max-w-[7.5rem] shrink py-2 xl:max-w-none">
+                  <span className={`nav-label block text-[0.68rem] uppercase tracking-[0.08em] transition-all duration-300 xl:text-[0.78rem] xl:tracking-[0.12em] 2xl:text-[0.84rem] 2xl:tracking-[0.14em] ${active ? "text-[#c0c0c0]" : "text-[#8b8577] group-hover:text-[#e8e8e8]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600, textShadow: active ? "0 0 18px rgba(170,170,170,0.28)" : "none" }}>
                     {t(item.labelKey, lang)}
                   </span>
                   {restricted && (
-                    <span className="absolute -right-1 -top-0.5 h-1.5 w-1.5 rotate-45" style={{ background: "#c8a76b", boxShadow: "0 0 6px rgba(200,167,107,0.8)" }} />
+                    <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rotate-45" style={{ background: "#3a3a3a", boxShadow: "0 0 8px rgba(90,90,90,0.85)" }} />
                   )}
-                  {active && <span className="absolute bottom-0 left-0 h-px w-full" style={{ background: "linear-gradient(90deg, transparent, #c8a76b 40%, #e8c992 60%, transparent)", boxShadow: "0 0 6px rgba(216,180,120,0.5)" }} />}
-                  {!active && <span className="absolute bottom-0 left-1/2 h-px w-0 -translate-x-1/2 bg-[#c8a76b]/60 transition-all duration-300 group-hover:w-full group-hover:left-0 group-hover:translate-x-0" />}
+                  {active && <span className="absolute bottom-0 left-0 h-px w-full" style={{ background: "linear-gradient(90deg, transparent, #9a9a9a 40%, #c0c0c0 60%, transparent)", boxShadow: "0 0 6px rgba(170,170,170,0.5)" }} />}
+                  {!active && <span className="absolute bottom-0 left-1/2 h-px w-0 -translate-x-1/2 bg-[#9a9a9a]/60 transition-all duration-300 group-hover:left-0 group-hover:w-full group-hover:translate-x-0" />}
                 </button>
               );
             })}
 
             {/* More dropdown */}
             <div ref={moreRef} className="relative shrink-0">
-              <button onClick={() => { setMoreOpen(!moreOpen); play("click"); }} onMouseEnter={() => play("hover")} className="group relative py-2 flex items-center gap-1.5">
-                <span className={`text-[0.84rem] uppercase tracking-[0.16em] transition-all duration-300 ${SECONDARY_NAV.some((s) => s.key === section) || moreOpen ? "text-[#e8c992]" : "text-[#8b8577] group-hover:text-[#ece9e0]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
+              <button type="button" onClick={() => { setMoreOpen(!moreOpen); play("click"); }} onMouseEnter={() => play("hover")} className="group relative flex items-center gap-1 py-2 xl:gap-1.5">
+                <span className={`text-[0.68rem] uppercase tracking-[0.08em] transition-all duration-300 xl:text-[0.78rem] xl:tracking-[0.12em] 2xl:text-[0.84rem] ${SECONDARY_NAV.some((s) => s.key === section) || moreOpen ? "text-[#c0c0c0]" : "text-[#8b8577] group-hover:text-[#e8e8e8]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
                   {t("nav.more", lang)}
                 </span>
-                <ChevronDown size={13} className={`text-[#c8a76b]/70 transition-transform duration-300 ${moreOpen ? "rotate-180" : ""}`} />
-                {(SECONDARY_NAV.some((s) => s.key === section) || moreOpen) && <span className="absolute bottom-0 left-0 h-px w-full" style={{ background: "linear-gradient(90deg, transparent, #c8a76b 40%, #e8c992 60%, transparent)" }} />}
+                <ChevronDown size={13} className={`text-[#9a9a9a]/70 transition-transform duration-300 ${moreOpen ? "rotate-180" : ""}`} />
+                {(SECONDARY_NAV.some((s) => s.key === section) || moreOpen) && <span className="absolute bottom-0 left-0 h-px w-full" style={{ background: "linear-gradient(90deg, transparent, #9a9a9a 40%, #c0c0c0 60%, transparent)" }} />}
               </button>
 
               <AnimatePresence>
@@ -202,23 +241,23 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -6, scale: 0.99 }}
                     transition={{ duration: 0.26, ease: [0.2, 0.7, 0.2, 1] }}
-                    className="absolute left-1/2 -translate-x-1/2 top-full mt-3 min-w-[220px] max-h-[400px] overflow-y-auto scroll-thin rounded-lg border border-[#c8a76b]/15 bg-[#0c0b08]/95 backdrop-blur-xl py-2 shadow-[0_24px_60px_rgba(0,0,0,0.85)]"
+                    className="absolute end-0 top-full z-[120] mt-3 max-h-[min(400px,70vh)] w-[min(260px,calc(100vw-2rem))] overflow-y-auto scroll-thin rounded-lg border border-[#9a9a9a]/15 bg-[#0a0a0a]/95 py-2 shadow-[0_24px_60px_rgba(0,0,0,0.85)] backdrop-blur-xl"
                   >
                     {SECONDARY_NAV.map((item) => {
                       const active = section === item.key;
                       const restricted = RESTRICTED.has(item.key);
                       return (
-                        <button key={item.key} onClick={() => go(item.key)} onMouseEnter={() => play("hover")}
-                          className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-[0.8rem] tracking-[0.08em] transition-colors duration-200 ${active ? "text-[#e8c992] bg-[#c8a76b]/[0.06]" : "text-[#a39d8e] hover:text-[#ece9e0] hover:bg-[#c8a76b]/[0.03]"}`}
+                        <button type="button" key={item.key} onClick={() => go(item.key)} onMouseEnter={() => play("hover")}
+                          className={`flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-[0.8rem] tracking-[0.06em] transition-colors duration-200 ${active ? "bg-[#9a9a9a]/[0.06] text-[#c0c0c0]" : "text-[#8a8a8a] hover:bg-[#9a9a9a]/[0.03] hover:text-[#e8e8e8]"}`}
                           style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
-                          <span>{t(item.labelKey, lang)}</span>
-                          {restricted && <span className="text-[0.44rem] uppercase tracking-[0.18em] text-[#c8a76b]/60" style={{ fontFamily: "var(--font-ibm-mono)" }}>· · ·</span>}
+                          <span className="min-w-0 truncate">{t(item.labelKey, lang)}</span>
+                          {restricted && <span className="shrink-0 text-[0.44rem] uppercase tracking-[0.18em] text-[#9a9a9a]/60" style={{ fontFamily: "var(--font-ibm-mono)" }}>· · ·</span>}
                         </button>
                       );
                     })}
-                    <div className="my-1.5 mx-3 h-px bg-[#c8a76b]/10" />
-                    <button onClick={() => { play("reject"); onLogout(); }} onMouseEnter={() => play("hover")}
-                      className="block w-full px-4 py-2.5 text-left text-[0.8rem] tracking-[0.08em] text-[#57534a] hover:text-[#a39d8e] transition-colors duration-200"
+                    <div className="mx-3 my-1.5 h-px bg-[#9a9a9a]/10" />
+                    <button type="button" onClick={() => { play("reject"); onLogout(); }} onMouseEnter={() => play("hover")}
+                      className="block w-full px-4 py-2.5 text-left text-[0.8rem] tracking-[0.06em] text-[#4a4a4a] transition-colors duration-200 hover:text-[#8a8a8a]"
                       style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
                       {t("nav.logout", lang)}
                     </button>
@@ -228,34 +267,33 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           </div>
 
-          {/* Right: Language + Currency + Sound + Mobile */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Right controls */}
+          <div className="ms-auto flex shrink-0 items-center gap-1.5 sm:gap-2.5">
             {MONEY.includes(section) && (
-              <div className="hidden sm:flex items-center gap-0.5">
+              <div className="hidden items-center gap-0.5 sm:flex">
                 {(["CHF", "USD", "BTC"] as const).map((c) => (
-                  <button key={c} onClick={() => setCurrency(c)} className={`text-[0.66rem] tracking-[0.12em] px-2 py-1 transition-colors duration-250 ${currency === c ? "text-[#e8c992]" : "text-[#57534a] hover:text-[#a39d8e]"}`} style={{ fontFamily: "var(--font-ibm-mono)" }}>{c}</button>
+                  <button type="button" key={c} onClick={() => setCurrency(c)} className={`px-1.5 py-1 text-[0.62rem] tracking-[0.1em] transition-colors duration-250 sm:px-2 sm:text-[0.66rem] ${currency === c ? "text-[#c0c0c0]" : "text-[#4a4a4a] hover:text-[#8a8a8a]"}`} style={{ fontFamily: "var(--font-ibm-mono)" }}>{c}</button>
                 ))}
               </div>
             )}
 
-            {/* Language Switcher */}
-            <button onClick={() => { setLang(lang === "en" ? "ar" : "en"); play("click"); }} onMouseEnter={() => play("hover")} className="flex items-center gap-1.5 text-[0.7rem] tracking-wide text-[#8b8577] hover:text-[#e8c992] transition-colors duration-300 border border-[#c8a76b]/15 rounded-md px-2.5 py-1.5 hover:border-[#c8a76b]/40">
+            <button type="button" onClick={() => { setLang(lang === "en" ? "ar" : "en"); play("click"); }} onMouseEnter={() => play("hover")} className="flex items-center gap-1 rounded-md border border-[#9a9a9a]/15 px-2 py-1.5 text-[0.65rem] tracking-wide text-[#8b8577] transition-colors duration-300 hover:border-[#9a9a9a]/40 hover:text-[#c0c0c0] sm:gap-1.5 sm:px-2.5 sm:text-[0.7rem]">
               <Globe size={13} />
               <span style={{ fontFamily: "var(--font-ibm-mono)" }}>{lang === "en" ? "EN" : "ع"}</span>
             </button>
 
-            <button onClick={toggleSound} onMouseEnter={() => play("hover")} className="text-[#8b8577] hover:text-[#e8c992] transition-colors duration-300" aria-label="Sound">
+            <button type="button" onClick={toggleSound} onMouseEnter={() => play("hover")} className="p-1 text-[#8b8577] transition-colors duration-300 hover:text-[#c0c0c0]" aria-label="Sound">
               {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
             </button>
 
-            <button onClick={() => { setMobileOpen(!mobileOpen); play("click"); }} className="lg:hidden text-[#a39d8e]" aria-label="Menu">
+            <button type="button" onClick={() => { setMobileOpen(!mobileOpen); play("click"); }} className="p-1 text-[#8a8a8a] lg:hidden" aria-label="Menu">
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile / tablet menu (< lg) */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -263,36 +301,34 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-            className="lg:hidden overflow-hidden border-b border-[#c8a76b]/10 bg-[#0a0a08]/95 backdrop-blur-xl"
+            className="overflow-hidden border-b border-[#9a9a9a]/10 bg-[#0a0a0a]/95 backdrop-blur-xl lg:hidden"
           >
-            <div className="px-6 py-6">
-              <div className="mb-3 text-[0.46rem] uppercase tracking-[0.32em] text-[#c8a76b]/60" style={{ fontFamily: "var(--font-ibm-mono)" }}>{lang === "ar" ? "أقسام النادي" : "The House"}</div>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+            <div className="max-h-[min(70vh,560px)] overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
+              <div className="mb-3 text-[0.46rem] uppercase tracking-[0.2em] text-[#9a9a9a]/60 sm:tracking-[0.28em]" style={{ fontFamily: "var(--font-ibm-mono)" }}>{lang === "ar" ? "أقسام النادي" : "The House"}</div>
+              <div className="grid grid-cols-1 gap-x-4 gap-y-0.5 xs:grid-cols-2 sm:grid-cols-2">
                 {[...PRIMARY_NAV, ...SECONDARY_NAV].map((item) => {
                   const on = section === item.key;
                   const restricted = RESTRICTED.has(item.key);
                   return (
-                    <button key={item.key} onClick={() => go(item.key)} className={`relative text-left py-2.5 pr-6 text-[0.92rem] tracking-[0.06em] transition-colors ${on ? "text-[#e8c992]" : "text-[#8b8577]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
-                      {t(item.labelKey, lang)}
-                      {restricted && <span className="absolute right-1 top-1/2 -translate-y-1/2 h-1 w-1 rotate-45" style={{ background: "#c8a76b" }} />}
+                    <button type="button" key={item.key} onClick={() => go(item.key)} className={`relative min-w-0 py-2.5 pe-5 text-start text-[0.88rem] tracking-[0.04em] transition-colors sm:text-[0.92rem] ${on ? "text-[#c0c0c0]" : "text-[#8b8577]"}`} style={{ fontFamily: "var(--font-luxury)", fontWeight: 600 }}>
+                      <span className="block truncate">{t(item.labelKey, lang)}</span>
+                      {restricted && <span className="absolute end-1 top-1/2 h-1 w-1 -translate-y-1/2 rotate-45" style={{ background: "#3a3a3a", boxShadow: "0 0 6px rgba(90,90,90,0.7)" }} />}
                     </button>
                   );
                 })}
               </div>
-              <div className="my-4 h-px bg-[#c8a76b]/10" />
-              <button onClick={() => { play("reject"); onLogout(); }} className="text-left text-[0.92rem] text-[#57534a]" style={{ fontFamily: "var(--font-luxury)" }}>{t("nav.logout", lang)}</button>
+              <div className="my-4 h-px bg-[#9a9a9a]/10" />
+              <button type="button" onClick={() => { play("reject"); onLogout(); }} className="text-start text-[0.92rem] text-[#4a4a4a]" style={{ fontFamily: "var(--font-luxury)" }}>{t("nav.logout", lang)}</button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="relative z-10 flex-1 w-full px-5 py-7 sm:px-8 lg:px-10">
-        <AnimatePresence mode="wait">
-          <motion.div key={section} initial={{ opacity: 0, y: 16, filter: "blur(8px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -10, filter: "blur(6px)" }} transition={{ duration: 0.55, ease: [0.2, 0.7, 0.2, 1] }}>
-            {renderSection()}
-          </motion.div>
-        </AnimatePresence>
+      <main className="relative z-10 w-full min-w-0 flex-1 px-3 py-5 sm:px-5 sm:py-7 md:px-6 lg:px-8 xl:px-10" style={{ pointerEvents: "auto" }}>
+        <div key={section} className="relative z-10 mx-auto w-full min-w-0 max-w-[100rem]" style={{ pointerEvents: "auto" }}>
+          {renderSection()}
+        </div>
       </main>
 
       {/* Status Bar */}

@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "An elite closed circle since 2012. Entry is by covenant, not coincidence.",
 };
 
+const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" dir="ltr">
@@ -21,9 +23,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 }`,
           }}
         />
-        <link rel="preload" href="/images/emblem-intro-aligned.png" as="image" />
+        <link rel="preload" href={`${base}/images/emblem-intro-aligned.png`} as="image" />
       </head>
-      <body className="grain vignette stage-glow min-h-screen bg-[#060604] text-[#ece9e0] antialiased">
+      <body className="grain vignette stage-glow min-h-[100dvh] w-full max-w-[100vw] overflow-x-clip bg-[#050505] text-[#e8e8e8] antialiased">
         {children}
       </body>
     </html>

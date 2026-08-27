@@ -238,21 +238,21 @@ export default function ArchiveSection(_props: { data: AppData }) {
                   className="group relative flex shrink-0 items-center justify-between gap-2 rounded-md border px-3 py-2 transition-all duration-200 lg:w-full"
                   style={{
                     fontFamily: MONO,
-                    borderColor: on ? "rgba(216,180,120,0.45)" : "rgba(255,255,255,0.05)",
-                    background: on ? "rgba(216,180,120,0.10)" : "transparent",
+                    borderColor: on ? "rgba(170,170,170,0.45)" : "rgba(255,255,255,0.05)",
+                    background: on ? "rgba(170,170,170,0.10)" : "transparent",
                   }}
                 >
                   <span
                     className="text-[0.86rem] tracking-wider transition-colors"
-                    style={{ color: on ? "#eaeef5" : "#7a8291", textShadow: on ? "0 0 14px rgba(216,180,120,0.5)" : "none" }}
+                    style={{ color: on ? "#eaeef5" : "#7a8291", textShadow: on ? "0 0 14px rgba(170,170,170,0.5)" : "none" }}
                   >
                     {y}
                   </span>
                   <span
                     className="rounded border px-1.5 py-0.5 text-[0.52rem] transition-colors"
                     style={{
-                      borderColor: on ? "rgba(216,180,120,0.35)" : "rgba(255,255,255,0.08)",
-                      color: on ? "#c3c9d3" : "#5d6675",
+                      borderColor: on ? "rgba(170,170,170,0.35)" : "rgba(255,255,255,0.08)",
+                      color: on ? "#b0b0b0" : "#5d6675",
                     }}
                   >
                     {yearCounts.get(y) ?? 0}
@@ -336,7 +336,7 @@ export default function ArchiveSection(_props: { data: AppData }) {
                           <span className="flex min-w-0 items-center gap-2.5">
                             <span
                               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border"
-                              style={{ borderColor: "rgba(216,180,120,0.25)", background: "rgba(216,180,120,0.07)" }}
+                              style={{ borderColor: "rgba(170,170,170,0.25)", background: "rgba(170,170,170,0.07)" }}
                             >
                               <FileText size={13} className="text-[#9aa3b2]" />
                             </span>
@@ -367,7 +367,7 @@ export default function ArchiveSection(_props: { data: AppData }) {
                 </div>
 
                 {/* عرض الجوال (بطاقات مكدّسة) */}
-                <div className="space-y-2 md:hidden">
+                <div className="w-full min-w-0 space-y-2 md:hidden">
                   <AnimatePresence initial={false}>
                     {files.map((f) => {
                       const mode = modeOf(f.rec.gradeEn);
@@ -388,7 +388,7 @@ export default function ArchiveSection(_props: { data: AppData }) {
                           <div className="flex items-start gap-3">
                             <span
                               className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border"
-                              style={{ borderColor: "rgba(216,180,120,0.25)", background: "rgba(216,180,120,0.07)" }}
+                              style={{ borderColor: "rgba(170,170,170,0.25)", background: "rgba(170,170,170,0.07)" }}
                             >
                               <FileText size={14} className="text-[#9aa3b2]" />
                             </span>
@@ -409,7 +409,7 @@ export default function ArchiveSection(_props: { data: AppData }) {
                           <div className="mt-2.5 flex flex-wrap items-center gap-2 border-t border-white/[0.05] pt-2.5">
                             <span
                               className="rounded border px-2 py-0.5 text-[0.58rem]"
-                              style={{ borderColor: "rgba(216,180,120,0.25)", color: "#a9b2c0" }}
+                              style={{ borderColor: "rgba(170,170,170,0.25)", color: "#a9b2c0" }}
                             >
                               {ar ? f.rec.gradeAr : f.rec.gradeEn}
                             </span>
@@ -472,7 +472,7 @@ function Select({
         value={value}
         onChange={(e) => { onChange(e.target.value); play("click"); }}
         aria-label={label}
-        className="appearance-none rounded-lg border border-white/[0.07] bg-[#0a0b0e] py-2.5 pe-9 ps-3 text-[0.7rem] text-[#c3c9d3] outline-none transition-colors focus:border-white/20"
+        className="appearance-none rounded-lg border border-white/[0.07] bg-[#0a0b0e] py-2.5 pe-9 ps-3 text-[0.7rem] text-[#b0b0b0] outline-none transition-colors focus:border-white/20"
         style={{ fontFamily: MONO }}
       >
         {options.map((o) => (
@@ -518,7 +518,7 @@ function ArchiveDetail({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="mx-auto w-full max-w-5xl"
+      className="mx-auto w-full min-w-0 w-full max-w-5xl"
       dir={ar ? "rtl" : "ltr"}
     >
       <div className="mb-5">
@@ -591,7 +591,7 @@ function ArchiveDetail({
 
           <div className="mt-5">
             <Panel title={t("ar.entries", lang)}>
-              <ul className="space-y-2.5">
+              <ul className="w-full min-w-0 space-y-2.5">
                 {entries.map((e, i) => (
                   <motion.li
                     key={i}
@@ -611,7 +611,7 @@ function ArchiveDetail({
 
         <div>
           <Panel title={t("ar.chain", lang)}>
-            <div className="space-y-4">
+            <div className="w-full min-w-0 space-y-4">
               {chain.map((c, i) => (
                 <div key={i} className="flex gap-3">
                   <span className="w-[68px] shrink-0 pt-0.5 text-[0.42rem] uppercase tracking-[0.14em] text-[#6a7280]" style={{ fontFamily: MONO }}>
