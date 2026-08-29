@@ -3,11 +3,9 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Romantic Couple · The Legacy Keepers",
-  description: "An elite closed circle since 2012. Entry is by covenant, not coincidence.",
+  title: "Legacy Keepers · Gateway",
+  description: "Member access gateway.",
 };
-
-const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -23,7 +21,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 }`,
           }}
         />
-        <link rel="preload" href={`${base}/images/emblem-intro-aligned.png`} as="image" />
+        <link rel="preload" href="/images/emblem-intro-aligned.png" as="image" />
       </head>
       <body className="grain vignette stage-glow min-h-[100dvh] w-full max-w-[100vw] overflow-x-clip bg-[#050505] text-[#e8e8e8] antialiased">
         {children}
