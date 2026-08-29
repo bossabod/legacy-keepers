@@ -52,11 +52,16 @@
   --color-silver-dim: #a39d8e;
   --color-muted-2: #2e2b22;
 
-  /* Fonts */
-  --font-sans: var(--font-ibm-sans), system-ui, sans-serif;
-  --font-mono: var(--font-ibm-mono), ui-monospace, monospace;
-  --font-luxury: var(--font-luxury), "Georgia", "Times New Roman", serif;
-  --font-script: var(--font-script), "Bickham Script Pro", "Snell Roundhand", cursive;
+  /* Fonts — self-hosted via @fontsource (see src/app/layout.tsx).
+     The families are declared first, then the semantic aliases reference them, so
+     the aliases can never end up in a self-referential (invalid) cycle. */
+  --font-ibm-sans: "IBM Plex Sans Arabic", system-ui, -apple-system, sans-serif;
+  --font-ibm-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  --font-luxury: "Cormorant Garamond", "Georgia", "Times New Roman", serif;
+  --font-script: "Tangerine", "Bickham Script Pro", "Snell Roundhand", cursive;
+
+  --font-sans: var(--font-ibm-sans);
+  --font-mono: var(--font-ibm-mono);
 
   /* ===== Unified Design Tokens =====
      One corner-radius scale, one motion language, one elevation

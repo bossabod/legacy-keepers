@@ -1,35 +1,27 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { IBM_Plex_Sans_Arabic, IBM_Plex_Mono, Cormorant_Garamond, Tangerine } from "next/font/google";
+
+/* Fonts are self-hosted through @fontsource instead of next/font/google so the
+   app renders with its real typography offline, behind firewalls and on static
+   hosts (GitHub Pages) where fonts.googleapis.com is not reachable.
+   The CSS custom properties these families map to live in globals.css. */
+import "@fontsource/ibm-plex-sans-arabic/300.css";
+import "@fontsource/ibm-plex-sans-arabic/400.css";
+import "@fontsource/ibm-plex-sans-arabic/500.css";
+import "@fontsource/ibm-plex-sans-arabic/600.css";
+import "@fontsource/ibm-plex-sans-arabic/700.css";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/500.css";
+import "@fontsource/ibm-plex-mono/600.css";
+import "@fontsource/cormorant-garamond/300.css";
+import "@fontsource/cormorant-garamond/400.css";
+import "@fontsource/cormorant-garamond/500.css";
+import "@fontsource/cormorant-garamond/600.css";
+import "@fontsource/cormorant-garamond/700.css";
+import "@fontsource/tangerine/400.css";
+import "@fontsource/tangerine/700.css";
+
 import "./globals.css";
-
-const sans = IBM_Plex_Sans_Arabic({
-  subsets: ["arabic", "latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-ibm-sans",
-  display: "swap",
-});
-
-const mono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-ibm-mono",
-  display: "swap",
-});
-
-const luxury = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-luxury",
-  display: "swap",
-});
-
-const script = Tangerine({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-script",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Romantic Couple · The Legacy Keepers",
@@ -38,7 +30,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" dir="ltr" className={`${sans.variable} ${mono.variable} ${luxury.variable} ${script.variable}`}>
+    <html lang="en" dir="ltr">
       <head>
         <link rel="preload" href="/images/emblem-intro-aligned.png" as="image" />
       </head>
