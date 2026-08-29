@@ -6,12 +6,16 @@ import type { NextConfig } from "next";
    Run it with:  npm run build:static   (see scripts/build-static.mjs) */
 const isStaticExport = process.env.STATIC_EXPORT === "1";
 
+/* Where the static bundle is served from:
+     - default "/legacy-keepers"  -> GitHub Pages project site
+     - "" (STATIC_BASE_PATH=)     -> portable build, serve from the domain root */
+const basePath = process.env.STATIC_BASE_PATH ?? "/legacy-keepers";
+
 const staticExportConfig = {
   output: "export" as const,
   distDir: "out",
-  // GitHub Pages serves project sites from https://<user>.github.io/<repo>/
-  basePath: "/legacy-keepers",
-  assetPrefix: "/legacy-keepers/",
+  basePath: basePath || undefined,
+  assetPrefix: basePath ? `${basePath}/` : undefined,
   images: { unoptimized: true },
   trailingSlash: true,
 };

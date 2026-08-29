@@ -14,3 +14,6 @@ npm-debug.log*
 next-env.d.ts
 out/
 .api-routes.bak/
+
+# portable static build (downloadable artifact)
+out-portable/
