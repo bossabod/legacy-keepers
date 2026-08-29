@@ -101,28 +101,31 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
     >
       <Cursor />
 
-      {/* ====== طبقة الوجه — صورة الوجه فقط (خلفية سوداء + وجه فضي في المنتصف) ====== */}
+      {/* ====== طبقة الوجه — صورة الوجه فقط (خلفية سوداء + وجه فضي في المنتصف) ======
+           هذه الطبقة هي «مرجع الرأس». مركزها وحجمها ونسبتها ثابتة تماماً في كل
+           المراحل (الظهور الأول، التلاشي، الرجوع، التلاشي الأخير):
+             · لا scale / zoom — الحجم والنسبة لا يتغيران أبداً
+             · لا translate / x / y — المركز لا يتحرك أبداً
+             · لا rotate
+           المتغير الوحيد المتحرك هو opacity.
+           (كانت هذه الطبقة تحمل حركة Ken Burns لانهائية scale 1 → 1.03 مدتها 30
+           ثانية، فكان الرأس يكبر ويصغر باستمرار ويرجع بمقياس مختلف عن موضعه
+           الأصلي — حُذفت.) */}
       <motion.div
         className={`absolute inset-0 z-50 bg-black bg-cover bg-center ${
           introStage !== "done" || exitStage !== "idle" ? "pointer-events-auto" : "pointer-events-none"
         }`}
         style={{
           backgroundImage: "url(/images/BD60D113-2836-48F0-A78C-CD8269081B2A.png)",
+          // تثبيت هندسي صريح: نفس المركز ونفس الأبعاد ونفس النسبة في كل الحالات
+          transform: "none",
+          transformOrigin: "center center",
         }}
-        initial={{ opacity: 0, scale: 1 }}
-        animate={{
-          opacity: getEmblemOpacity(),
-          scale: 1.03,
-        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: getEmblemOpacity() }}
         transition={{
           opacity: {
             duration: getEmblemDuration(),
-            ease: "easeInOut",
-          },
-          scale: {
-            duration: 30,
-            repeat: Infinity,
-            repeatType: "reverse",
             ease: "easeInOut",
           },
         }}
