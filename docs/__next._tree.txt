@@ -1,4 +1,4 @@
-:HL["./_next/static/chunks/15r.po37xk.1..css","style"]
+:HL["./_next/static/chunks/0hxhgbelwcuzd.css","style"]
 :HC["/",""]
-:HL["/images/emblem-intro-aligned.png","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}},"staleTime":300,"buildId":"rm0d2UD0QTRA1DBkYKNo9"}
+:HL["./images/emblem-intro-aligned.png","image"]
+0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}},"staleTime":300,"buildId":"cK7wTG4YsA8WXc_Zp9qds"}

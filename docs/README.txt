@@ -5,11 +5,9 @@ Login credentials:
   Membership ID : Q-T-971
   Password      : COVENANT
 
-This build uses RELATIVE asset paths (./_next/...), so it runs from:
-  - a domain root
-  - any sub-folder
-  - a CDN
-Just upload the whole folder. No build step, no database, no server needed.
+This build uses RELATIVE asset paths (./_next/..., ./images/...), so it runs
+from a domain root, any sub-folder, or a CDN. Just upload the whole folder.
+No build step, no database, no server needed.
 
 Local preview:
     cd this-folder && python3 -m http.server 8080

@@ -15,7 +15,16 @@
    ──────────────────────────────────────────────────────────────── */
 
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
@@ -45,6 +54,31 @@ try {
   cpSync(outDir, publishDir, { recursive: true });
   // stop GitHub Pages from running the output through Jekyll
   writeFileSync(join(publishDir, ".nojekyll"), "");
+
+  // 4 — portable builds (no basePath) may sit in any sub-folder, so
+  //     references to public/ files (/images/..., /textures/...) have to be
+  //     relative as well. Next only rewrites /_next/*.
+  if (!process.env.STATIC_BASE_PATH) {
+    let changed = 0;
+    const rewrite = (dir) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const p = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          rewrite(p);
+          continue;
+        }
+        if (!/\.(html|js|mjs|css|json|txt)$/i.test(entry.name)) continue;
+        const before = readFileSync(p, "utf8");
+        const after = before.replace(/(["'(=])\/(images|textures)\//g, "$1./$2/");
+        if (after !== before) {
+          writeFileSync(p, after);
+          changed += 1;
+        }
+      }
+    };
+    rewrite(publishDir);
+    console.log(`   relative public paths: ${changed} files rewritten`);
+  }
 
   console.log(`\n✅ Static site written to ${process.env.STATIC_OUT_DIR || "docs"}`);
 } finally {
