@@ -6,16 +6,20 @@ import type { NextConfig } from "next";
    Run it with:  npm run build:static   (see scripts/build-static.mjs) */
 const isStaticExport = process.env.STATIC_EXPORT === "1";
 
-/* Where the static bundle is served from:
-     - default "/legacy-keepers"  -> GitHub Pages project site
-     - "" (STATIC_BASE_PATH=)     -> portable build, serve from the domain root */
-const basePath = process.env.STATIC_BASE_PATH ?? "/legacy-keepers";
+/* Where the static bundle is served from.
+   Default "" -> relative asset urls (./_next/...), which makes the export
+   portable: it runs from a domain root, from ANY sub-folder, or from a CDN.
+   Set STATIC_BASE_PATH=/legacy-keepers for absolute, sub-path-pinned urls. */
+const basePath = process.env.STATIC_BASE_PATH ?? "";
 
 const staticExportConfig = {
   output: "export" as const,
   distDir: "out",
   basePath: basePath || undefined,
-  assetPrefix: basePath ? `${basePath}/` : undefined,
+  // With no basePath the bundle is meant to be portable, so emit RELATIVE
+  // asset urls (./_next/...) — that way it runs from any sub-folder or CDN,
+  // not just from a domain root.
+  assetPrefix: basePath ? `${basePath}/` : "./",
   images: { unoptimized: true },
   trailingSlash: true,
 };

@@ -17,3 +17,4 @@ out/
 
 # portable static build (downloadable artifact)
 out-portable/
+out-rel/
