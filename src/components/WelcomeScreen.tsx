@@ -196,13 +196,13 @@ export default function WelcomeScreen({ onEnter }: { onEnter: () => void }) {
             >
               <h1
                 style={{
-                  fontFamily: "var(--font-luxury)",
+                  fontFamily: "var(--font-ibm-sans)",
                   fontWeight: 600,
                   fontSize: "clamp(2rem, 4.6vw, 4rem)",
                   lineHeight: 1.05,
                   letterSpacing: "0.14em",
                   textTransform: "uppercase",
-                  color: "#191b1f",
+                  color: "#e8e4d9",
                   textShadow: "0 1px 3px rgba(0,0,0,0.75), 0 0 1px rgba(0,0,0,0.9)",
                 }}
               >
