@@ -1,125 +1,22 @@
-# Romantic Couple · The Legacy Keepers
+# SUFFETE Intelligent Systems
 
-> An elite closed circle since 2012. Entry is by covenant, not coincidence.
+موقع الشركة مع تجربة إدارة المخزون وصفحة إرسال الأفكار. المشروع الحالي نسخة تجريبية، وليس جاهزاً لاستقبال بيانات العملاء الحقيقية دون مراجعة أمنية واستضافة مناسبة.
 
-واجهة ويب فخمة ثنائية اللغة (عربي / إنجليزي) لنادٍ مغلق — لوحة تحكم تفاعلية مع كرة أرضية ثلاثية الأبعاد و17 قسم.
+## تشغيل محلي
 
----
-
-## التقنيات
-
-| الطبقة | التقنية |
-|---|---|
-| الإطار | Next.js 16.2.6 (Turbopack) |
-| الواجهة | React 19.2.6 + TypeScript 5.9 |
-| التنسيق | Tailwind CSS v4 |
-| الحركة | Framer Motion 12 |
-| الخرائط | MapLibre GL 6 + Terra Draw |
-| قاعدة البيانات | PostgreSQL + Drizzle ORM 0.45 |
-| الخطوط | IBM Plex Sans Arabic · IBM Plex Mono · Cormorant Garamond · Tangerine |
-
----
-
-## التشغيل محلياً
+يتطلب Python 3 و `openpyxl`:
 
 ```bash
-npm install
-npm run dev
+python -m pip install -r requirements.txt
+python server.py
 ```
 
-ثم افتح <http://localhost:3000>
+افتح `http://localhost:8001`.
 
-### الأوامر المتاحة
+## النشر على GitHub
 
-```bash
-npm run dev        # تشغيل بيئة التطوير
-npm run build      # بناء نسخة الإنتاج
-npm run start      # تشغيل نسخة الإنتاج
-npm run lint       # فحص ESLint
-npm run typecheck  # فحص أنواع TypeScript
-```
+يمكن رفع ملفات المشروع إلى مستودع GitHub. **GitHub Pages يستضيف الملفات الثابتة فقط** ولا يشغّل خادم Python أو قاعدة البيانات. لذلك لن يعمل حفظ نماذج الأفكار، مراجعة الطلبات أو إنشاء روابط تنزيل Excel عبر الخادم على Pages وحده. لتشغيل هذه الميزات يلزم نشر `server.py` و `idea_api.py` على استضافة تدعم Python وربط الموقع بها بإعدادات آمنة.
 
----
+تستخدم قاعدة بيانات الأفكار ومفتاح الإدارة مساراً محلياً خارج مجلد الموقع في نسخة المعاينة. قبل النشر الحقيقي يلزم تعديل إعدادات التخزين لتناسب بيئة الاستضافة، وتعيين مفتاح إدارة قوي باستخدام متغير البيئة `SUFFETE_IDEA_ADMIN_KEY`، وتأمين المصادقة، والمرفقات، والنسخ الاحتياطي، والإشعارات، وسياسة الخصوصية. لا ترفع المفاتيح أو قاعدة البيانات أو بيانات العملاء إلى GitHub.
 
-## قاعدة البيانات (اختياري)
-
-المشروع يعمل بدون قاعدة بيانات — يرجع تلقائياً إلى `src/lib/fallback-data.ts`.
-
-لتفعيل PostgreSQL:
-
-```bash
-# 1. حدّث رابط الاتصال في drizzle.config.json
-# 2. ادفع المخطط
-npx drizzle-kit push
-
-# 3. عبّئ البيانات الأولية
-node scripts/seed.mjs
-```
-
----
-
-## هيكل المشروع
-
-```
-src/
-├── app/
-│   ├── page.tsx              # التدفق: welcome → login → loading → dashboard
-│   ├── layout.tsx            # الخطوط + الميتاداتا
-│   ├── globals.css           # أنماط Tailwind + التأثيرات
-│   └── api/
-│       ├── data/route.ts     # جلب البيانات
-│       └── health/route.ts   # فحص الحالة
-│
-├── components/
-│   ├── WelcomeScreen.tsx     # شاشة الترحيب
-│   ├── LoginScreen.tsx       # شاشة الدخول
-│   ├── LoadingScreen.tsx     # شاشة التحميل
-│   ├── Dashboard.tsx         # الهيكل الرئيسي
-│   ├── GlobalCommandGlobe.tsx# الكرة الأرضية التفاعلية
-│   ├── brand.tsx             # الهوية البصرية
-│   ├── design-system/        # Button · Badge · Panel · Input · Tooltip …
-│   ├── search/               # البحث الشامل
-│   └── sections/             # 17 قسم
-│
-├── lib/
-│   ├── store.tsx             # إدارة الحالة
-│   ├── i18n.ts               # الترجمة (عربي / إنجليزي)
-│   ├── theme.ts              # نظام الألوان
-│   ├── earth-data.ts         # بيانات جغرافية
-│   ├── world-polygons.ts     # حدود الدول
-│   ├── fallback-data.ts      # بيانات احتياطية
-│   └── entities/             # الكيانات والتحليلات
-│
-├── db/
-│   ├── schema.ts             # مخطط Drizzle
-│   └── index.ts              # الاتصال
-│
-└── hooks/                    # useFps · useGeoCoordinates
-```
-
----
-
-## الأقسام السبعة عشر
-
-الرئيسية · الشبكة · المشاريع · الرسائل · الأرشيف · الخدمات · الاستثمارات · الأعضاء · المدفوعات · النشاط · التقارير · سلم الأثر · أصحاب الأثر · القواعد · الأهداف · الفواتير · الخزنة
-
----
-
-## ملاحظات
-
-- **الشعار مفقود:** الكود يستدعي `/images/emblem-intro-aligned.png` — أضف مجلد `public/images/` وضع الشعار فيه، أو احذف سطر `<link rel="preload">` من `src/app/layout.tsx`.
-- المشروع يعمل بالكامل بدون قاعدة بيانات بفضل البيانات الاحتياطية.
-
----
-
-## SUFFETE Intelligent Systems
-
-أُضيفت ملفات موقع SUFFETE التجريبي، بما فيها الواجهة والصور وخادم Python، في مجلد [`suffete/`](suffete/) دون استبدال مشروع Next.js الحالي.
-
-للتشغيل من جذر المستودع، انتقل إلى `suffete/` ثم اتبع [تعليمات التشغيل وملاحظات النشر](suffete/README.md). هذه نسخة تجريبية؛ GitHub Pages وحده لا يشغّل خادم Python وحفظ نماذج الأفكار.
-
----
-
-## الترخيص
-
-خاص — جميع الحقوق محفوظة.
+رمز السجل الإداري في تجربة المخزون مجرد محاكاة داخل المتصفح، وليس حماية حقيقية.

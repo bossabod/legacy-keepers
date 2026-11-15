@@ -6,7 +6,7 @@ from threading import Lock, Timer
 from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
-import json, os, secrets, time, re
+import json, secrets, time, re
 import idea_api
 
 files = {}
@@ -16,9 +16,6 @@ MAX_REQUEST = 1_000_000
 PUBLIC_FILES={'/','/index.html','/demo.html','/idea.html','/ideas-admin.html','/upgrade.js','/export.js','/logo.png','/hero.png','/factory-hero.jpeg','/factory-hero-toned.jpg','/barcode-demo.svg'}
 
 class Handler(SimpleHTTPRequestHandler):
-    # Keep connections compatible with reverse-proxy preview hosting.
-    protocol_version = 'HTTP/1.1'
-
     def end_headers(self):
         self.send_header('X-Content-Type-Options', 'nosniff')
         if self.path.split('?',1)[0].endswith(('.js', '.html', '/')):
@@ -91,6 +88,4 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(404); return
         super().do_HEAD()
 
-if __name__=='__main__':
-    port = int(os.environ.get('PORT', '8001'))
-    ThreadingHTTPServer(('0.0.0.0', port), Handler).serve_forever()
+if __name__=='__main__': ThreadingHTTPServer(('0.0.0.0',8001),Handler).serve_forever()
